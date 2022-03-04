@@ -1,0 +1,1 @@
+sudo bash local.sh configs/segmenter/segmenter-pixemb_vit-b16_512x512_160k_ade20k.py

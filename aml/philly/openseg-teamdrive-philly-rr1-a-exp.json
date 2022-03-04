@@ -1,0 +1,49 @@
+{
+    "version": "2019-09-20",
+    "metadata": {
+        "name": "blobfuse-mmdetection-ocrnet_r101-d8_512x1024_40k_cityscapes",
+        "cluster": "rr1",
+        "vc": "resrchprojvc15"
+    },
+    "environmentVariables": {
+	"NCCL_IB_DISABLE": "0",
+	"NCCL_SOCKET_IFNAME": "ib0",
+    "NCCL_DEBUG": "INFO",
+    "CUDA_CACHE_DISABLE": "1" 
+    },
+    "resources": {
+        "workers": {
+            "type": "skuResource",
+            "sku": "G8",
+            "count": 1,
+            "image": "rainbowsecret/pytorch1.5.1:latest",
+            "commandLine": "cd /teamdrive/yuyua/code/segmentation/mmsegmentation && bash tools/dist_train.sh configs/ocrnet/ocrnet_r101-d8_512x1024_40k_cityscapes.py 8",
+            "constraints": [
+                {
+                    "type": "uniqueConstraint",
+                    "tag": "connectivityDomain"
+                }
+            ],
+            "containerArgs": {
+                "shmSize": "400G"
+            }
+        }
+    },
+    "volumes": {
+        "codeblob": {
+            "type": "blobfuseVolume",
+            "storageAccount": "msravcshare",
+            "containerName": "teamdrive",
+            "path": "/teamdrive"
+        }
+    },
+    "credentials": {
+        "storageAccounts": {
+            "msravcshare": {
+                "key": "7DRoCM8UEzJzsRnrTRgUwUdO64gn9RHZurnw1PxWDAsTzGaP5BmLfvpDT1xeqAOw3gnIghsvMli7ekkYT6sZlw=="
+            }
+        }
+    }
+}
+
+// curl -k --ntlm --user yuyua -X POST -H "Content-Type: application/json" --data @philly/openseg-teamdrive-philly-rr1-a-exp.json https://philly/api/jobs
