@@ -107,9 +107,11 @@ class MaskTransformerPixEmbedHead(BaseDecodeHead):
         B, HW, N = masks.size()
 
         masks = masks.view(B, H, W, N).permute(0, 3, 1, 2)
-        patches = patches.view(B, H, W, C).permute(0, 3, 1, 2)
-
-        return masks, patches
+        if self.training:
+            patches = patches.view(B, H, W, C).permute(0, 3, 1, 2)
+            return masks, patches
+        else:
+            return masks
 
     def forward_train(self, inputs, img_metas, gt_semantic_seg, train_cfg):
         seg_logits, features = self.forward(inputs)

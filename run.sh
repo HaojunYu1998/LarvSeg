@@ -1,1 +1,1 @@
-sudo bash local.sh configs/segmenter/segmenter-pixemb_vit-b16_512x512_160k_ade20k.py
+sudo bash local.sh configs/segmenter/segmenter-pixemb_vit-b16_512x512_160k_ade20k_2_samples_per_gpu.py
