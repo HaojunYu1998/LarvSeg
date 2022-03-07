@@ -1,4 +1,6 @@
+from genericpath import exists
 import math
+import os
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
@@ -35,6 +37,7 @@ class MaskTransformerPixEmbedHead(BaseDecodeHead):
         drop_path_rate,
         dropout,
         cls_emb_from_backbone=False,
+        pixemb_before_attn=False,
         **kwargs,
     ):
         # in_channels & channels are dummy arguments to satisfy signature of
@@ -53,6 +56,7 @@ class MaskTransformerPixEmbedHead(BaseDecodeHead):
         self.d_model = d_model
         self.d_ff = d_ff
         self.scale = d_model**-0.5
+        self.pixemb_before_attn = pixemb_before_attn
 
         dpr = [x.item() for x in torch.linspace(0, drop_path_rate, n_layers)]
         self.blocks = nn.ModuleList([
@@ -73,6 +77,13 @@ class MaskTransformerPixEmbedHead(BaseDecodeHead):
         self.decoder_norm = nn.LayerNorm(d_model)
         self.mask_norm = nn.LayerNorm(n_cls)
 
+        if self.pixemb_before_attn:
+            self.pixemb_blocks = nn.ModuleList([
+                Block(d_model, n_heads, d_ff, dropout, dpr[i])
+                for i in range(n_layers)
+            ])
+            self.pixemb_norm = nn.LayerNorm(d_model)
+
     def init_weights(self):
         self.apply(init_weights)
         if not self.cls_emb_from_backbone:
@@ -86,6 +97,13 @@ class MaskTransformerPixEmbedHead(BaseDecodeHead):
         x = self._transform_inputs(x)
         B, C, H, W = x.size()
         x = x.view(B, C, -1).permute(0, 2, 1)
+
+        if self.pixemb_before_attn:
+            emb = x.clone() # (B, H * W, C)
+            for blk in self.pixemb_blocks:
+                emb = blk(emb)
+            emb = self.pixemb_norm(emb)
+            emb = emb / emb.norm(dim=-1, keepdim=True)
 
         x = self.proj_dec(x)
         x = torch.cat((x, cls_emb), 1)
@@ -107,11 +125,11 @@ class MaskTransformerPixEmbedHead(BaseDecodeHead):
         B, HW, N = masks.size()
 
         masks = masks.view(B, H, W, N).permute(0, 3, 1, 2)
-        if self.training:
-            patches = patches.view(B, H, W, C).permute(0, 3, 1, 2)
-            return masks, patches
-        else:
-            return masks
+        # patches = patches.view(B, H, W, C).permute(0, 3, 1, 2)
+        if not self.pixemb_before_attn:
+            emb = patches.clone()
+        emb = emb.view(B, H, W, C).permute(0, 3, 1, 2)
+        return masks, emb
 
     def forward_train(self, inputs, img_metas, gt_semantic_seg, train_cfg):
         seg_logits, features = self.forward(inputs)
@@ -120,6 +138,34 @@ class MaskTransformerPixEmbedHead(BaseDecodeHead):
             self.pix_embed_losses(features, gt_semantic_seg)
         )
         return losses
+
+    def forward_test(self, inputs, img_metas, test_cfg):
+        seg_logits, features = self.forward(inputs)
+        # save feature map
+        save_feature_dir = test_cfg.get("save_feature_dir", None)
+        if save_feature_dir is not None:
+            save_feature_dir = os.path.join(os.getcwd(), save_feature_dir)
+            os.makedirs(save_feature_dir, exist_ok=True)
+            ori_filename = img_metas[0]["ori_filename"]
+            save_path = os.path.join(
+                save_feature_dir, ori_filename.replace(".jpg", ".pth")
+            )
+            torch.save(
+                features.detach().cpu().half(), save_path
+            )
+        # save logits
+        save_logit_dir = test_cfg.get("save_logit_dir", None)
+        if save_logit_dir is not None:
+            save_logit_dir = os.path.join(os.getcwd(), save_logit_dir)
+            os.makedirs(save_logit_dir, exist_ok=True)
+            ori_filename = img_metas[0]["ori_filename"]
+            save_path = os.path.join(
+                save_logit_dir, ori_filename.replace(".jpg", ".pth")
+            )
+            torch.save(
+                seg_logits.detach().cpu().half(), save_path
+            )
+        return seg_logits
 
     def pix_embed_losses(self, seg_feature, seg_label):
         """

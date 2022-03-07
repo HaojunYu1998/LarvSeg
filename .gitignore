@@ -124,3 +124,5 @@ mmseg/.mim
 *.npz
 work_dirs
 aml
+wandb
+notebook
