@@ -1,6 +1,8 @@
 from genericpath import exists
+import random
 import math
 import os
+from importlib_metadata import requires
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
@@ -9,6 +11,10 @@ from torch.nn.init import trunc_normal_
 
 from ..builder import HEADS
 from .decode_head import BaseDecodeHead
+from ..losses.accuracy import accuracy
+from mmseg.ops import resize
+from mmcv.runner import force_fp32
+
 from timm.models.layers import DropPath
 from mmcv.runner import get_dist_info
 
@@ -39,6 +45,7 @@ class MaskTransformerPropagationHead(BaseDecodeHead):
         dropout,
         cls_emb_from_backbone=False,
         cls_emb_path="",
+        downsample_rate=8,
         **kwargs,
     ):
         # in_channels & channels are dummy arguments to satisfy signature of
@@ -57,6 +64,7 @@ class MaskTransformerPropagationHead(BaseDecodeHead):
         self.d_model = d_model
         self.d_ff = d_ff
         self.scale = d_model**-0.5
+        self.downsample_rate = downsample_rate
 
         dpr = [x.item() for x in torch.linspace(0, drop_path_rate, n_layers)]
         self.blocks = nn.ModuleList([
@@ -122,15 +130,93 @@ class MaskTransformerPropagationHead(BaseDecodeHead):
         B, HW, N = masks.size()
 
         masks = masks.view(B, H, W, N).permute(0, 3, 1, 2)
-        return masks
+        patches = patches.view(B, H, W, C).permute(0, 3, 1, 2)
+        return masks, patches
 
     def forward_train(self, inputs, img_metas, gt_semantic_seg, train_cfg):
-        masks = self.forward(inputs)
-        losses = self.losses(masks, gt_semantic_seg)
-        # losses.update(
-        #     self.pix_embed_losses(embeds, gt_semantic_seg)
-        # )
+        masks, patches = self.forward(inputs)
+        losses = self.losses(masks, patches, gt_semantic_seg)
         return losses
+
+    @force_fp32(apply_to=('seg_logit', ))
+    def losses(self, seg_logit, seg_feat, seg_label):
+        """Compute segmentation loss."""
+        loss = dict()
+        h = seg_label.shape[-2] // self.downsample_rate
+        w = seg_label.shape[-1] // self.downsample_rate
+        seg_logit = resize(
+            input=seg_logit,
+            size=(h, w),
+            mode='bilinear',
+            align_corners=self.align_corners
+        )
+        seg_feat = resize(
+            input=seg_feat,
+            size=(h, w),
+            mode='bilinear',
+            align_corners=self.align_corners
+        )
+        seg_label = resize(
+            input=seg_label.float(),
+            size=(h, w),
+            mode='nearest'
+        ).long()
+
+        B, N, H, W = seg_logit.shape
+        assert self.sampler is not None
+        pos_bucket, prior_buckets = self.sampler.sample(seg_logit, seg_label)
+        seg_weight = None
+        seg_label = seg_label.squeeze(1)
+        
+        seg_logit = seg_logit.permute(0, 2, 3, 1).reshape(B * H * W, N)
+        seg_label = seg_label.reshape(B * H * W)
+        if len(prior_buckets) == 0:
+            loss['loss_prior'] = torch.tensor(
+                0, dtype=seg_logit.dtype, device=seg_logit.device, requires_grad=True
+            )
+            loss['loss_mask'] = torch.tensor(
+                0, dtype=seg_logit.dtype, device=seg_logit.device, requires_grad=True
+            )
+        else:
+            prior_inds = torch.cat(prior_buckets)
+            loss['loss_prior'] = self.loss_decode(
+                seg_logit[prior_inds],
+                seg_label[prior_inds],
+                weight=seg_weight,
+                ignore_index=self.ignore_index)
+            loss['loss_mask'] = self.propagation_loss(
+                seg_feat, pos_bucket, prior_buckets
+            )
+        loss['acc_seg'] = accuracy(seg_logit, seg_label)
+        return loss
+
+    def propagation_loss(
+        self, seg_feat, pos_bucket, prior_buckets, 
+        tau=10, sample_num=500, loss_weight=1
+    ):
+        """
+        Params:
+            seg_logit: (B * H * W, N)
+            seg_feat: (B, C, H, W)
+            cls_feat: (B, N, C)
+        """
+        B, C, H, W = seg_feat.shape
+        seg_feat = seg_feat.permute(0, 2, 3, 1).reshape(B * H * W, C)
+        seg_feat = seg_feat / seg_feat.norm(dim=-1, keepdim=True)
+        similarity = torch.tensor(
+            0, dtype=seg_feat.dtype, device=seg_feat.device, requires_grad=True
+        )
+        valid_num = 0
+        for pos_inds, prior_inds in zip(pos_bucket, prior_buckets):
+            prior_inds = prior_inds.tolist()
+            pos_inds = list(set(pos_inds.tolist()) - set(prior_inds))
+            pos_inds = random.sample(pos_inds, min(sample_num, len(pos_inds)))
+            if len(pos_inds) == 0:
+                continue
+            cos_sim = seg_feat[prior_inds] @ seg_feat[pos_inds].transpose(0, 1)
+            similarity = similarity + cos_sim.mean()
+            valid_num += 1
+        return 1 - (similarity / max(valid_num, 1))
 
     @staticmethod
     def _get_batch_hist_vector(target, nclass):
