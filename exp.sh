@@ -20,10 +20,10 @@ elif [[ "$@" =~ .*ade20k.* ]]; then
 #     ROOT=/haojun_storage/datasets/original_cityscapes_minimal
 elif [[ "$@" =~ .*pascal_context.* ]]; then
     ROOT=/haojun_storage/datasets/VOCdevkit/VOC2010
-# elif [[ "$@" =~ .*coco-stuff10k.* ]]; then
-#     ROOT=/haojun_storage/datasets/coco_stuff_10k/coco_stuff10k
-elif [[ "$@" =~ .*lvis.* ]]; then
+elif [[ "$@" =~ .*coco-stuff164k.* ]]; then
     ROOT=/haojun_storage/datasets/coco2017
+# elif [[ "$@" =~ .*lvis.* ]]; then
+#     ROOT=/haojun_storage/datasets/coco2017
 else
     echo unsupported config $@
     exit 1

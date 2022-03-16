@@ -99,11 +99,11 @@ class MaskTransformerPixEmbedHead(BaseDecodeHead):
         x = x.view(B, C, -1).permute(0, 2, 1)
 
         if self.pixemb_before_attn:
-            emb = x.clone() # (B, H * W, C)
+            embeds = x.clone() # (B, H * W, C)
             for blk in self.pixemb_blocks:
-                emb = blk(emb)
-            emb = self.pixemb_norm(emb)
-            emb = emb / emb.norm(dim=-1, keepdim=True)
+                embeds = blk(embeds)
+            embeds = self.pixemb_norm(embeds)
+            embeds = embeds / embeds.norm(dim=-1, keepdim=True)
 
         x = self.proj_dec(x)
         x = torch.cat((x, cls_emb), 1)
@@ -121,26 +121,36 @@ class MaskTransformerPixEmbedHead(BaseDecodeHead):
         cls_seg_feat = cls_seg_feat / cls_seg_feat.norm(dim=-1, keepdim=True)
 
         masks = patches @ cls_seg_feat.transpose(1, 2)
+        logits = masks.clone()
         masks = self.mask_norm(masks)
         B, HW, N = masks.size()
 
         masks = masks.view(B, H, W, N).permute(0, 3, 1, 2)
         # patches = patches.view(B, H, W, C).permute(0, 3, 1, 2)
         if not self.pixemb_before_attn:
-            emb = patches.clone()
-        emb = emb.view(B, H, W, C).permute(0, 3, 1, 2)
-        return masks, emb
+            embeds = patches.clone()
+        embeds = embeds.view(B, H, W, C).permute(0, 3, 1, 2)
+        return masks, logits, embeds
 
     def forward_train(self, inputs, img_metas, gt_semantic_seg, train_cfg):
-        seg_logits, features = self.forward(inputs)
-        losses = self.losses(seg_logits, gt_semantic_seg)
+        masks, logits, embeds = self.forward(inputs)
+        losses = self.losses(masks, gt_semantic_seg)
         losses.update(
-            self.pix_embed_losses(features, gt_semantic_seg)
+            self.pix_embed_losses(embeds, gt_semantic_seg)
         )
         return losses
 
     def forward_test(self, inputs, img_metas, test_cfg):
-        seg_logits, features = self.forward(inputs)
+        masks, logits, embeds = self.forward(inputs)
+        thresh_file = test_cfg.get("logit_thresh", None)
+        if thresh_file is not None:
+            device = masks.device
+            thresh = torch.load(thresh_file).to(device)[:, None, None]
+            mask_list = []
+            for mask, embed in zip(masks, embeds):
+                mask = self.graph_cut_inference(mask, embed, thresh)
+                mask_list.append(mask) # N, H, W
+            masks = torch.stack(mask_list, dim=0).to(device)
         # save feature map
         save_feature_dir = test_cfg.get("save_feature_dir", None)
         if save_feature_dir is not None:
@@ -151,7 +161,7 @@ class MaskTransformerPixEmbedHead(BaseDecodeHead):
                 save_feature_dir, ori_filename.replace(".jpg", ".pth")
             )
             torch.save(
-                features.detach().cpu().half(), save_path
+                embeds.detach().cpu().half(), save_path
             )
         # save logits
         save_logit_dir = test_cfg.get("save_logit_dir", None)
@@ -163,9 +173,41 @@ class MaskTransformerPixEmbedHead(BaseDecodeHead):
                 save_logit_dir, ori_filename.replace(".jpg", ".pth")
             )
             torch.save(
-                seg_logits.detach().cpu().half(), save_path
+                logits.detach().cpu().half(), save_path
             )
-        return seg_logits
+        return masks
+
+    def graph_cut_inference(self, logit, pix_embedding, thresh):
+        """
+        Params:
+            logit: N, H, W
+            pix_embedding: C, H, W
+            thresh: N, 1, 1
+        """
+        N, H, W = logit.shape
+        # thresh = logit.reshape(N, -1).topk(100, dim=1).values[:, -1][:, None, None]
+        valid_masks = logit > thresh
+        # max_mask = logit == logit.max(dim=0).values[None]
+        # valid_masks = valid_masks & max_mask
+        # logit[~valid_masks] = -float("inf")
+        # ignore = torch.zeros_like(logit)[[0]] - 100.0
+        # return torch.cat([logit, ignore], dim=0)
+        # (H * W, C)
+        pix_embedding = pix_embedding.reshape(-1, H * W).transpose(0, 1)
+        cos_sims = []
+        for valid_mask in valid_masks:
+            if not valid_mask.any():
+                continue
+            cos_sim = pix_embedding[valid_mask.flatten()] @ pix_embedding.T
+            cos_sim = cos_sim.max(dim=0).values
+            cos_sims.append(cos_sim)
+        # (N_valid, H * W) => (H, W)
+        pred = torch.stack(cos_sims, dim=0).argmax(dim=0).reshape(H, W)
+        full_perd = torch.zeros(N, H, W).to(logit.device)
+        valid_cls = valid_masks.sum(dim=[1,2]).nonzero(as_tuple=False).flatten()
+        for i, cls in enumerate(valid_cls):
+            full_perd[cls] = (pred == i).float()
+        return full_perd
 
     def pix_embed_losses(self, seg_feature, seg_label):
         """

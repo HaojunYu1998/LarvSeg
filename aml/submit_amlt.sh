@@ -1,1 +1,1 @@
-python submit_imagenet_itp.py --cluster asia1 --model mmseg --k segmenter_pixemb_vit_b16_512x512_160k_ade20k
+python submit_imagenet_itp.py --cluster asia1 --model mmseg --k segmenter_pixemb_before_attn_vit_b16_512x512_160k_ade20k

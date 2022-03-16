@@ -19,7 +19,7 @@ read -d '' CMD <<EOF
 export CUDA_VISIBLE_DEVICES=0,1,2,3
 ln -s /mdata/ade /data/ade
 ln -s /mdata/ade20k_full /data/ade20k_full
-ln -s /mdata/coco /data/coco
+ln -s /mdata/coco_stuff164k /data/coco_stuff164k
 
 cd /workspace
 if $TASK_IS_EXPERIMENT; then
@@ -46,7 +46,7 @@ sudo nvidia-docker run \
     -v "$PWD":/workspace \
     -v ~/itesea4data/datasets/ADEChallengeData2016:/mdata/ade/ADEChallengeData2016/ \
     -v ~/itesea4data/datasets/ADE20K_2021_17_01:/mdata/ade20k_full \
-    -v ~/itesea4data/datasets/coco2017:/mdata/coco \
+    -v ~/itesea4data/datasets/coco_stuff164k:/mdata/coco_stuff164k \
     -v /mnt:/mnt \
     -u $(id -u):$(id -g) \
     "${IMAGE}" \
