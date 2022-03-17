@@ -74,15 +74,16 @@ class MaskTransformerPropagationHead(BaseDecodeHead):
 
         self.cls_emb_from_backbone = cls_emb_from_backbone
         if not cls_emb_from_backbone:
-            rank, _ = get_dist_info()
-            if rank == 0:
-                self.cls_emb = torch.load(cls_emb_path, map_location="cpu")
-            torch.cuda.synchronize()
-            if rank != 0: 
-                self.cls_emb = torch.load(cls_emb_path, map_location="cpu")
-            torch.cuda.synchronize()
-            self.cls_emb = self.cls_emb[: self.n_cls].reshape(
-                1, self.n_cls, self.d_model).to(torch.device(f"cuda:{rank}"))
+            # rank, _ = get_dist_info()
+            # if rank == 0:
+            #     self.cls_emb = torch.load(cls_emb_path, map_location="cpu")
+            # # torch.cuda.synchronize()
+            # if rank != 0: 
+            #     self.cls_emb = torch.load(cls_emb_path, map_location="cpu")
+            # # torch.cuda.synchronize()
+            # self.cls_emb = self.cls_emb[: self.n_cls].reshape(
+            #     1, self.n_cls, self.d_model).to(torch.device(f"cuda:{rank}"))
+            self.cls_emb = torch.load(cls_emb_path, map_location="cpu")
             self.cls_emb.requires_grad = False
 
         self.proj_dec = nn.Linear(d_encoder, d_model)
@@ -106,6 +107,7 @@ class MaskTransformerPropagationHead(BaseDecodeHead):
         else:
             cls_emb = self.cls_emb.expand(x.size(0), -1, -1)
         x = self._transform_inputs(x)
+        cls_emb = cls_emb.to(x.device)
         B, C, H, W = x.size()
         x = x.view(B, C, -1).permute(0, 2, 1)
 
@@ -163,11 +165,9 @@ class MaskTransformerPropagationHead(BaseDecodeHead):
         ).long()
 
         B, N, H, W = seg_logit.shape
-        assert self.sampler is not None
-        pos_bucket, prior_buckets = self.sampler.sample(seg_logit, seg_label)
+        pos_bucket, prior_buckets = self._sample(seg_logit, seg_label)
         seg_weight = None
         seg_label = seg_label.squeeze(1)
-        
         seg_logit = seg_logit.permute(0, 2, 3, 1).reshape(B * H * W, N)
         seg_label = seg_label.reshape(B * H * W)
         if len(prior_buckets) == 0:
@@ -187,18 +187,19 @@ class MaskTransformerPropagationHead(BaseDecodeHead):
             loss['loss_mask'] = self.propagation_loss(
                 seg_feat, pos_bucket, prior_buckets
             )
+            # print(loss['loss_prior'], loss['loss_mask'])
         loss['acc_seg'] = accuracy(seg_logit, seg_label)
         return loss
 
     def propagation_loss(
         self, seg_feat, pos_bucket, prior_buckets, 
-        tau=10, sample_num=500, loss_weight=1
+        sample_num=500, loss_weight=1
     ):
         """
-        Params:
-            seg_logit: (B * H * W, N)
-            seg_feat: (B, C, H, W)
-            cls_feat: (B, N, C)
+        Args:
+            seg_logit (torch.Tensor): segmentation logits, shape (B * H * W, N)
+            seg_feat (torch.Tensor): segmentation feature, shape (B, C, H, W)
+            cls_feat (torch.Tensor): (B, N, C)
         """
         B, C, H, W = seg_feat.shape
         seg_feat = seg_feat.permute(0, 2, 3, 1).reshape(B * H * W, C)
@@ -210,13 +211,59 @@ class MaskTransformerPropagationHead(BaseDecodeHead):
         for pos_inds, prior_inds in zip(pos_bucket, prior_buckets):
             prior_inds = prior_inds.tolist()
             pos_inds = list(set(pos_inds.tolist()) - set(prior_inds))
-            pos_inds = random.sample(pos_inds, min(sample_num, len(pos_inds)))
+            # pos_inds = random.sample(pos_inds, min(sample_num, len(pos_inds)))
             if len(pos_inds) == 0:
                 continue
             cos_sim = seg_feat[prior_inds] @ seg_feat[pos_inds].transpose(0, 1)
             similarity = similarity + cos_sim.mean()
+            
             valid_num += 1
         return 1 - (similarity / max(valid_num, 1))
+
+    def _sample(self, seg_logit, seg_label, sample_rate=0.1, min_kept=10):
+        """Sample pixels that have high loss or with low prediction confidence.
+
+        Args:
+            seg_logit (torch.Tensor): segmentation logits, shape (N, C, H, W)
+            seg_label (torch.Tensor): segmentation label, shape (N, 1, H, W)
+
+        Returns:
+            torch.Tensor: segmentation weight, shape (N, H, W)
+        """
+        # with torch.no_grad():
+        # gt_semantic_seg: B, 1, H, W
+        # masks: B, N, H, W
+        B, N, H, W = seg_logit.size()
+        assert B == 1, "Only support batch == 1 for segmenter!"
+        seg_label = seg_label.reshape(B * H * W)
+        # print(seg_logit.shape, seg_label.shape)
+        unique_label = torch.unique(seg_label)
+        unique_label = unique_label[unique_label != self.ignore_index]
+        pos_bucket = []
+        for l in unique_label:
+            pos_bucket.append(
+                (seg_label == l).nonzero(as_tuple=False)[:, 0]
+            )
+        
+        # print("pos_bucket", pos_bucket)
+        if len(pos_bucket) == 0:
+            return [], []
+        seg_logit = seg_logit.permute(0, 2, 3, 1).reshape(B * H * W, N)
+        num_per_bucket = []
+        for p in pos_bucket:
+            k = int(sample_rate * len(p))
+            if k < min_kept:
+                k = min(min_kept, len(p))
+            num_per_bucket.append(k)
+        prior_bucket = []
+        for k, p, l in zip(num_per_bucket, pos_bucket, unique_label):
+            inds = seg_logit[p, int(l)].topk(k).indices
+            # print("inds", inds)
+            prior_bucket.append(
+                p[inds]
+            )
+        # print("prior_bucket", prior_bucket)
+        return pos_bucket, prior_bucket
 
     @staticmethod
     def _get_batch_hist_vector(target, nclass):

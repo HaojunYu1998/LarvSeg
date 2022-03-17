@@ -19,7 +19,7 @@ model = dict(
         type="MaskTransformerPropagationHead",
         n_cls=150,
         cls_emb_path="pretrain/cls_emb_ade20k_sem_seg_val.pth",
-        sampler=dict(type='TopKPixelSampler', sample_rate=0.1, min_kept=10)
+        # sampler=dict(type='TopKPixelSampler', sample_rate=0.1, min_kept=10)
     ),
     test_cfg=dict(mode="slide", crop_size=(512, 512), stride=(512, 512)),
 )
@@ -49,4 +49,7 @@ lr_config = dict(
 )
 
 # By default, models are trained on 8 GPUs with 1 images per GPU
-data = dict(samples_per_gpu=1)
+data = dict(
+    samples_per_gpu=1,
+    workers_per_gpu=1
+)

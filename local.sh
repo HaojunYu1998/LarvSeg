@@ -17,6 +17,7 @@ QUOTED_ARGS=$(printf "'%s' " "${ARGS[@]}")
 
 read -d '' CMD <<EOF
 export CUDA_VISIBLE_DEVICES=0,1,2,3
+export OMP_NUM_THREADS=1
 ln -s /mdata/ade /data/ade
 ln -s /mdata/ade20k_full /data/ade20k_full
 ln -s /mdata/coco_stuff164k /data/coco_stuff164k

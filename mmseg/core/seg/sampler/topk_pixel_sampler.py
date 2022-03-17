@@ -38,27 +38,27 @@ class TopKPixelSampler(BasePixelSampler):
         Returns:
             torch.Tensor: segmentation weight, shape (N, H, W)
         """
-        with torch.no_grad():
-            # gt_semantic_seg: B, 1, H, W
-            # masks: B, N, H, W
-            seg_logit = F.interpolate(
-                seg_logit, size=seg_label.shape[-2:], mode="bilinear", align_corners=False
-            )
-            B, N, H, W = seg_logit.size()
-            assert B == 1, "Only support batch == 1 for segmenter!"
-            seg_label = F.interpolate(seg_label.float(), size=(H, W)).long()
-            seg_label = seg_label.reshape(B * H * W)
-            unique_label = torch.unique(seg_label)
-            unique_label = unique_label[unique_label != self.context.ignore_index]
-            pos_bucket = [
-                torch.nonzero(seg_label == l)[:, 0]
-                for l in unique_label
-            ]
-            if len(pos_bucket) == 0:
-                return [], []
-            seg_logit = seg_logit.permute(0, 2, 3, 1).reshape(B * H * W, N)
-            prior_buckets = self._sample(seg_logit, pos_bucket, unique_label)
-            return pos_bucket, prior_buckets
+        # with torch.no_grad():
+        # gt_semantic_seg: B, 1, H, W
+        # masks: B, N, H, W
+        seg_logit = F.interpolate(
+            seg_logit, size=seg_label.shape[-2:], mode="bilinear", align_corners=False
+        )
+        B, N, H, W = seg_logit.size()
+        assert B == 1, "Only support batch == 1 for segmenter!"
+        seg_label = F.interpolate(seg_label.float(), size=(H, W)).long()
+        seg_label = seg_label.reshape(B * H * W)
+        unique_label = torch.unique(seg_label)
+        unique_label = unique_label[unique_label != self.context.ignore_index]
+        pos_bucket = [
+            torch.nonzero(seg_label == l)[:, 0]
+            for l in unique_label
+        ]
+        if len(pos_bucket) == 0:
+            return [], []
+        seg_logit = seg_logit.permute(0, 2, 3, 1).reshape(B * H * W, N)
+        prior_buckets = self._sample(seg_logit, pos_bucket, unique_label)
+        return pos_bucket, prior_buckets
 
     def _sample(self, seg_logit, buckets, unique_label, sample_rate=0.1):
         """Sample points from each buckets
