@@ -45,6 +45,7 @@ class MaskTransformerPropagationHead(BaseDecodeHead):
         dropout,
         cls_emb_from_backbone=False,
         cls_emb_path="",
+        propagation_loss_weight=1.0,
         downsample_rate=8,
         **kwargs,
     ):
@@ -64,6 +65,7 @@ class MaskTransformerPropagationHead(BaseDecodeHead):
         self.d_model = d_model
         self.d_ff = d_ff
         self.scale = d_model**-0.5
+        self.propagation_loss_weight = propagation_loss_weight
         self.downsample_rate = downsample_rate
 
         dpr = [x.item() for x in torch.linspace(0, drop_path_rate, n_layers)]
@@ -171,9 +173,9 @@ class MaskTransformerPropagationHead(BaseDecodeHead):
         B, N, H, W = seg_logit.shape
         pos_bucket, prior_buckets = self._sample(seg_logit, seg_label)
         seg_weight = None
-        seg_label = seg_label.squeeze(1)
-        seg_logit = seg_logit.permute(0, 2, 3, 1).reshape(B * H * W, N)
+        # seg_label = seg_label.squeeze(1)
         seg_label = seg_label.reshape(B * H * W)
+        seg_logit = seg_logit.permute(0, 2, 3, 1).reshape(B * H * W, N)
         if len(prior_buckets) == 0:
             loss['loss_prior'] = torch.tensor(
                 0, dtype=seg_logit.dtype, device=seg_logit.device, requires_grad=True
@@ -190,8 +192,7 @@ class MaskTransformerPropagationHead(BaseDecodeHead):
                 ignore_index=self.ignore_index)
             loss['loss_mask'] = self.propagation_loss(
                 seg_feat, pos_bucket, prior_buckets
-            )
-            # print(loss['loss_prior'], loss['loss_mask'])
+            ) * self.propagation_loss_weight
         loss['acc_seg'] = accuracy(seg_logit, seg_label)
         return loss
 
@@ -223,8 +224,8 @@ class MaskTransformerPropagationHead(BaseDecodeHead):
         """Sample pixels that have high loss or with low prediction confidence.
 
         Args:
-            seg_logit (torch.Tensor): segmentation logits, shape (N, C, H, W)
-            seg_label (torch.Tensor): segmentation label, shape (N, 1, H, W)
+            seg_logit (torch.Tensor): segmentation logits, shape (B, N, H, W)
+            seg_label (torch.Tensor): segmentation label, shape (B, 1, H, W)
 
         Returns:
             torch.Tensor: segmentation weight, shape (N, H, W)

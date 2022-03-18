@@ -20,7 +20,6 @@ export CUDA_VISIBLE_DEVICES=0,1,2,3
 ln -s /mdata/ade /data/ade
 ln -s /mdata/ade20k_full /data/ade20k_full
 ln -s /mdata/coco_stuff164k /data/coco_stuff164k
-ls /data/coco_stuff164k
 
 cd /workspace
 if $TASK_IS_EXPERIMENT; then

@@ -1,1 +1,1 @@
-python submit_imagenet_itp.py --cluster asia1 --model mmseg --k segmenter_propagation_vit_b16_512x512_160k_coco-stuff164k
+python submit_imagenet_itp.py --cluster asia1 --model mmseg --k segmenter_propagation_vit_b16_512x512_160k_coco-stuff164k_6_samples_per_gpu

@@ -1,6 +1,10 @@
 
+# sudo bash local.sh \
+# configs/segmenter/segmenter-propagate_loss_weight_10_vit-b16_512x512_160k_coco-stuff164k_2_samples_per_gpu.py
+
+
 sudo bash local.sh \
-configs/segmenter/segmenter-propagate_vit-b16_512x512_160k_coco-stuff164k.py
+configs/segmenter/segmenter-ori_vit-b16_512x512_80k_coco-stuff164k_2_samples_per_gpu.py
 
 # sudo bash local.sh \
 # configs/segmenter/segmenter-propagate_vit-b16_512x512_160k_ade20k.py
