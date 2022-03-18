@@ -140,6 +140,10 @@ class MaskTransformerPropagationHead(BaseDecodeHead):
         losses = self.losses(masks, patches, gt_semantic_seg)
         return losses
 
+    def forward_test(self, inputs, img_metas, test_cfg):
+        masks, _ = self.forward(inputs)
+        return masks
+
     @force_fp32(apply_to=('seg_logit', ))
     def losses(self, seg_logit, seg_feat, seg_label):
         """Compute segmentation loss."""
@@ -191,10 +195,7 @@ class MaskTransformerPropagationHead(BaseDecodeHead):
         loss['acc_seg'] = accuracy(seg_logit, seg_label)
         return loss
 
-    def propagation_loss(
-        self, seg_feat, pos_bucket, prior_buckets, 
-        sample_num=500, loss_weight=1
-    ):
+    def propagation_loss(self, seg_feat, pos_bucket, prior_buckets):
         """
         Args:
             seg_logit (torch.Tensor): segmentation logits, shape (B * H * W, N)
@@ -211,12 +212,10 @@ class MaskTransformerPropagationHead(BaseDecodeHead):
         for pos_inds, prior_inds in zip(pos_bucket, prior_buckets):
             prior_inds = prior_inds.tolist()
             pos_inds = list(set(pos_inds.tolist()) - set(prior_inds))
-            # pos_inds = random.sample(pos_inds, min(sample_num, len(pos_inds)))
             if len(pos_inds) == 0:
                 continue
             cos_sim = seg_feat[prior_inds] @ seg_feat[pos_inds].transpose(0, 1)
             similarity = similarity + cos_sim.mean()
-            
             valid_num += 1
         return 1 - (similarity / max(valid_num, 1))
 

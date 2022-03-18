@@ -21,7 +21,7 @@ elif [[ "$@" =~ .*ade20k.* ]]; then
 elif [[ "$@" =~ .*pascal_context.* ]]; then
     ROOT=/haojun_storage/datasets/VOCdevkit/VOC2010
 elif [[ "$@" =~ .*coco-stuff164k.* ]]; then
-    ROOT=/haojun_storage/datasets/coco2017
+    ROOT=/haojun_storage/datasets/coco_stuff164k
 # elif [[ "$@" =~ .*lvis.* ]]; then
 #     ROOT=/haojun_storage/datasets/coco2017
 else
