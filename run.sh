@@ -1,7 +1,7 @@
 # sudo ba/512_80k_coco-stuff164k.py
 
 sudo bash local.sh \
-configs/segmenter/segmenter-propagate_vit-b16_512x512_160k_ade20k.py
+configs/segmenter/segmenter-propagate_vit-b16_512x512_160k_coco-stuff164k.py
 
 # sudo bash local.sh \
 # configs/segmenter/segmenter-propagate_vit-b16_512x512_160k_ade20k.py

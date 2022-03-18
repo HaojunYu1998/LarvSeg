@@ -82,6 +82,8 @@ if __name__ == "__main__":
         import config_itp_ocr_sc as config
     elif args.cluster == "itp_ocr_res":
         import config_vision_itp_ocr_res as config
+    elif args.cluster == "p40":
+        import config_itp_p40_yhj as config
     else:
         raise ValueError("Invalid Cluster Name: {}".format(args.cluster))
 

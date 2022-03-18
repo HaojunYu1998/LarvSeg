@@ -234,7 +234,7 @@ class MaskTransformerPropagationHead(BaseDecodeHead):
         # gt_semantic_seg: B, 1, H, W
         # masks: B, N, H, W
         B, N, H, W = seg_logit.size()
-        assert B == 1, "Only support batch == 1 for segmenter!"
+        # assert B == 1, "Only support batch == 1 for segmenter!"
         seg_label = seg_label.reshape(B * H * W)
         # print(seg_logit.shape, seg_label.shape)
         unique_label = torch.unique(seg_label)

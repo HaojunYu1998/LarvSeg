@@ -49,7 +49,4 @@ lr_config = dict(
 )
 
 # By default, models are trained on 8 GPUs with 1 images per GPU
-data = dict(
-    samples_per_gpu=1,
-    workers_per_gpu=1
-)
+data = dict(samples_per_gpu=1,)
