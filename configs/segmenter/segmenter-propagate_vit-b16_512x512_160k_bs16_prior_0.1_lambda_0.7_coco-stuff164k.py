@@ -19,7 +19,8 @@ model = dict(
         type="MaskTransformerPropagationHead",
         n_cls=171,
         cls_emb_path="pretrain/cls_emb_coco_2017_val_stuff_full_sem_seg.pth",
-        propagation_loss_weight=0.5,
+        prior_rate=0.1,
+        propagation_loss_weight=0.7
     ),
     test_cfg=dict(mode="slide", crop_size=(512, 512), stride=(512, 512)),
 )

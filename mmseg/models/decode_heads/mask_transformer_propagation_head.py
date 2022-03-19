@@ -47,6 +47,7 @@ class MaskTransformerPropagationHead(BaseDecodeHead):
         cls_emb_path="",
         propagation_loss_weight=1.0,
         downsample_rate=8,
+        prior_rate=0.1,
         **kwargs,
     ):
         # in_channels & channels are dummy arguments to satisfy signature of
@@ -67,6 +68,7 @@ class MaskTransformerPropagationHead(BaseDecodeHead):
         self.scale = d_model**-0.5
         self.propagation_loss_weight = propagation_loss_weight
         self.downsample_rate = downsample_rate
+        self.prior_rate = prior_rate
 
         dpr = [x.item() for x in torch.linspace(0, drop_path_rate, n_layers)]
         self.blocks = nn.ModuleList([
@@ -220,7 +222,7 @@ class MaskTransformerPropagationHead(BaseDecodeHead):
             valid_num += 1
         return 1 - (similarity / max(valid_num, 1))
 
-    def _sample(self, seg_logit, seg_label, sample_rate=0.1, min_kept=10):
+    def _sample(self, seg_logit, seg_label, min_kept=10):
         """Sample pixels that have high loss or with low prediction confidence.
 
         Args:
@@ -251,7 +253,7 @@ class MaskTransformerPropagationHead(BaseDecodeHead):
         seg_logit = seg_logit.permute(0, 2, 3, 1).reshape(B * H * W, N)
         num_per_bucket = []
         for p in pos_bucket:
-            k = int(sample_rate * len(p))
+            k = int(self.prior_rate * len(p))
             if k < min_kept:
                 k = min(min_kept, len(p))
             num_per_bucket.append(k)

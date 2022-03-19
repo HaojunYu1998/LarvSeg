@@ -4,7 +4,7 @@
 
 
 sudo bash local.sh \
-configs/segmenter/segmenter-ori_vit-b16_512x512_80k_coco-stuff164k_2_samples_per_gpu.py
+configs/segmenter/segmenter-propagate_vit-b16_512x512_160k_bs16_prior_0.1_lambda_0.1_coco-stuff164k.py
 
 # sudo bash local.sh \
 # configs/segmenter/segmenter-propagate_vit-b16_512x512_160k_ade20k.py
