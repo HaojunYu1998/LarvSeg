@@ -81,16 +81,6 @@ class MaskTransformerPropagationHead(BaseDecodeHead):
         if not cls_emb_from_backbone:
             self.cls_emb = torch.load(cls_emb_path, map_location="cpu")
             self.cls_emb.requires_grad = False
-            # rank, _ = get_dist_info()
-            # print("load!", rank, self.cls_emb.shape, self.cls_emb[0,0])
-            # rank, _ = get_dist_info()
-            # if rank == 0:
-            #     self.cls_emb = torch.load(cls_emb_path, map_location="cpu")
-            # torch.cuda.synchronize()
-            # if rank != 0: 
-            #     self.cls_emb = torch.load(cls_emb_path, map_location="cpu")
-            # torch.cuda.synchronize()
-            # self.cls_emb.requires_grad = False
         self.loaded_cls_emb = False
 
         self.proj_dec = nn.Linear(d_encoder, d_model)
