@@ -69,6 +69,7 @@ class MaskTransformerPropagationHead(BaseDecodeHead):
         self.propagation_loss_weight = propagation_loss_weight
         self.downsample_rate = downsample_rate
         self.prior_rate = prior_rate
+        self.cls_emb_path = cls_emb_path
 
         dpr = [x.item() for x in torch.linspace(0, drop_path_rate, n_layers)]
         self.blocks = nn.ModuleList([
@@ -78,17 +79,19 @@ class MaskTransformerPropagationHead(BaseDecodeHead):
 
         self.cls_emb_from_backbone = cls_emb_from_backbone
         if not cls_emb_from_backbone:
+            self.cls_emb = torch.load(cls_emb_path, map_location="cpu")
+            self.cls_emb.requires_grad = False
+            # rank, _ = get_dist_info()
+            # print("load!", rank, self.cls_emb.shape, self.cls_emb[0,0])
             # rank, _ = get_dist_info()
             # if rank == 0:
             #     self.cls_emb = torch.load(cls_emb_path, map_location="cpu")
-            # # torch.cuda.synchronize()
+            # torch.cuda.synchronize()
             # if rank != 0: 
             #     self.cls_emb = torch.load(cls_emb_path, map_location="cpu")
-            # # torch.cuda.synchronize()
-            # self.cls_emb = self.cls_emb[: self.n_cls].reshape(
-            #     1, self.n_cls, self.d_model).to(torch.device(f"cuda:{rank}"))
-            self.cls_emb = torch.load(cls_emb_path, map_location="cpu")
-            self.cls_emb.requires_grad = False
+            # torch.cuda.synchronize()
+            # self.cls_emb.requires_grad = False
+        self.loaded_cls_emb = False
 
         self.proj_dec = nn.Linear(d_encoder, d_model)
 
@@ -102,8 +105,8 @@ class MaskTransformerPropagationHead(BaseDecodeHead):
 
     def init_weights(self):
         self.apply(init_weights)
-        if not self.cls_emb_from_backbone:
-            trunc_normal_(self.cls_emb, std=0.02)
+        # if not self.cls_emb_from_backbone:
+        #     trunc_normal_(self.cls_emb, std=0.02)
 
     def forward(self, x):
         if self.cls_emb_from_backbone:
@@ -132,7 +135,8 @@ class MaskTransformerPropagationHead(BaseDecodeHead):
 
         masks = patches @ cls_seg_feat.transpose(1, 2)
         # logits = masks.clone()
-        masks = self.mask_norm(masks)
+        if self.training:
+            masks = self.mask_norm(masks)
         B, HW, N = masks.size()
 
         masks = masks.view(B, H, W, N).permute(0, 3, 1, 2)
@@ -145,6 +149,11 @@ class MaskTransformerPropagationHead(BaseDecodeHead):
         return losses
 
     def forward_test(self, inputs, img_metas, test_cfg):
+        # print(self.cls_emb)
+        if not self.loaded_cls_emb:
+            self.cls_emb = torch.load(self.cls_emb_path, map_location="cpu")
+            self.loaded_cls_emb = True
+            # print(f"Loaded {self.cls_emb_path}.")
         masks, _ = self.forward(inputs)
         return masks
 

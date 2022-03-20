@@ -1,9 +1,9 @@
 _base_ = [
     # "./training_scheme.py",
     "../_base_/models/segmenter_vit-b16.py",
-    "../_base_/datasets/ade20k_meanstd0.5.py",
+    "../_base_/datasets/coco-stuff164k.py",
     "../_base_/default_runtime.py",
-    "../_base_/schedules/schedule_160k.py",
+    "../_base_/schedules/schedule_80k.py",
 ]
 
 model = dict(
@@ -17,8 +17,10 @@ model = dict(
     ),
     decode_head=dict(
         type="MaskTransformerPropagationHead",
-        n_cls=150,
-        cls_emb_path="pretrain/cls_emb_ade20k_sem_seg_val.pth",
+        n_cls=171,
+        cls_emb_path="pretrain/cls_emb_coco_2017_val_stuff_full_sem_seg.pth",
+        prior_rate=1.0,
+        propagation_loss_weight=0.0
     ),
     test_cfg=dict(mode="slide", crop_size=(512, 512), stride=(512, 512)),
 )
@@ -48,4 +50,4 @@ lr_config = dict(
 )
 
 # By default, models are trained on 8 GPUs with 1 images per GPU
-data = dict(samples_per_gpu=1,)
+data = dict(samples_per_gpu=4)
