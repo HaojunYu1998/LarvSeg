@@ -45,6 +45,7 @@ class MaskTransformerPropagationHead(BaseDecodeHead):
         dropout,
         cls_emb_from_backbone=False,
         cls_emb_path="",
+        contrastive_propagation=False,
         propagation_loss_weight=1.0,
         downsample_rate=8,
         prior_rate=0.1,
@@ -66,6 +67,7 @@ class MaskTransformerPropagationHead(BaseDecodeHead):
         self.d_model = d_model
         self.d_ff = d_ff
         self.scale = d_model**-0.5
+        self.contrastive_propagation = contrastive_propagation
         self.propagation_loss_weight = propagation_loss_weight
         self.downsample_rate = downsample_rate
         self.prior_rate = prior_rate
@@ -191,9 +193,15 @@ class MaskTransformerPropagationHead(BaseDecodeHead):
                 seg_label[prior_inds],
                 weight=seg_weight,
                 ignore_index=self.ignore_index)
-            loss['loss_mask'] = self.propagation_loss(
-                seg_feat, pos_bucket, prior_buckets
-            ) * self.propagation_loss_weight
+            if self.contrastive_propagation:
+                loss['loss_mask'] = self.contrastive_propagation_loss(
+                    seg_feat, pos_bucket, prior_buckets
+                )
+            else:
+                loss['loss_mask'] = self.propagation_loss(
+                    seg_feat, pos_bucket, prior_buckets
+                )
+            loss['loss_mask'] *= self.propagation_loss_weight
         loss['acc_seg'] = accuracy(seg_logit, seg_label)
         return loss
 
@@ -217,9 +225,63 @@ class MaskTransformerPropagationHead(BaseDecodeHead):
             if len(pos_inds) == 0:
                 continue
             cos_sim = seg_feat[prior_inds] @ seg_feat[pos_inds].transpose(0, 1)
+            # print(
+            #     float(cos_sim.min()), float(cos_sim.max()), float(cos_sim.mean()), float(cos_sim.std())
+            # )
             similarity = similarity + cos_sim.mean()
             valid_num += 1
+        # print(float(similarity), valid_num)
         return 1 - (similarity / max(valid_num, 1))
+
+    def contrastive_propagation_loss(self, seg_feat, pos_bucket, prior_buckets, tau=1.0):
+        """
+        Args:
+            seg_logit (torch.Tensor): segmentation logits, shape (B * H * W, N)
+            seg_feat (torch.Tensor): segmentation feature, shape (B, C, H, W)
+            cls_feat (torch.Tensor): (B, N, C)
+        """
+        B, C, H, W = seg_feat.shape
+        seg_feat = seg_feat.permute(0, 2, 3, 1).reshape(B * H * W, C)
+        seg_feat = seg_feat / seg_feat.norm(dim=-1, keepdim=True)
+        
+        prior_inds_list = []
+        pos_inds_list = []
+        for pos_inds, prior_inds in zip(pos_bucket, prior_buckets):
+            prior_inds = prior_inds.tolist()
+            pos_inds = list(set(pos_inds.tolist()) - set(prior_inds))
+            if len(pos_inds) == 0:
+                continue
+            # cos_sim = seg_feat[prior_inds] @ seg_feat[pos_inds].transpose(0, 1)
+            prior_inds_list.append(prior_inds)
+            pos_inds_list.append(pos_inds)
+        if len(pos_inds_list) == 0 or len(prior_inds_list) == 0:
+            return torch.tensor(
+                0, dtype=seg_feat.dtype, device=seg_feat.device, requires_grad=True
+            )
+        cos_mat = []
+        for i in range(len(prior_inds_list)):
+            cos_list = []
+            for j in range(len(pos_inds_list)):
+                cos_sim = seg_feat[prior_inds_list[i]] @ seg_feat[pos_inds_list[j]].transpose(0, 1)
+                cos_list.append(cos_sim.mean().reshape(-1))
+            cos_mat.append(torch.cat(cos_list))
+        cos_mat = torch.stack(cos_mat, dim=-1)
+        # torch.Size([20, 20]) torch.Size([20]) torch.Size([1, 20]) torch.Size([20, 1])
+        # print(
+        #     cos_mat.shape, 
+        #     cos_mat.diag().shape, 
+        #     cos_mat.exp().sum(dim=0, keepdim=True).shape,
+        #     cos_mat.exp().sum(dim=1, keepdim=True).shape
+        # )
+        loss1 = - (
+            (cos_mat.diag() / tau).exp()[None, :] / 
+            (cos_mat / tau).exp().sum(dim=0, keepdim=True)
+        ).log().mean()
+        loss2 = - (
+            (cos_mat.diag() / tau).exp()[:, None] / 
+            (cos_mat / tau).exp().sum(dim=1, keepdim=True)
+        ).log().mean()
+        return loss1 + loss2
 
     def _sample(self, seg_logit, seg_label, min_kept=10):
         """Sample pixels that have high loss or with low prediction confidence.
