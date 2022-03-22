@@ -4,7 +4,7 @@
 
 
 sudo bash local.sh \
-configs/segmenter/segmenter-contrastive_propagate_vit-b16_512x512_80k_bs16_prior_0.1_lambda_1.0_coco-stuff164k.py
+configs/segmenter/segmenter-propagate_vit-b16_512x512_40k_bs16_prior_0.1_lambda_1.0_coco-stuff164k_local.py
 
 
 # sudo bash local.sh \

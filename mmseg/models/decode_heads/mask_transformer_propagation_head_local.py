@@ -17,6 +17,7 @@ from mmcv.runner import force_fp32
 
 from timm.models.layers import DropPath
 from mmcv.runner import get_dist_info
+from random import sample
 
 
 def init_weights(m):
@@ -30,7 +31,7 @@ def init_weights(m):
 
 
 @HEADS.register_module()
-class MaskTransformerPropagationHead(BaseDecodeHead):
+class MaskTransformerPropagationHeadV2(BaseDecodeHead):
 
     def __init__(
         self,
@@ -47,6 +48,7 @@ class MaskTransformerPropagationHead(BaseDecodeHead):
         cls_emb_path="",
         contrastive_propagation=False,
         propagation_loss_weight=1.0,
+        propagation_loss_mode="cos", # "contrastive", "kl_div"
         downsample_rate=8,
         prior_rate=0.1,
         **kwargs,
@@ -69,6 +71,7 @@ class MaskTransformerPropagationHead(BaseDecodeHead):
         self.scale = d_model**-0.5
         self.contrastive_propagation = contrastive_propagation
         self.propagation_loss_weight = propagation_loss_weight
+        self.propagation_loss_mode = propagation_loss_mode
         self.downsample_rate = downsample_rate
         self.prior_rate = prior_rate
         self.cls_emb_path = cls_emb_path
@@ -186,10 +189,6 @@ class MaskTransformerPropagationHead(BaseDecodeHead):
             loss['loss_mask'] = torch.tensor(
                 0, dtype=seg_logit.dtype, device=seg_logit.device, requires_grad=True
             )
-            # if not self.contrastive_propagation:
-            #     loss['loss_mask2'] = torch.tensor(
-            #         0, dtype=seg_logit.dtype, device=seg_logit.device, requires_grad=True
-            #     )
         else:
             prior_inds = torch.cat(prior_buckets)
             loss['loss_prior'] = self.loss_decode(
@@ -197,17 +196,18 @@ class MaskTransformerPropagationHead(BaseDecodeHead):
                 seg_label[prior_inds],
                 weight=seg_weight,
                 ignore_index=self.ignore_index)
-            if self.contrastive_propagation:
+            if self.propagation_loss_mode == "contrastive":
                 loss['loss_mask'] = self.contrastive_propagation_loss(
                     seg_feat, pos_bucket, prior_buckets
+                )
+            elif self.propagation_loss_mode == "kl_div":
+                loss['loss_mask'] = self.kl_div_propagation_loss(
+                    seg_logit, pos_bucket, prior_buckets
                 )
             else:
                 loss['loss_mask'] = self.propagation_loss(
                     seg_feat, pos_bucket, prior_buckets
-                ) #* 10
-                # loss['loss_mask2'] = self.contrastive_propagation_loss(
-                #     seg_feat, pos_bucket, prior_buckets
-                # ) * 0.4
+                )
             loss['loss_mask'] *= self.propagation_loss_weight
         loss['acc_seg'] = accuracy(seg_logit, seg_label)
         return loss
@@ -232,12 +232,8 @@ class MaskTransformerPropagationHead(BaseDecodeHead):
             if len(pos_inds) == 0:
                 continue
             cos_sim = seg_feat[prior_inds] @ seg_feat[pos_inds].transpose(0, 1)
-            # print(
-            #     float(cos_sim.min()), float(cos_sim.max()), float(cos_sim.mean()), float(cos_sim.std())
-            # )
             similarity = similarity + cos_sim.mean()
             valid_num += 1
-        # print(float(similarity), valid_num)
         return 1 - (similarity / max(valid_num, 1))
 
     def contrastive_propagation_loss(self, seg_feat, pos_bucket, prior_buckets, tau=1.0):
@@ -258,37 +254,64 @@ class MaskTransformerPropagationHead(BaseDecodeHead):
             pos_inds = list(set(pos_inds.tolist()) - set(prior_inds))
             if len(pos_inds) == 0:
                 continue
-            # cos_sim = seg_feat[prior_inds] @ seg_feat[pos_inds].transpose(0, 1)
             prior_inds_list.append(prior_inds)
             pos_inds_list.append(pos_inds)
         if len(pos_inds_list) == 0 or len(prior_inds_list) == 0:
             return torch.tensor(
                 0, dtype=seg_feat.dtype, device=seg_feat.device, requires_grad=True
             )
-        cos_mat = []
+        min_mat = []
+        max_mat = []
+        mean_mat = []
         for i in range(len(prior_inds_list)):
-            cos_list = []
+            min_list = []
+            max_list = []
+            mean_list = []
             for j in range(len(pos_inds_list)):
                 cos_sim = seg_feat[prior_inds_list[i]] @ seg_feat[pos_inds_list[j]].transpose(0, 1)
-                cos_list.append(cos_sim.mean().reshape(-1))
-            cos_mat.append(torch.cat(cos_list))
-        cos_mat = torch.stack(cos_mat, dim=-1)
-        # torch.Size([20, 20]) torch.Size([20]) torch.Size([1, 20]) torch.Size([20, 1])
-        # print(
-        #     cos_mat.shape, 
-        #     cos_mat.diag().shape, 
-        #     cos_mat.exp().sum(dim=0, keepdim=True).shape,
-        #     cos_mat.exp().sum(dim=1, keepdim=True).shape
-        # )
+                min_list.append(cos_sim.min().reshape(-1))
+                max_list.append(cos_sim.max().reshape(-1))
+                mean_list.append(cos_sim.mean().reshape(-1))
+            min_mat.append(torch.cat(min_list))
+            max_mat.append(torch.cat(max_list))
+            mean_mat.append(torch.cat(mean_list))
+        min_mat = torch.stack(min_mat, dim=-1)
+        max_mat = torch.stack(max_mat, dim=-1)
+        mean_mat = torch.stack(mean_mat, dim=-1)
         loss1 = - (
-            (cos_mat.diag() / tau).exp()[None, :] / 
-            (cos_mat / tau).exp().sum(dim=0, keepdim=True)
+            (min_mat.diag() / tau).exp()[None, :] / 
+            (mean_mat / tau).exp().sum(dim=0, keepdim=True)
         ).log().mean()
         loss2 = - (
-            (cos_mat.diag() / tau).exp()[:, None] / 
-            (cos_mat / tau).exp().sum(dim=1, keepdim=True)
+            (min_mat.diag() / tau).exp()[:, None] / 
+            (mean_mat / tau).exp().sum(dim=1, keepdim=True)
         ).log().mean()
         return loss1 + loss2
+
+    def kl_div_propagation_loss(self, seg_logit, pos_bucket, prior_buckets, tau=1.0, min_kept=200, eps=1e-6):
+        """
+        Args:
+            seg_logit (torch.Tensor): segmentation logits, shape (B * H * W, N)
+        """
+        BHW, N = seg_logit.shape
+        seg_prob = (seg_logit / tau).softmax(dim=-1)
+        seg_prob = seg_prob + eps
+        kl_div_loss = torch.tensor(
+            0, dtype=seg_logit.dtype, device=seg_logit.device, requires_grad=True
+        )
+        valid_num = 0
+        for pos_inds, prior_inds in zip(pos_bucket, prior_buckets):
+            prior_inds = prior_inds.tolist()
+            pos_inds = list(set(pos_inds.tolist()) - set(prior_inds))
+            if len(pos_inds) == 0:
+                continue
+            pos_inds = sample(pos_inds, min(len(pos_inds), min_kept))
+            kl_div = seg_prob[prior_inds][:, None, :] * (
+                seg_prob[prior_inds][:, None, :].log() - seg_prob[pos_inds][None, :, :].log()
+            )
+            kl_div_loss = kl_div_loss + kl_div.sum() / BHW
+            valid_num += 1
+        return kl_div_loss / max(valid_num, 1)
 
     def _sample(self, seg_logit, seg_label, min_kept=10):
         """Sample pixels that have high loss or with low prediction confidence.
