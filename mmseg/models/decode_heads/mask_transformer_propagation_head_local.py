@@ -51,6 +51,7 @@ class MaskTransformerPropagationHeadV2(BaseDecodeHead):
         propagation_loss_mode="cos", # "contrastive", "kl_div"
         downsample_rate=8,
         prior_rate=0.1,
+        imagenet_eval=False,
         **kwargs,
     ):
         # in_channels & channels are dummy arguments to satisfy signature of
@@ -75,6 +76,14 @@ class MaskTransformerPropagationHeadV2(BaseDecodeHead):
         self.downsample_rate = downsample_rate
         self.prior_rate = prior_rate
         self.cls_emb_path = cls_emb_path
+        self.imagenet_eval = imagenet_eval
+
+        if self.imagenet_eval:
+            import json
+            with open("notebook/in21k_inter_ade_coco.json", "r") as f:
+                in21k_id_name_dict = json.load(f)
+                in21k_names = list(in21k_id_name_dict.values())
+                self.in21k_ids = list(in21k_id_name_dict.keys())
 
         dpr = [x.item() for x in torch.linspace(0, drop_path_rate, n_layers)]
         self.blocks = nn.ModuleList([
@@ -103,13 +112,18 @@ class MaskTransformerPropagationHeadV2(BaseDecodeHead):
         # if not self.cls_emb_from_backbone:
         #     trunc_normal_(self.cls_emb, std=0.02)
 
-    def forward(self, x):
+    def forward(self, x, img_metas):
         if self.cls_emb_from_backbone:
             x, cls_emb = x
         else:
             cls_emb = self.cls_emb.expand(x.size(0), -1, -1)
         x = self._transform_inputs(x)
         cls_emb = cls_emb.to(x.device)
+        if self.imagenet_eval:
+            img_id = img_metas[0]['ori_filename']
+            img_id = img_id[:img_id.find("_")]
+            idx = self.in21k_ids.index(img_id)
+            cls_emb = cls_emb[:, [idx], :]
         B, C, H, W = x.size()
         x = x.view(B, C, -1).permute(0, 2, 1)
 
@@ -139,7 +153,7 @@ class MaskTransformerPropagationHeadV2(BaseDecodeHead):
         return masks, patches
 
     def forward_train(self, inputs, img_metas, gt_semantic_seg, train_cfg):
-        masks, patches = self.forward(inputs)
+        masks, patches = self.forward(inputs, img_metas)
         losses = self.losses(masks, patches, gt_semantic_seg)
         return losses
 
@@ -149,7 +163,25 @@ class MaskTransformerPropagationHeadV2(BaseDecodeHead):
             self.cls_emb = torch.load(self.cls_emb_path, map_location="cpu")
             self.loaded_cls_emb = True
             # print(f"Loaded {self.cls_emb_path}.")
-        masks, _ = self.forward(inputs)
+        masks, _ = self.forward(inputs, img_metas)
+        if self.imagenet_eval:
+            B, N, H, W = masks.shape
+            img_id = img_metas[0]['ori_filename']
+            img_id = img_id[:img_id.find("_")]
+            idx = self.in21k_ids.index(img_id)
+            new_masks = torch.zeros(B, self.num_classes, H, W).to(masks.device)
+            new_masks[:, idx, :, :] = masks.squeeze(1)
+            # print(
+            #     (masks[:, idx] > float(masks[:, idx].mean() + 2 * masks[:, idx].std())).sum(), 
+            #     (masks[:, idx] >= 0).sum()
+            # )
+            new_masks[:, -1] = float(masks.mean() + masks.std())
+            # import time
+            # time.sleep(0.3)
+            return new_masks
+            # background = torch.zeros_like(new_mask)[:, [0]] + 0.01
+            # new_mask = torch.cat([new_mask, background], dim=-1)
+            # masks = new_mask.reshape(B, H, W, N).permute(0, 3, 1, 2)
         return masks
 
     @force_fp32(apply_to=('seg_logit', ))

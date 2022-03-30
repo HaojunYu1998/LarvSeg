@@ -21,6 +21,7 @@ export OMP_NUM_THREADS=1
 ln -s /mdata/ade /data/ade
 ln -s /mdata/ade20k_full /data/ade20k_full
 ln -s /mdata/coco_stuff164k /data/coco_stuff164k
+ln -s /mdata/imagenet21k /data/imagenet21k
 
 cd /workspace
 if $TASK_IS_EXPERIMENT; then
@@ -45,9 +46,10 @@ echo "==============================="
 sudo nvidia-docker run \
     --rm --ipc=host ${FLAG} \
     -v "$PWD":/workspace \
-    -v ~/itesea4data/datasets/ADEChallengeData2016:/mdata/ade/ADEChallengeData2016/ \
-    -v ~/itesea4data/datasets/ADE20K_2021_17_01:/mdata/ade20k_full \
-    -v ~/itesea4data/datasets/coco_stuff164k:/mdata/coco_stuff164k \
+    -v ~/itesea4data/dataset/ADEChallengeData2016:/mdata/ade/ADEChallengeData2016/ \
+    -v ~/itesea4data/dataset/ADE20K_2021_17_01:/mdata/ade20k_full \
+    -v ~/itesea4data/dataset/coco_stuff164k:/mdata/coco_stuff164k \
+    -v ~/itesea4data/dataset/imagenet22k_azcopy:/mdata/imagenet21k \
     -v /mnt:/mnt \
     -u $(id -u):$(id -g) \
     "${IMAGE}" \
