@@ -1,6 +1,6 @@
 
-sudo bash local.sh \
-configs/segmenter/segmenter-propagate_vit-b16_512x512_40k_bs8_prior_0.1_lambda_1.0_mix_batch_coco-stuff164k_ade20k_local.py
+# sudo bash local.sh \
+# configs/segmenter/segmenter-propagate_vit-b16_512x512_40k_bs16_prior_0.1_lambda_1.0_mix_batch_coco-stuff164k_ade20k_local.py
 
 
 # sudo bash local.sh \
@@ -18,7 +18,7 @@ configs/segmenter/segmenter-propagate_vit-b16_512x512_40k_bs8_prior_0.1_lambda_1
 # configs/segmenter/segmenter-propagate_vit-b16_512x512_160k_ade20k.py
 
 # sudo bash local_test.sh \
-# configs/segmenter/segmenter-propagate_vit-b16_512x512_40k_bs16_prior_0.1_lambda_1.0_coco-stuff164k_local_eval_on_in21k.py \
+# configs/segmenter/segmenter-propagate_vit-b16_512x512_40k_bs16_prior_0.1_lambda_1.0_mix_batch_coco-stuff164k_ade20k_local.py \
 # work_dirs/segmenter-propagate_vit-b16_512x512_40k_bs16_prior_0.1_lambda_1.0_coco-stuff164k_local/iter_40000.pth \
 # 1 \
 # --format-only \
@@ -26,11 +26,11 @@ configs/segmenter/segmenter-propagate_vit-b16_512x512_40k_bs8_prior_0.1_lambda_1
 
 
 
-# sudo bash local_test.sh \
-# configs/segmenter/segmenter-propagate_vit-b16_512x512_160k_ade20k.py \
-# work_dirs/segmenter-propagate_vit-b16_512x512_80k_bs16_prior_1.0_lambda_0.0_coco-stuff164k_local/iter_8000.pth \
-# 4 \
-# --eval mIoU
+sudo bash local_test.sh \
+configs/segmenter/segmenter-propagate_vit-b16_512x512_40k_bs16_prior_0.1_lambda_1.0_mix_batch_coco-stuff164k_ade20k_local.py \
+work_dirs/segmenter-propagate_vit-b16_512x512_40k_bs16_prior_0.1_lambda_1.0_mix_batch_coco-stuff164k_ade20k_local/iter_40000.pth \
+4 \
+--eval mIoU
 
 # 4 \
 # --format-only \

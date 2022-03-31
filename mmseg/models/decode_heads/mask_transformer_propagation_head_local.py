@@ -46,6 +46,7 @@ class MaskTransformerPropagationHeadV2(BaseDecodeHead):
         dropout,
         cls_emb_from_backbone=False,
         cls_emb_path="",
+        cls_emb_path_test="",
         contrastive_propagation=False,
         propagation_loss_weight=1.0,
         propagation_loss_mode="cos", # "contrastive", "kl_div"
@@ -76,6 +77,7 @@ class MaskTransformerPropagationHeadV2(BaseDecodeHead):
         self.downsample_rate = downsample_rate
         self.prior_rate = prior_rate
         self.cls_emb_path = cls_emb_path
+        self.cls_emb_path_test = cls_emb_path_test if len(cls_emb_path_test) else self.cls_emb_path
         self.imagenet_eval = imagenet_eval
 
         if self.imagenet_eval:
@@ -92,10 +94,16 @@ class MaskTransformerPropagationHeadV2(BaseDecodeHead):
         ])
 
         self.cls_emb_from_backbone = cls_emb_from_backbone
-        if not cls_emb_from_backbone:
-            self.cls_emb = torch.load(cls_emb_path, map_location="cpu")
-            self.cls_emb.requires_grad = False
-        self.loaded_cls_emb = False
+        if isinstance(cls_emb_path, list):
+            from mmcv.runner import get_dist_info
+            rank, _ = get_dist_info()
+            self.cls_emb_path = cls_emb_path[rank % len(cls_emb_path)]
+            # print(f"Load {cls_emb_path} on cuda:{rank}")
+        if isinstance(self.cls_emb_path_test, list):
+            self.cls_emb_path_test = self.cls_emb_path_test[0]
+
+        self.loaded_cls_emb_test = False
+        self.loaded_cls_emb_train = False
 
         self.proj_dec = nn.Linear(d_encoder, d_model)
 
@@ -105,7 +113,9 @@ class MaskTransformerPropagationHeadV2(BaseDecodeHead):
         #                                  torch.randn(d_model, d_model))
 
         self.decoder_norm = nn.LayerNorm(d_model)
-        self.mask_norm = nn.LayerNorm(n_cls)
+        self.gamma = nn.Parameter(torch.ones([]))
+        self.beta = nn.Parameter(torch.zeros([]))
+        # self.mask_norm = nn.LayerNorm(n_cls)
 
     def init_weights(self):
         self.apply(init_weights)
@@ -119,11 +129,13 @@ class MaskTransformerPropagationHeadV2(BaseDecodeHead):
             cls_emb = self.cls_emb.expand(x.size(0), -1, -1)
         x = self._transform_inputs(x)
         cls_emb = cls_emb.to(x.device)
+
         if self.imagenet_eval:
             img_id = img_metas[0]['ori_filename']
             img_id = img_id[:img_id.find("_")]
             idx = self.in21k_ids.index(img_id)
             cls_emb = cls_emb[:, [idx], :]
+
         B, C, H, W = x.size()
         x = x.view(B, C, -1).permute(0, 2, 1)
 
@@ -145,7 +157,11 @@ class MaskTransformerPropagationHeadV2(BaseDecodeHead):
         masks = patches @ cls_seg_feat.transpose(1, 2)
         # logits = masks.clone()
         if self.training:
-            masks = self.mask_norm(masks)
+            # masks = self.mask_norm(masks)
+            masks = (
+                (masks - torch.mean(masks, dim=-1, keepdim=True)) 
+                / torch.sqrt(torch.var(masks, dim=-1, keepdim=True, unbiased=False) + 1e-5)
+            ) * self.gamma + self.beta
         B, HW, N = masks.size()
 
         masks = masks.view(B, H, W, N).permute(0, 3, 1, 2)
@@ -153,17 +169,23 @@ class MaskTransformerPropagationHeadV2(BaseDecodeHead):
         return masks, patches
 
     def forward_train(self, inputs, img_metas, gt_semantic_seg, train_cfg):
+        if (not self.cls_emb_from_backbone) and (not self.loaded_cls_emb_train):
+            self.cls_emb = torch.load(self.cls_emb_path, map_location="cpu")
+            self.cls_emb.requires_grad = False
+            self.loaded_cls_emb_test = False
+            self.loaded_cls_emb_train = True
         masks, patches = self.forward(inputs, img_metas)
         losses = self.losses(masks, patches, gt_semantic_seg)
         return losses
 
     def forward_test(self, inputs, img_metas, test_cfg):
-        # print(self.cls_emb)
-        if not self.loaded_cls_emb:
-            self.cls_emb = torch.load(self.cls_emb_path, map_location="cpu")
-            self.loaded_cls_emb = True
-            # print(f"Loaded {self.cls_emb_path}.")
+        if not self.loaded_cls_emb_test:
+            self.cls_emb = torch.load(self.cls_emb_path_test, map_location="cpu")
+            self.loaded_cls_emb_test = True
+            self.loaded_cls_emb_train = False
+
         masks, _ = self.forward(inputs, img_metas)
+
         if self.imagenet_eval:
             B, N, H, W = masks.shape
             img_id = img_metas[0]['ori_filename']
@@ -171,17 +193,8 @@ class MaskTransformerPropagationHeadV2(BaseDecodeHead):
             idx = self.in21k_ids.index(img_id)
             new_masks = torch.zeros(B, self.num_classes, H, W).to(masks.device)
             new_masks[:, idx, :, :] = masks.squeeze(1)
-            # print(
-            #     (masks[:, idx] > float(masks[:, idx].mean() + 2 * masks[:, idx].std())).sum(), 
-            #     (masks[:, idx] >= 0).sum()
-            # )
             new_masks[:, -1] = float(masks.mean() + masks.std())
-            # import time
-            # time.sleep(0.3)
             return new_masks
-            # background = torch.zeros_like(new_mask)[:, [0]] + 0.01
-            # new_mask = torch.cat([new_mask, background], dim=-1)
-            # masks = new_mask.reshape(B, H, W, N).permute(0, 3, 1, 2)
         return masks
 
     @force_fp32(apply_to=('seg_logit', ))
@@ -218,9 +231,10 @@ class MaskTransformerPropagationHeadV2(BaseDecodeHead):
             loss['loss_prior'] = torch.tensor(
                 0, dtype=seg_logit.dtype, device=seg_logit.device, requires_grad=True
             )
-            loss['loss_mask'] = torch.tensor(
-                0, dtype=seg_logit.dtype, device=seg_logit.device, requires_grad=True
-            )
+            if self.propagation_loss_weight > 0.0:
+                loss['loss_mask'] = torch.tensor(
+                    0, dtype=seg_logit.dtype, device=seg_logit.device, requires_grad=True
+                )
         else:
             prior_inds = torch.cat(prior_buckets)
             loss['loss_prior'] = self.loss_decode(
@@ -228,19 +242,20 @@ class MaskTransformerPropagationHeadV2(BaseDecodeHead):
                 seg_label[prior_inds],
                 weight=seg_weight,
                 ignore_index=self.ignore_index)
-            if self.propagation_loss_mode == "contrastive":
-                loss['loss_mask'] = self.contrastive_propagation_loss(
-                    seg_feat, pos_bucket, prior_buckets
-                )
-            elif self.propagation_loss_mode == "kl_div":
-                loss['loss_mask'] = self.kl_div_propagation_loss(
-                    seg_logit, pos_bucket, prior_buckets
-                )
-            else:
-                loss['loss_mask'] = self.propagation_loss(
-                    seg_feat, pos_bucket, prior_buckets
-                )
-            loss['loss_mask'] *= self.propagation_loss_weight
+            if self.propagation_loss_weight > 0.0:
+                if self.propagation_loss_mode == "contrastive":
+                    loss['loss_mask'] = self.contrastive_propagation_loss(
+                        seg_feat, pos_bucket, prior_buckets
+                    )
+                elif self.propagation_loss_mode == "kl_div":
+                    loss['loss_mask'] = self.kl_div_propagation_loss(
+                        seg_logit, pos_bucket, prior_buckets
+                    )
+                else:
+                    loss['loss_mask'] = self.propagation_loss(
+                        seg_feat, pos_bucket, prior_buckets
+                    )
+                loss['loss_mask'] *= self.propagation_loss_weight
         loss['acc_seg'] = accuracy(seg_logit, seg_label)
         return loss
 

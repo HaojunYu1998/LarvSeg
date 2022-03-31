@@ -141,11 +141,10 @@ class MaskTransformerPropagationHead(BaseDecodeHead):
         return losses
 
     def forward_test(self, inputs, img_metas, test_cfg):
-        # print(self.cls_emb)
         if not self.loaded_cls_emb:
             self.cls_emb = torch.load(self.cls_emb_path, map_location="cpu")
             self.loaded_cls_emb = True
-            # print(f"Loaded {self.cls_emb_path}.")
+
         masks, _ = self.forward(inputs)
         return masks
 

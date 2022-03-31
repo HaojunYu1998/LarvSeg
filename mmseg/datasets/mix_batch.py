@@ -42,7 +42,7 @@ class MixBatchDataset(Dataset):
         dataset = [build_dataset(args) for args in dataset_list]
         self.rank, world_size = get_dist_info()
         assert len(dataset) <= world_size
-        assert world_size % len(dataset) == 0
+        # assert world_size % len(dataset) == 0
 
         self.dataset = dataset[self.rank % len(dataset)]
         self.dataset_type = dataset_list[self.rank % len(dataset)]["type"]
@@ -54,7 +54,7 @@ class MixBatchDataset(Dataset):
         self.seg_map_suffix = self.dataset.seg_map_suffix
         self.split = self.dataset.split
         self.data_root = self.dataset.data_root
-        self.test_mode = self.dataset.test_mode
+        self.test_mode = False
         self.ignore_index = self.dataset.ignore_index
         self.reduce_zero_label = self.dataset.reduce_zero_label
         self.label_map = None
@@ -63,14 +63,9 @@ class MixBatchDataset(Dataset):
         self.gt_seg_map_loader = self.dataset.gt_seg_map_loader
         self.int16 = self.dataset.int16
 
-        if self.test_mode:
-            assert (
-                self.CLASSES is not None
-            ), "`cls.CLASSES` or `classes` should be specified when testing"
-
         # load annotations
         self.img_infos = self.dataset.img_infos
-        
+
     def __len__(self):
         return len(self.dataset.img_infos)
 
@@ -81,7 +76,6 @@ class MixBatchDataset(Dataset):
         return self.dataset.img_infos[idx]["ann"]
 
     def __getitem__(self, idx):
-        # print(self.rank, self.dataset_type)
         if self.test_mode:
             return self.dataset.prepare_test_img(idx)
         else:

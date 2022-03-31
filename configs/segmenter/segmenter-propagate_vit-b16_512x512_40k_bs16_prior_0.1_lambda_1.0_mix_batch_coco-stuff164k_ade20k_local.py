@@ -1,7 +1,8 @@
 _base_ = [
     # "./training_scheme.py",
     "../_base_/models/segmenter_vit-b16.py",
-    "../_base_/datasets/mix_batch_coco-stuff164k_ade20k.py",
+    # "../_base_/datasets/mix_batch_coco-stuff164k_ade20k.py",
+    "../_base_/datasets/coco-stuff164k.py",
     "../_base_/default_runtime.py",
     "../_base_/schedules/schedule_40k.py",
 ]
@@ -17,11 +18,15 @@ model = dict(
     ),
     decode_head=dict(
         type="MaskTransformerPropagationHeadV2",
-        n_cls=171,
-        cls_emb_path="pretrain/cls_emb_coco_2017_val_stuff_full_sem_seg.pth",
-        prior_rate=0.1,
+        n_cls=171, #150,
+        cls_emb_path=[
+            "pretrain/cls_emb_coco_2017_val_stuff_full_sem_seg.pth",
+            "pretrain/cls_emb_ade20k_sem_seg_val.pth"
+        ],
+        cls_emb_path_test = "pretrain/cls_emb_coco_2017_val_stuff_full_sem_seg.pth", #"pretrain/cls_emb_ade20k_sem_seg_val.pth",
+        prior_rate=1.0,
         contrastive_propagation=True,
-        propagation_loss_weight=1.0,
+        propagation_loss_weight=0.0,
         propagation_loss_mode="kl_div",
     ),
     test_cfg=dict(mode="slide", crop_size=(512, 512), stride=(512, 512)),
@@ -52,4 +57,4 @@ lr_config = dict(
 )
 
 # By default, models are trained on 8 GPUs with 1 images per GPU
-data = dict(samples_per_gpu=2)
+data = dict(samples_per_gpu=4)
