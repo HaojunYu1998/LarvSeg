@@ -18,16 +18,15 @@ model = dict(
     ),
     decode_head=dict(
         type="MaskTransformerPropagationHeadV2",
-        n_cls=171, #150,
+        n_cls=150,
         cls_emb_path=[
             "pretrain/cls_emb_coco_2017_val_stuff_full_sem_seg.pth",
             "pretrain/cls_emb_ade20k_sem_seg_val.pth"
         ],
-        cls_emb_path_test = "pretrain/cls_emb_coco_2017_val_stuff_full_sem_seg.pth", #"pretrain/cls_emb_ade20k_sem_seg_val.pth",
+        cls_emb_path_test = "pretrain/cls_emb_ade20k_sem_seg_val.pth",
         prior_rate=1.0,
-        contrastive_propagation=True,
         propagation_loss_weight=0.0,
-        propagation_loss_mode="kl_div",
+        # propagation_loss_mode="kl_div",
     ),
     test_cfg=dict(mode="slide", crop_size=(512, 512), stride=(512, 512)),
 )

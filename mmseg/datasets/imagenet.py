@@ -19,7 +19,7 @@ class IN21KInterAdeCoco(CustomDataset):
     PALETTE = [[0, 192, 64],]
 
     def __init__(self, **kwargs):
-        super(IN21KInterAdeCoco, self).__init__(**kwargs)
+        super(IN21KInterAdeCoco, self).__init__(img_suffix=".jpg", seg_map_suffix=".png", **kwargs)
 
     def results2img(self, results, imgfile_prefix, to_label_id, indices=None):
         """Write the segmentation results to images.
