@@ -62,7 +62,7 @@ data = dict(
             dict(
                 type='ImageNet21K',
                 data_root=in21k_data_root,
-                img_dir='jpg_images_new',
+                img_dir='jpg_images_ade_inter_in21k_by_wordnet',
                 ann_dir='annotations_cam_new',
                 pipeline=in21k_train_pipeline),
         ]

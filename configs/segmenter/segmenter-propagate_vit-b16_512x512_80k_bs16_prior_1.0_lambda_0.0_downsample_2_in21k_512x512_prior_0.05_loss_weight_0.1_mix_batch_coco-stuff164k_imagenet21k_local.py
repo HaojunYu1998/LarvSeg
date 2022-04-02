@@ -1,9 +1,12 @@
 _base_ = [
     # "./training_scheme.py",
     "../_base_/models/segmenter_vit-b16.py",
-    "../_base_/datasets/coco-stuff164k.py",
+    # "../_base_/datasets/mix_batch_coco-stuff164k_ade20k.py",
+    # "../_base_/datasets/coco-stuff164k.py",
+    # "../_base_/datasets/mix_batch_coco-stuff164k_imagenet21k.py",
+    "../_base_/datasets/mix_batch_coco-stuff164k_imagenet21k_512x512.py",
     "../_base_/default_runtime.py",
-    "../_base_/schedules/schedule_40k.py",
+    "../_base_/schedules/schedule_80k.py",
 ]
 
 model = dict(
@@ -17,11 +20,17 @@ model = dict(
     ),
     decode_head=dict(
         type="MaskTransformerPropagationHead",
-        n_cls=171,
-        cls_emb_path="pretrain/cls_emb_coco_2017_val_stuff_full_sem_seg.pth",
-        prior_rate=0.1,
-        # contrastive_propagation=True,
-        propagation_loss_weight=1.0,
+        n_cls=150,
+        downsample_rate=2,
+        cls_emb_path=[
+            "pretrain/cls_emb_coco_2017_val_stuff_full_sem_seg.pth",
+            "pretrain/cls_emb_in21k_inter_ade_coco.pth"
+        ],
+        cls_emb_path_test = "pretrain/cls_emb_ade20k_sem_seg_val.pth",
+        imagenet_prior_rate=0.05,
+        prior_rate=1.0,
+        imagenet_prior_loss_weight=0.1,
+        propagation_loss_weight=0.0,
         # propagation_loss_mode="kl_div",
     ),
     test_cfg=dict(mode="slide", crop_size=(512, 512), stride=(512, 512)),

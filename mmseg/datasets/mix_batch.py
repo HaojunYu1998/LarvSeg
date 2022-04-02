@@ -25,7 +25,7 @@ from .builder import DATASETS
 from .pipelines import Compose, LoadAnnotations
 from .coco_stuff import COCOStuffDataset
 from .ade import ADE20KDataset
-from .imagenet import IN21KInterAdeCoco
+from .imagenet import ImageNet21K
 
 
 @DATASETS.register_module()
@@ -38,8 +38,8 @@ class MixBatchDataset(Dataset):
                 return COCOStuffDataset(**args)
             elif type == "ADE20KDataset":
                 return ADE20KDataset(**args)
-            elif type == "IN21KInterAdeCoco":
-                return IN21KInterAdeCoco(**args)
+            elif type == "ImageNet21K":
+                return ImageNet21K(**args)
             assert False
 
         self.rank, world_size = get_dist_info()

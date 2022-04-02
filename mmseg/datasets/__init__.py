@@ -15,7 +15,7 @@ from .voc import PascalVOCDataset
 from .coco_stuff import COCOStuffDataset
 from .coco_lvis import COCOLVISDataset
 
-from .imagenet import IN21KInterAdeCoco
+from .imagenet import ImageNet21K
 from .mix_batch import MixBatchDataset
 
 __all__ = [
@@ -24,5 +24,5 @@ __all__ = [
     'PascalVOCDataset', 'ADE20KDataset', 'PascalContextDataset',
     'PascalContextDataset59', 'ChaseDB1Dataset', 'DRIVEDataset', 'HRFDataset',
     'STAREDataset', 'DarkZurichDataset', 'NightDrivingDataset', 'COCOStuffDataset',
-    'ADE20KFULLDataset', "COCOLVISDataset", "IN21KInterAdeCoco", "MixBatchDataset"
+    'ADE20KFULLDataset', "COCOLVISDataset", "ImageNet21K", "MixBatchDataset"
 ]
