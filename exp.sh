@@ -23,7 +23,7 @@ elif [[ "$@" =~ .*pascal_context.* ]]; then
     ROOT=/haojun_storage/dataset/VOCdevkit/VOC2010
 elif [[ "$@" =~ .*coco-stuff164k.* ]]; then
     ROOT=/haojun_storage/dataset/coco_stuff164k
-elif [[ "$@" =~ .*imagenet21k.* ]]; then
+elif [[ "$@" =~ .*in21k.* ]]; then
     ROOT=/haojun_storage/dataset/imagenet22k_azcopy
 else
     echo unsupported config $@
@@ -32,13 +32,17 @@ fi
 
 echo $ROOT
 
-echo bash tools/dist_train.sh "$@" --auto-resume\
-    --options \
-    data.train.data_root=$ROOT \
-    data.test.data_root=$ROOT \
-    data.val.data_root=$ROOT
-bash tools/dist_train.sh "$@" --auto-resume\
-    --options \
-    data.train.data_root=$ROOT \
-    data.test.data_root=$ROOT \
-    data.val.data_root=$ROOT
+# echo bash tools/dist_train.sh "$@" --auto-resume\
+#     --options \
+#     data.train.data_root=$ROOT \
+#     data.test.data_root=$ROOT \
+#     data.val.data_root=$ROOT
+# bash tools/dist_train.sh "$@" --auto-resume\
+#     --options \
+#     data.train.data_root=$ROOT \
+#     data.test.data_root=$ROOT \
+#     data.val.data_root=$ROOT
+
+echo bash tools/dist_train.sh "$@" --auto-resume
+
+bash tools/dist_train.sh "$@" --auto-resume
