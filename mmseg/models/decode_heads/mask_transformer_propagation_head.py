@@ -8,6 +8,7 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 import numpy as np
+from PIL import Image
 from torch.nn.init import trunc_normal_
 
 from ..builder import HEADS
@@ -54,6 +55,7 @@ class MaskTransformerPropagationHead(BaseDecodeHead):
         downsample_rate=8,
         prior_rate=0.1,
         imagenet_prior_rate=0.1,
+        grounding_inference=False,
         **kwargs,
     ):
         # in_channels & channels are dummy arguments to satisfy signature of
@@ -80,6 +82,7 @@ class MaskTransformerPropagationHead(BaseDecodeHead):
         self.cls_emb_path = cls_emb_path
         self.cls_emb_path_test = cls_emb_path_test if len(
             cls_emb_path_test) else self.cls_emb_path
+        self.grounding_inference = grounding_inference
 
         dpr = [x.item() for x in torch.linspace(0, drop_path_rate, n_layers)]
         self.blocks = nn.ModuleList([
@@ -191,8 +194,24 @@ class MaskTransformerPropagationHead(BaseDecodeHead):
                 self.cls_emb_path_test, map_location="cpu")
             self.loaded_cls_emb_test = True
             self.loaded_cls_emb_train = False
-
+        
         masks, _ = self.forward(inputs, img_metas)
+
+        if self.grounding_inference:
+            # fname = img_metas[0]["ori_filename"].replace("jpg", "png")
+            gt_path = img_metas[0]["filename"].replace("images", "annotations").replace("jpg", "png")
+            gt = np.array(Image.open(gt_path))
+            gt = (gt - 1).astype(np.uint8)
+            unique_label = list(np.unique(gt))
+            unique_label = [l for l in unique_label if l != self.ignore_index]
+            B, N, H, W = masks.shape
+            assert B == 1, f"batch {B} != 1 for inference"
+            grounding_mask = torch.zeros(N).bool().to(masks.device)
+            for l in unique_label:
+                grounding_mask[l] = True
+            masks = masks.squeeze(0)
+            masks[~grounding_mask] = -100.0
+            masks = masks.unsqueeze(0)
         return masks
 
     @force_fp32(apply_to=('seg_logit', ))

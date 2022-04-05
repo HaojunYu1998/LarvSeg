@@ -22,6 +22,9 @@ ln -s /mdata/ade20k_full /data/ade20k_full
 ln -s /mdata/coco_stuff164k /data/coco_stuff164k
 ln -s /mdata/imagenet21k /data/imagenet21k
 
+cd pydensecrf
+pip install -e .
+
 cd /workspace
 if $TASK_IS_EXPERIMENT; then
     bash tools/dist_test.sh $QUOTED_ARGS
