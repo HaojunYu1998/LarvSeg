@@ -1,12 +1,12 @@
 _base_ = [
-    # "./training_scheme.py",
     "../_base_/models/segmenter_vit-b16.py",
-    "../_base_/datasets/ade20k_meanstd0.5.py",
+    "../_base_/datasets/mix_batch_coco-stuff164k_imagenet21k_ade_filter.py",
     "../_base_/default_runtime.py",
     "../_base_/schedules/schedule_160k.py",
 ]
 
 model = dict(
+    type="EncoderDecoderV2",
     backbone=dict(
         drop_path_rate=0.1,
         final_norm=True,
@@ -16,14 +16,22 @@ model = dict(
         index=-1,
     ),
     decode_head=dict(
-        type="MaskTransformerPixEmbedHead",
-        n_cls=150
+        type="MaskTransformerPropagationHead",
+        n_cls=150,
+        downsample_rate=2,
+        cls_emb_path=[
+            "pretrain/cls_emb_coco_2017_val_stuff_full_sem_seg.pth",
+            "pretrain/cls_emb_in21k_inter_ade_filter.pth"
+        ],
+        cls_emb_path_test = "pretrain/cls_emb_ade20k_sem_seg_val.pth",
+        imagenet_class_path="notebook/in21k_inter_ade_filter.json",
+        imagenet_prior_rate=0.05,
+        prior_rate=1.0,
+        imagenet_prior_loss_weight=0.1,
+        propagation_loss_weight=0.0,
+        # propagation_loss_mode="kl_div",
     ),
-    # test_cfg=dict(mode="slide", crop_size=(512, 512), stride=(512, 512)),
-    test_cfg=dict(
-        save_feature_dir="work_dirs/feature_maps_segmenter-pixemb_vit-b16_512x512_160k_ade20k_test_whole",
-        # save_logit_dir="work_dirs/logits_segmenter-pixemb_vit-b16_512x512_160k_ade20k_test_whole"
-    ),
+    test_cfg=dict(mode="slide", crop_size=(512, 512), stride=(512, 512)),
 )
 
 optimizer = dict(
@@ -51,4 +59,4 @@ lr_config = dict(
 )
 
 # By default, models are trained on 8 GPUs with 1 images per GPU
-# data = dict(samples_per_gpu=2)
+data = dict(samples_per_gpu=4)

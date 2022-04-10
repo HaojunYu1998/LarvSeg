@@ -1,4 +1,5 @@
 # Copyright (c) OpenMMLab. All rights reserved.
+import os
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
@@ -264,6 +265,8 @@ class EncoderDecoder(BaseSegmentor):
                 seg_logit = self.slide_inference(img, img_meta, rescale)
             else:
                 seg_logit = self.whole_inference(img, img_meta, rescale)
+            # output = seg_logit
+            # print(output.shape)
             output = F.softmax(seg_logit, dim=1)
         flip = img_meta[0]['flip']
         if flip:
@@ -273,13 +276,43 @@ class EncoderDecoder(BaseSegmentor):
                 output = output.flip(dims=(3, ))
             elif flip_direction == 'vertical':
                 output = output.flip(dims=(2, ))
-
+        # topk2_logit = output[0].topk(2, dim=0, sorted=True).values
+        # margin = topk2_logit[0] - topk2_logit[1]
+        # print(margin.max(), margin.min())
+        # entropy = -(output[0] * output[0].log()).sum(dim=0)
+        # print(entropy.shape, entropy.max(), entropy.min())
+        # mu = output[0].mean(dim=0, keepdim=True)
+        # demean_output = output[0] - mu
+        # mean_demean_output2 = torch.pow(demean_output, 2).mean(dim=0)
+        # kurtosis = torch.pow(demean_output, 4).mean(dim=0) / torch.pow(mean_demean_output2, 2)
+        # print(kurtosis.shape, kurtosis.max(), kurtosis.min())
+        # save_path = os.path.join(
+        #     "work_dirs/segmenter-propagate_vit-b16_512x512_160k_bs16_prior_1.0_lambda_0.0_downsample_2_in21k_ade_filter_prior_0.05_loss_weight_0.1_mix_batch_coco-stuff164k_imagenet21k_local/",
+        #     "inference_kurtosis",
+        #     img_meta[0]['ori_filename'].replace("jpg", "pth")
+        # )
+        # torch.save(kurtosis.half().cpu(), save_path)
         return output
 
     def simple_test(self, img, img_meta, rescale=True):
         """Simple test with single image."""
         seg_logit = self.inference(img, img_meta, rescale)
+        # seg inference
         seg_pred = seg_logit.argmax(dim=1)
+        # imagenet inference
+        # import json
+        # imagenet_class_path = "notebook/in21k_inter_ade_filter.json"
+        # with open(imagenet_class_path, "r") as f:
+        #     in21k_id_name_dict = json.load(f)
+        #     # in21k_names = list(in21k_id_name_dict.values())
+        #     in21k_ids = list(in21k_id_name_dict.keys())
+        # img_name = img_meta[0]['ori_filename'].split("/")[-1]
+        # img_id = img_name[:img_name.find("_")]
+        # img_label = in21k_ids.index(img_id)
+        # seg_pred = seg_logit[:, img_label]
+        # seg_pred = (
+        #     (seg_pred - seg_pred.min()) / (seg_pred.max() - seg_pred.min()) * 255
+        # ).to(torch.uint8)
         
         if torch.onnx.is_in_onnx_export():
             # our inference backend only support 4D output

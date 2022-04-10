@@ -10,7 +10,7 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 
 import mmcv
 import torch
-from mmcv.runner import get_dist_info, init_dist
+from mmcv.runner import get_dist_info, init_dist, load_checkpoint
 from mmcv.utils import Config, DictAction, get_git_hash
 
 from mmseg import __version__
@@ -174,7 +174,10 @@ def main():
     model = build_segmentor(
         cfg.model, train_cfg=cfg.get("train_cfg"), test_cfg=cfg.get("test_cfg")
     )
-    model.init_weights()
+    if cfg.model.get("train_cfg").get("init_method", None) == "load_checkpoint":
+        load_checkpoint(model, cfg.model.pretrained, map_location='cpu')
+    else:
+        model.init_weights()
 
     logger.info(model)
 

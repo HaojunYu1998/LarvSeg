@@ -55,7 +55,7 @@ class ImageNet21K(CustomDataset):
             # The  index range of official requirement is from 0 to 150.
             # But the index range of output is from 0 to 149.
             # That is because we set reduce_zero_label=True.
-            result = result + 1
+            # result = result + 1
 
             output = Image.fromarray(result.astype(np.uint8))
             output.save(png_filename)

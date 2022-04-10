@@ -8,6 +8,7 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 import numpy as np
+from PIL import Image
 from torch.nn.init import trunc_normal_
 
 from ..builder import HEADS
@@ -48,10 +49,14 @@ class MaskTransformerPropagationHeadV2(BaseDecodeHead):
         cls_emb_from_backbone=False,
         cls_emb_path="",
         cls_emb_path_test="",
-        imagenet_prior_loss_weight=1.0,  # "contrastive", "kl_div"
+        imagenet_class_path="notebook/in21k_inter_ade_filter.json",
+        imagenet_prior_loss_weight=1.0,
         propagation_loss_weight=1.0,
         downsample_rate=8,
         prior_rate=0.1,
+        imagenet_prior_rate=0.1,
+        imagenet_finetune=False,
+        grounding_inference=False,
         **kwargs,
     ):
         # in_channels & channels are dummy arguments to satisfy signature of
@@ -74,9 +79,12 @@ class MaskTransformerPropagationHeadV2(BaseDecodeHead):
         self.prior_loss_weight = 1.0
         self.downsample_rate = downsample_rate
         self.prior_rate = prior_rate
+        self.imagenet_prior_rate = imagenet_prior_rate
+        self.imagenet_finetune = imagenet_finetune
         self.cls_emb_path = cls_emb_path
         self.cls_emb_path_test = cls_emb_path_test if len(
             cls_emb_path_test) else self.cls_emb_path
+        self.grounding_inference = grounding_inference
 
         dpr = [x.item() for x in torch.linspace(0, drop_path_rate, n_layers)]
         self.blocks = nn.ModuleList([
@@ -101,7 +109,7 @@ class MaskTransformerPropagationHeadV2(BaseDecodeHead):
         # print(rank, self.imagenet)
         if self.imagenet_on_gpu:
             self.prior_loss_weight = imagenet_prior_loss_weight
-            with open("notebook/in21k_inter_ade_coco.json", "r") as f:
+            with open(imagenet_class_path, "r") as f:
                 in21k_id_name_dict = json.load(f)
                 # in21k_names = list(in21k_id_name_dict.values())
                 self.in21k_ids = list(in21k_id_name_dict.keys())
@@ -188,8 +196,24 @@ class MaskTransformerPropagationHeadV2(BaseDecodeHead):
                 self.cls_emb_path_test, map_location="cpu")
             self.loaded_cls_emb_test = True
             self.loaded_cls_emb_train = False
-
+        
         masks, _ = self.forward(inputs, img_metas)
+
+        if self.grounding_inference:
+            # fname = img_metas[0]["ori_filename"].replace("jpg", "png")
+            gt_path = img_metas[0]["filename"].replace("images", "annotations").replace("jpg", "png")
+            gt = np.array(Image.open(gt_path))
+            gt = (gt - 1).astype(np.uint8)
+            unique_label = list(np.unique(gt))
+            unique_label = [l for l in unique_label if l != self.ignore_index]
+            B, N, H, W = masks.shape
+            assert B == 1, f"batch {B} != 1 for inference"
+            grounding_mask = torch.zeros(N).bool().to(masks.device)
+            for l in unique_label:
+                grounding_mask[l] = True
+            masks = masks.squeeze(0)
+            masks[~grounding_mask] = -100.0
+            masks = masks.unsqueeze(0)
         return masks
 
     @force_fp32(apply_to=('seg_logit', ))
@@ -198,6 +222,7 @@ class MaskTransformerPropagationHeadV2(BaseDecodeHead):
         loss = dict()
         h = seg_label.shape[-2] // self.downsample_rate
         w = seg_label.shape[-1] // self.downsample_rate
+        # print(h, w, self.downsample_rate)
         seg_logit = resize(
             input=seg_logit,
             size=(h, w),
@@ -317,13 +342,22 @@ class MaskTransformerPropagationHeadV2(BaseDecodeHead):
             prior_bucket.append(p[inds])
         return pos_bucket, prior_bucket
 
-    def _sample_imagenet(self, seg_logit, cam_label, img_labels, sample_rate=0.1):
+    def _sample_imagenet(self, seg_logit, cam_label, img_labels):
         B, N, H, W = seg_logit.size()
+        K = int(self.imagenet_prior_rate * H * W)
         cam_label = cam_label.reshape(B, H * W)
-        K = int(sample_rate * H * W)
-        prior_bucket = [
-            torch.cat([cam.topk(K).indices + b * H * W for b, cam in enumerate(cam_label)])
-        ]
+        seg_logit = seg_logit.reshape(B, N, H * W)
+        if self.imagenet_finetune:
+            prior_bucket = [
+                torch.cat([logit[label].topk(K).indices + b * H * W 
+                for b, (logit, label) in enumerate(zip(seg_logit, img_labels))])
+            ]
+            # print(prior_bucket)
+        else:
+            prior_bucket = [
+                torch.cat([cam.topk(K).indices + b * H * W for b, cam in enumerate(cam_label)])
+            ]
+
         assert len(cam_label) == len(img_labels)
         seg_label = torch.cat([
             torch.ones_like(cam) * l for cam, l in zip(cam_label, img_labels)

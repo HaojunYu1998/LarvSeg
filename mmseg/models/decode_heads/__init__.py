@@ -46,5 +46,5 @@ __all__ = [
     'MaskTransformerHead', 'MaskTransformerMLSegGTHead', 'MaskTransformerNNCEESSNetHead', 
     'MaskTransformerMLSegHead', 'MLSegDecoderHead',
     'UPerMLSegHead', 'MaskTransformerMLSegDecoderHead',
-    'MaskTransformerPixEmbedHead', 'MaskTransformerPropagationHead'
+    'MaskTransformerPixEmbedHead', 'MaskTransformerPropagationHead', 'MaskTransformerPropagationHeadV2'
 ]
