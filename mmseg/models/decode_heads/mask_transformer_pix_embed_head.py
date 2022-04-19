@@ -163,6 +163,7 @@ class MaskTransformerPixEmbedHead(BaseDecodeHead):
             torch.save(
                 embeds.detach().cpu().half(), save_path
             )
+        del embeds
         # save logits
         save_logit_dir = test_cfg.get("save_logit_dir", None)
         if save_logit_dir is not None:
@@ -175,6 +176,7 @@ class MaskTransformerPixEmbedHead(BaseDecodeHead):
             torch.save(
                 logits.detach().cpu().half(), save_path
             )
+        del logits
         return masks
 
     def graph_cut_inference(self, logit, pix_embedding, thresh):

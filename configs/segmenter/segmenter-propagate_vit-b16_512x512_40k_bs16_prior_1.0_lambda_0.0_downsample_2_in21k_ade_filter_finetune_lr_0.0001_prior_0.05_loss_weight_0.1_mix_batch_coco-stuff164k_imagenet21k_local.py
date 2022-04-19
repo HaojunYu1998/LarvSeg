@@ -16,7 +16,7 @@ model = dict(
         index=-1,
     ),
     decode_head=dict(
-        type="MaskTransformerPropagationHeadV2",
+        type="MaskTransformerPropagationHead",
         n_cls=150,
         downsample_rate=2,
         cls_emb_path=[

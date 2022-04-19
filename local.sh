@@ -44,7 +44,7 @@ echo "$CMD"
 echo "==============================="
 
 sudo nvidia-docker run \
-    --rm --ipc=host ${FLAG} \
+    --rm --ipc=host \
     -v "$PWD":/workspace \
     -v ~/itesea4data/dataset/ADEChallengeData2016:/mdata/ade/ADEChallengeData2016/ \
     -v ~/itesea4data/dataset/ADE20K_2021_17_01:/mdata/ade20k_full \

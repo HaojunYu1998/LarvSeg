@@ -16,7 +16,7 @@ model = dict(
         index=-1,
     ),
     decode_head=dict(
-        type="MaskTransformerPropagationHeadV2",
+        type="MaskTransformerPropagationHead",
         n_cls=171,
         cls_emb_path="pretrain/cls_emb_coco_2017_val_stuff_full_sem_seg.pth",
         prior_rate=0.1,
