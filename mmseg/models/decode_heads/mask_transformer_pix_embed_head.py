@@ -143,14 +143,14 @@ class MaskTransformerPixEmbedHead(BaseDecodeHead):
     def forward_test(self, inputs, img_metas, test_cfg):
         masks, logits, embeds = self.forward(inputs)
         thresh_file = test_cfg.get("logit_thresh", None)
-        if thresh_file is not None:
-            device = masks.device
-            thresh = torch.load(thresh_file).to(device)[:, None, None]
-            mask_list = []
-            for mask, embed in zip(masks, embeds):
-                mask = self.graph_cut_inference(mask, embed, thresh)
-                mask_list.append(mask) # N, H, W
-            masks = torch.stack(mask_list, dim=0).to(device)
+        # if thresh_file is not None:
+        #     device = masks.device
+        #     thresh = torch.load(thresh_file).to(device)[:, None, None]
+        #     mask_list = []
+        #     for mask, embed in zip(masks, embeds):
+        #         mask = self.graph_cut_inference(mask, embed, thresh)
+        #         mask_list.append(mask) # N, H, W
+        #     masks = torch.stack(mask_list, dim=0).to(device)
         # save feature map
         save_feature_dir = test_cfg.get("save_feature_dir", None)
         if save_feature_dir is not None:
@@ -179,37 +179,37 @@ class MaskTransformerPixEmbedHead(BaseDecodeHead):
         del logits
         return masks
 
-    def graph_cut_inference(self, logit, pix_embedding, thresh):
-        """
-        Params:
-            logit: N, H, W
-            pix_embedding: C, H, W
-            thresh: N, 1, 1
-        """
-        N, H, W = logit.shape
-        # thresh = logit.reshape(N, -1).topk(100, dim=1).values[:, -1][:, None, None]
-        valid_masks = logit > thresh
-        # max_mask = logit == logit.max(dim=0).values[None]
-        # valid_masks = valid_masks & max_mask
-        # logit[~valid_masks] = -float("inf")
-        # ignore = torch.zeros_like(logit)[[0]] - 100.0
-        # return torch.cat([logit, ignore], dim=0)
-        # (H * W, C)
-        pix_embedding = pix_embedding.reshape(-1, H * W).transpose(0, 1)
-        cos_sims = []
-        for valid_mask in valid_masks:
-            if not valid_mask.any():
-                continue
-            cos_sim = pix_embedding[valid_mask.flatten()] @ pix_embedding.T
-            cos_sim = cos_sim.max(dim=0).values
-            cos_sims.append(cos_sim)
-        # (N_valid, H * W) => (H, W)
-        pred = torch.stack(cos_sims, dim=0).argmax(dim=0).reshape(H, W)
-        full_perd = torch.zeros(N, H, W).to(logit.device)
-        valid_cls = valid_masks.sum(dim=[1,2]).nonzero(as_tuple=False).flatten()
-        for i, cls in enumerate(valid_cls):
-            full_perd[cls] = (pred == i).float()
-        return full_perd
+    # def graph_cut_inference(self, logit, pix_embedding, thresh):
+    #     """
+    #     Params:
+    #         logit: N, H, W
+    #         pix_embedding: C, H, W
+    #         thresh: N, 1, 1
+    #     """
+    #     N, H, W = logit.shape
+    #     # thresh = logit.reshape(N, -1).topk(100, dim=1).values[:, -1][:, None, None]
+    #     valid_masks = logit > thresh
+    #     # max_mask = logit == logit.max(dim=0).values[None]
+    #     # valid_masks = valid_masks & max_mask
+    #     # logit[~valid_masks] = -float("inf")
+    #     # ignore = torch.zeros_like(logit)[[0]] - 100.0
+    #     # return torch.cat([logit, ignore], dim=0)
+    #     # (H * W, C)
+    #     pix_embedding = pix_embedding.reshape(-1, H * W).transpose(0, 1)
+    #     cos_sims = []
+    #     for valid_mask in valid_masks:
+    #         if not valid_mask.any():
+    #             continue
+    #         cos_sim = pix_embedding[valid_mask.flatten()] @ pix_embedding.T
+    #         cos_sim = cos_sim.max(dim=0).values
+    #         cos_sims.append(cos_sim)
+    #     # (N_valid, H * W) => (H, W)
+    #     pred = torch.stack(cos_sims, dim=0).argmax(dim=0).reshape(H, W)
+    #     full_perd = torch.zeros(N, H, W).to(logit.device)
+    #     valid_cls = valid_masks.sum(dim=[1,2]).nonzero(as_tuple=False).flatten()
+    #     for i, cls in enumerate(valid_cls):
+    #         full_perd[cls] = (pred == i).float()
+    #     return full_perd
 
     def pix_embed_losses(self, seg_feature, seg_label):
         """
