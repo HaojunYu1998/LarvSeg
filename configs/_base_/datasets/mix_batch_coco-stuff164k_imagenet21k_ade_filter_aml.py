@@ -2,7 +2,7 @@
 img_norm_cfg = dict(
     mean=[123.675, 116.28, 103.53], std=[58.395, 57.12, 57.375], to_rgb=True)
 # COCO dataset settings
-coco_data_root = '/haojun_storage/dataset/coco_stuff164k'
+coco_data_root = '/haojun_storage_resrchvc4data/dataset/coco_stuff164k'
 coco_train_pipeline = [
     dict(type='LoadImageFromFile'),
     dict(type='LoadAnnotations'),
@@ -16,7 +16,7 @@ coco_train_pipeline = [
     dict(type='Collect', keys=['img', 'gt_semantic_seg']),
 ]
 # ImageNet21K dataset settings
-in21k_data_root = '/haojun_storage/dataset/imagenet22k_azcopy'
+in21k_data_root = '/haojun_storage_resrchvc4data/dataset/imagenet22k_azcopy'
 in21k_train_pipeline = [
     dict(type='LoadImageFromFile'),
     dict(type='LoadAnnotations'),
@@ -30,7 +30,7 @@ in21k_train_pipeline = [
     dict(type='Collect', keys=['img', 'gt_semantic_seg']),
 ]
 # ADE20K dataset settings
-ade_data_root = '/haojun_storage/dataset/ADEChallengeData2016'
+ade_data_root = '/haojun_storage_resrchvc4data/dataset/ADEChallengeData2016'
 ade_test_pipeline = [
     dict(type='LoadImageFromFile'),
     dict(

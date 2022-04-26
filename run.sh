@@ -1,5 +1,6 @@
 sudo bash local.sh \
-configs/segmenter/segmenter-propagate_vit-b16_512x512_320k_bs16_prior_1.0_lambda_0.0_downsample_1_in21k_ade_filter_prior_0.05_loss_weight_0.1_mix_batch_coco-stuff164k_imagenet21k.py
+configs/segmenter/segmenter-propagate_vit-b16_512x512_320k_bs16_prior_1.0_lambda_0.0_downsample_1_in21k_ade_filter_prior_0.05_loss_weight_0.1_mix_batch_coco-stuff164k_imagenet21k_local.py
+
 
 
 # # sudo bash local_test.sh \

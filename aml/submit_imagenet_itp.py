@@ -71,7 +71,7 @@ if __name__ == "__main__":
     elif args.cluster == "rr1_haodi":
         import config_itp_rr1_haodi as config
     elif args.cluster == "rr1_yhj":
-        import config_itp_rr1_yhj as config
+        import config_itp_rr1_yhj2 as config
     elif args.cluster == "wus2":
         import config_itp_wus2 as config
     elif args.cluster == "wus":

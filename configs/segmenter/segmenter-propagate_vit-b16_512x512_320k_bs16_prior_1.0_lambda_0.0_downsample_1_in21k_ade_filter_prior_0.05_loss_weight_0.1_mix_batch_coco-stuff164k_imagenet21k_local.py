@@ -1,6 +1,10 @@
 _base_ = [
+    # "./training_scheme.py",
     "../_base_/models/segmenter_vit-b16.py",
-    "../_base_/datasets/mix_batch_coco-stuff164k_imagenet21k_ade_filter_aml.py",
+    # "../_base_/datasets/mix_batch_coco-stuff164k_ade20k.py",
+    # "../_base_/datasets/coco-stuff164k.py",
+    # "../_base_/datasets/mix_batch_coco-stuff164k_imagenet21k.py",
+    "../_base_/datasets/mix_batch_coco-stuff164k_imagenet21k_ade_filter.py",
     "../_base_/default_runtime.py",
     "../_base_/schedules/schedule_320k.py",
 ]
