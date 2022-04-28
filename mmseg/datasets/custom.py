@@ -163,10 +163,6 @@ class CustomDataset(Dataset):
                         img_info["ann"] = dict(seg_map=seg_map)
                     img_infos.append(img_info)
         else:
-            from glob import glob
-            import os
-            # imgs = glob(os.path.join(img_dir, "*"))
-            # print_log(f"cuda:{rank} loading {img_dir}.")
             for img in mmcv.scandir(img_dir, img_suffix, recursive=True):
                 img_info = dict(filename=img)
                 if ann_dir is not None:

@@ -44,12 +44,12 @@ echo "$CMD"
 echo "==============================="
 
 sudo nvidia-docker run \
-    --rm --ipc=host ${FLAG} \
+    --rm --ipc=host \
     -v "$PWD":/workspace \
-    -v /mnt/haojun/resrchvc4data/dataset/ADEChallengeData2016:/mdata/ade/ADEChallengeData2016/ \
-    -v /mnt/haojun/resrchvc4data/dataset/ADE20K_2021_17_01:/mdata/ade20k_full \
-    -v /mnt/haojun/resrchvc4data/dataset/coco_stuff164k:/mdata/coco_stuff164k \
-    -v /mnt/haojun/resrchvc4data/dataset/imagenet22k_azcopy:/mdata/imagenet21k \
+    -v ~/itpsea4data/dataset/ADEChallengeData2016:/mdata/ade/ADEChallengeData2016/ \
+    -v ~/itpsea4data/dataset/ADE20K_2021_17_01:/mdata/ade20k_full \
+    -v ~/itpsea4data/dataset/coco_stuff164k:/mdata/coco_stuff164k \
+    -v ~/itpsea4data/dataset/imagenet22k_azcopy:/mdata/imagenet21k \
     -v /mnt:/mnt \
     -u $(id -u):$(id -g) \
     "${IMAGE}" \
