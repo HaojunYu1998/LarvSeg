@@ -19,7 +19,7 @@ class ADE20KDataset(CustomDataset):
     '.png'.
     """
     CLASSES = (
-        'wall', 'building', 'sky', 'floor', 'tree', 'ceiling', 'road', 'bed ',
+        'wall', 'building', 'sky', 'floor', 'tree', 'ceiling', 'road', 'bed',
         'windowpane', 'grass', 'cabinet', 'sidewalk', 'person', 'earth',
         'door', 'table', 'mountain', 'plant', 'curtain', 'chair', 'car',
         'water', 'painting', 'sofa', 'shelf', 'house', 'sea', 'mirror', 'rug',
