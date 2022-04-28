@@ -1,360 +1,343 @@
-# # Copyright (c) OpenMMLab. All rights reserved.
-# import torch
-# import torch.nn as nn
-# import torch.nn.functional as F
+# Copyright (c) OpenMMLab. All rights reserved.
+import os
+import torch
+import torch.nn as nn
+import torch.nn.functional as F
 
-# from mmseg.core import add_prefix
-# from mmseg.ops import resize, resize_on_cpu
-# from .. import builder
-# from ..builder import SEGMENTORS
-# from .base import BaseSegmentor
-# from ..utils import graph_cut_post_process
+from mmseg.core import add_prefix
+from mmseg.ops import resize, resize_on_cpu
+from .. import builder
+from ..builder import SEGMENTORS
+from .base import BaseSegmentor
 
 
-# @SEGMENTORS.register_module()
-# class EncoderDecoderV2(BaseSegmentor):
-#     """Encoder Decoder segmentors.
+@SEGMENTORS.register_module()
+class EncoderDecoderV2(BaseSegmentor):
+    """Encoder Decoder segmentors.
 
-#     EncoderDecoder typically consists of backbone, decode_head, auxiliary_head.
-#     Note that auxiliary_head is only used for deep supervision during training,
-#     which could be dumped during inference.
-#     """
+    EncoderDecoder typically consists of backbone, decode_head, auxiliary_head.
+    Note that auxiliary_head is only used for deep supervision during training,
+    which could be dumped during inference.
+    """
 
-#     def __init__(self,
-#                  backbone,
-#                  decode_head,
-#                  cpu_test=False,
-#                  neck=None,
-#                  auxiliary_head=None,
-#                  train_cfg=None,
-#                  test_cfg=None,
-#                  pretrained=None,
-#                  init_cfg=None):
-#         super(EncoderDecoderV2, self).__init__(init_cfg)
-#         if pretrained is not None:
-#             assert backbone.get('pretrained') is None, \
-#                 'both backbone and segmentor set pretrained weight'
-#             backbone.pretrained = pretrained
-#         self.backbone = builder.build_backbone(backbone)
-#         if neck is not None:
-#             self.neck = builder.build_neck(neck)
-#         self._init_decode_head(decode_head)
-#         self._init_auxiliary_head(auxiliary_head)
+    def __init__(self,
+                 backbone,
+                 decode_head,
+                 cpu_test=False,
+                 neck=None,
+                 auxiliary_head=None,
+                 train_cfg=None,
+                 test_cfg=None,
+                 pretrained=None,
+                 init_cfg=None):
+        super(EncoderDecoderV2, self).__init__(init_cfg)
+        if pretrained is not None:
+            assert backbone.get('pretrained') is None, \
+                'both backbone and segmentor set pretrained weight'
+            backbone.pretrained = pretrained
+        self.backbone = builder.build_backbone(backbone)
+        if neck is not None:
+            self.neck = builder.build_neck(neck)
+        self._init_decode_head(decode_head)
+        self._init_auxiliary_head(auxiliary_head)
 
-#         self.train_cfg = train_cfg
-#         self.test_cfg = test_cfg
-#         self.cpu_test = cpu_test
-#         assert self.with_decode_head
+        self.train_cfg = train_cfg
+        self.test_cfg = test_cfg
+        self.cpu_test = cpu_test
+        assert self.with_decode_head
 
-#         self.post_process_func = graph_cut_post_process
+    def _init_decode_head(self, decode_head):
+        """Initialize ``decode_head``"""
+        self.decode_head = builder.build_head(decode_head)
+        self.align_corners = self.decode_head.align_corners
+        self.num_classes = self.decode_head.num_classes
 
-#     def _init_decode_head(self, decode_head):
-#         """Initialize ``decode_head``"""
-#         self.decode_head = builder.build_head(decode_head)
-#         self.align_corners = self.decode_head.align_corners
-#         self.num_classes = self.decode_head.num_classes
+    def _init_auxiliary_head(self, auxiliary_head):
+        """Initialize ``auxiliary_head``"""
+        if auxiliary_head is not None:
+            if isinstance(auxiliary_head, list):
+                self.auxiliary_head = nn.ModuleList()
+                for head_cfg in auxiliary_head:
+                    self.auxiliary_head.append(builder.build_head(head_cfg))
+            else:
+                self.auxiliary_head = builder.build_head(auxiliary_head)
 
-#     def _init_auxiliary_head(self, auxiliary_head):
-#         """Initialize ``auxiliary_head``"""
-#         if auxiliary_head is not None:
-#             if isinstance(auxiliary_head, list):
-#                 self.auxiliary_head = nn.ModuleList()
-#                 for head_cfg in auxiliary_head:
-#                     self.auxiliary_head.append(builder.build_head(head_cfg))
-#             else:
-#                 self.auxiliary_head = builder.build_head(auxiliary_head)
+    def extract_feat(self, img):
+        """Extract features from images."""
+        x = self.backbone(img)
+        if self.with_neck:
+            x = self.neck(x)
+        return x
 
-#     def extract_feat(self, img):
-#         """Extract features from images."""
-#         x = self.backbone(img)
-#         if self.with_neck:
-#             x = self.neck(x)
-#         return x
-
-#     def encode_decode(self, img, img_metas):
-#         """Encode images with backbone and decode into a semantic segmentation
-#         map of the same size as input."""
+    def encode_decode(self, img, img_metas):
+        """Encode images with backbone and decode into a semantic segmentation
+        map of the same size as input."""
         
-#         if torch.is_tensor(img):
-#             x = self.extract_feat(img)          
-#         else:
-#             img, targets = img
-#             x = (self.extract_feat(img), targets)
-#         out = self._decode_head_forward_test(x, img_metas)
-#         out = resize(
-#             input=out,
-#             size=img.shape[2:],
-#             mode='bilinear',
-#             align_corners=self.align_corners)
-#         # torch.Size([1, 150, 512, 512]) torch.Size([1, 3, 512, 512])
-#         # if self.post_process_func is not None:
-#         #     out = self.post_process_func(out[0], img[0])[None]
-#         # print(out.shape)
-#         return out
+        if torch.is_tensor(img):
+            x = self.extract_feat(img)          
+        else:
+            img, targets = img
+            x = (self.extract_feat(img), targets)
+        out = self._decode_head_forward_test(x, img_metas)
+        out = resize(
+            input=out,
+            size=img.shape[2:],
+            mode='bilinear',
+            align_corners=self.align_corners)
+        return out
 
-#     def _decode_head_forward_train(self, x, img_metas, gt_semantic_seg):
-#         """Run forward function and calculate loss for decode head in
-#         training."""
-#         losses = dict()
-#         loss_decode = self.decode_head.forward_train(x, img_metas,
-#                                                      gt_semantic_seg,
-#                                                      self.train_cfg)
+    def _decode_head_forward_train(self, x, img_metas, gt_semantic_seg):
+        """Run forward function and calculate loss for decode head in
+        training."""
+        losses = dict()
+        loss_decode = self.decode_head.forward_train(x, img_metas,
+                                                     gt_semantic_seg,
+                                                     self.train_cfg)
 
-#         losses.update(add_prefix(loss_decode, 'decode'))
-#         return losses
+        losses.update(add_prefix(loss_decode, 'decode'))
+        return losses
 
-#     def _decode_head_forward_test(self, x, img_metas):
-#         """Run forward function and calculate loss for decode head in
-#         inference."""
-#         seg_logits = self.decode_head.forward_test(x, img_metas, self.test_cfg)
-#         return seg_logits
+    def _decode_head_forward_test(self, x, img_metas):
+        """Run forward function and calculate loss for decode head in
+        inference."""
+        seg_logits = self.decode_head.forward_test(x, img_metas, self.test_cfg)
+        return seg_logits
 
-#     def _auxiliary_head_forward_train(self, x, img_metas, gt_semantic_seg):
-#         """Run forward function and calculate loss for auxiliary head in
-#         training."""
-#         losses = dict()
-#         if isinstance(self.auxiliary_head, nn.ModuleList):
-#             for idx, aux_head in enumerate(self.auxiliary_head):
-#                 loss_aux = aux_head.forward_train(x, img_metas,
-#                                                   gt_semantic_seg,
-#                                                   self.train_cfg)
-#                 losses.update(add_prefix(loss_aux, f'aux_{idx}'))
-#         else:
-#             loss_aux = self.auxiliary_head.forward_train(
-#                 x, img_metas, gt_semantic_seg, self.train_cfg)
-#             losses.update(add_prefix(loss_aux, 'aux'))
+    def _auxiliary_head_forward_train(self, x, img_metas, gt_semantic_seg):
+        """Run forward function and calculate loss for auxiliary head in
+        training."""
+        losses = dict()
+        if isinstance(self.auxiliary_head, nn.ModuleList):
+            for idx, aux_head in enumerate(self.auxiliary_head):
+                loss_aux = aux_head.forward_train(x, img_metas,
+                                                  gt_semantic_seg,
+                                                  self.train_cfg)
+                losses.update(add_prefix(loss_aux, f'aux_{idx}'))
+        else:
+            loss_aux = self.auxiliary_head.forward_train(
+                x, img_metas, gt_semantic_seg, self.train_cfg)
+            losses.update(add_prefix(loss_aux, 'aux'))
 
-#         return losses
+        return losses
 
-#     def forward_dummy(self, img):
-#         """Dummy forward function."""
-#         seg_logit = self.encode_decode(img, None)
+    def forward_dummy(self, img):
+        """Dummy forward function."""
+        seg_logit = self.encode_decode(img, None)
 
-#         return seg_logit
+        return seg_logit
 
-#     def forward_train(self, img, img_metas, gt_semantic_seg):
-#         """Forward function for training.
+    def forward_train(self, img, img_metas, gt_semantic_seg):
+        """Forward function for training.
 
-#         Args:
-#             img (Tensor): Input images.
-#             img_metas (list[dict]): List of image info dict where each dict
-#                 has: 'img_shape', 'scale_factor', 'flip', and may also contain
-#                 'filename', 'ori_shape', 'pad_shape', and 'img_norm_cfg'.
-#                 For details on the values of these keys see
-#                 `mmseg/datasets/pipelines/formatting.py:Collect`.
-#             gt_semantic_seg (Tensor): Semantic segmentation masks
-#                 used if the architecture supports semantic segmentation task.
+        Args:
+            img (Tensor): Input images.
+            img_metas (list[dict]): List of image info dict where each dict
+                has: 'img_shape', 'scale_factor', 'flip', and may also contain
+                'filename', 'ori_shape', 'pad_shape', and 'img_norm_cfg'.
+                For details on the values of these keys see
+                `mmseg/datasets/pipelines/formatting.py:Collect`.
+            gt_semantic_seg (Tensor): Semantic segmentation masks
+                used if the architecture supports semantic segmentation task.
 
-#         Returns:
-#             dict[str, Tensor]: a dictionary of loss components
-#         """
-#         if torch.is_tensor(img):
-#             x = self.extract_feat(img)
-#         else:
-#             x = (self.extract_feat(img[0]), img[1])
+        Returns:
+            dict[str, Tensor]: a dictionary of loss components
+        """
+        if torch.is_tensor(img):
+            x = self.extract_feat(img)
+        else:
+            x = (self.extract_feat(img[0]), img[1])
 
-#         losses = dict()
+        losses = dict()
 
-#         loss_decode = self._decode_head_forward_train(x, img_metas,
-#                                                       gt_semantic_seg)
-#         losses.update(loss_decode)
+        loss_decode = self._decode_head_forward_train(x, img_metas,
+                                                      gt_semantic_seg)
+        losses.update(loss_decode)
 
-#         if self.with_auxiliary_head:
-#             loss_aux = self._auxiliary_head_forward_train(
-#                 x, img_metas, gt_semantic_seg)
-#             losses.update(loss_aux)
+        if self.with_auxiliary_head:
+            loss_aux = self._auxiliary_head_forward_train(
+                x, img_metas, gt_semantic_seg)
+            losses.update(loss_aux)
 
-#         return losses
+        return losses
 
-#     # TODO refactor
-#     def slide_inference(self, img, img_meta, rescale, softmax=False):
-#         """Inference by sliding-window with overlap.
+    # TODO refactor
+    def slide_inference(self, img, img_meta, rescale, softmax=False):
+        """Inference by sliding-window with overlap.
 
-#         If h_crop > h_img or w_crop > w_img, the small patch will be used to
-#         decode without padding.
-#         """
-#         targets = None
-#         h_stride, w_stride = self.test_cfg.stride
-#         h_crop, w_crop = self.test_cfg.crop_size
-#         if not torch.is_tensor(img):
-#             img, targets = img
+        If h_crop > h_img or w_crop > w_img, the small patch will be used to
+        decode without padding.
+        """
+        targets = None
+        h_stride, w_stride = self.test_cfg.stride
+        h_crop, w_crop = self.test_cfg.crop_size
+        if not torch.is_tensor(img):
+            img, targets = img
         
-#         batch_size, _, h_img, w_img = img.size()            
-#         num_classes = self.num_classes
-#         h_grids = max(h_img - h_crop + h_stride - 1, 0) // h_stride + 1
-#         w_grids = max(w_img - w_crop + w_stride - 1, 0) // w_stride + 1
-#         preds = img.new_zeros((batch_size, num_classes, h_img, w_img))
-#         count_mat = img.new_zeros((batch_size, 1, h_img, w_img))
-#         for h_idx in range(h_grids):
-#             for w_idx in range(w_grids):
-#                 y1 = h_idx * h_stride
-#                 x1 = w_idx * w_stride
-#                 y2 = min(y1 + h_crop, h_img)
-#                 x2 = min(x1 + w_crop, w_img)
-#                 y1 = max(y2 - h_crop, 0)
-#                 x1 = max(x2 - w_crop, 0)
-#                 crop_img = img[:, :, y1:y2, x1:x2]
-#                 if torch.is_tensor(targets):
-#                     crop_img = (crop_img, targets)
+        batch_size, _, h_img, w_img = img.size()            
+        num_classes = self.num_classes
+        h_grids = max(h_img - h_crop + h_stride - 1, 0) // h_stride + 1
+        w_grids = max(w_img - w_crop + w_stride - 1, 0) // w_stride + 1
+        preds = img.new_zeros((batch_size, num_classes, h_img, w_img))
+        count_mat = img.new_zeros((batch_size, 1, h_img, w_img))
+        for h_idx in range(h_grids):
+            for w_idx in range(w_grids):
+                y1 = h_idx * h_stride
+                x1 = w_idx * w_stride
+                y2 = min(y1 + h_crop, h_img)
+                x2 = min(x1 + w_crop, w_img)
+                y1 = max(y2 - h_crop, 0)
+                x1 = max(x2 - w_crop, 0)
+                crop_img = img[:, :, y1:y2, x1:x2]
+                if torch.is_tensor(targets):
+                    crop_img = (crop_img, targets)
                 
-#                 crop_seg_logit = self.encode_decode(crop_img, img_meta)
-#                 # print(crop_seg_logit.shape)
-#                 # print(x1, preds.shape[3] - x2, y1, preds.shape[2] - y2)
-#                 preds += F.pad(crop_seg_logit,
-#                                (int(x1), int(preds.shape[3] - x2), int(y1),
-#                                 int(preds.shape[2] - y2)))
+                crop_seg_logit = self.encode_decode(crop_img, img_meta)
+                # print(crop_seg_logit.shape)
+                # print(x1, preds.shape[3] - x2, y1, preds.shape[2] - y2)
+                preds += F.pad(crop_seg_logit,
+                               (int(x1), int(preds.shape[3] - x2), int(y1),
+                                int(preds.shape[2] - y2)))
 
-#                 count_mat[:, :, y1:y2, x1:x2] += 1
-#         assert (count_mat == 0).sum() == 0
-#         if torch.onnx.is_in_onnx_export():
-#             # cast count_mat to constant while exporting to ONNX
-#             count_mat = torch.from_numpy(
-#                 count_mat.cpu().detach().numpy()).to(device=img.device)
-#         preds = preds / count_mat
-#         if softmax:
-#             preds = F.softmax(preds, dim=1)
-#         if rescale:
-#             preds = resize_on_cpu(
-#                 preds,
-#                 size=img_meta[0]['ori_shape'][:2],
-#                 mode='bilinear',
-#                 align_corners=self.align_corners,
-#                 warning=False)
-#         return preds
+                count_mat[:, :, y1:y2, x1:x2] += 1
+        assert (count_mat == 0).sum() == 0
+        if torch.onnx.is_in_onnx_export():
+            # cast count_mat to constant while exporting to ONNX
+            count_mat = torch.from_numpy(
+                count_mat.cpu().detach().numpy()).to(device=img.device)
+        preds = preds / count_mat
+        if softmax:
+            preds = F.softmax(preds, dim=1)
+        if rescale:
+            preds = resize_on_cpu(
+                preds,
+                size=img_meta[0]['ori_shape'][:2],
+                mode='bilinear',
+                align_corners=self.align_corners,
+                warning=False)
+        return preds
 
-#     def whole_inference(self, img, img_meta, rescale):
-#         """Inference with full image."""
+    def whole_inference(self, img, img_meta, rescale):
+        """Inference with full image."""
 
-#         seg_logit = self.encode_decode(img, img_meta)
-#         if rescale:
-#             # support dynamic shape for onnx
-#             if torch.onnx.is_in_onnx_export():
-#                 size = img.shape[2:]
-#             else:
-#                 size = img_meta[0]['ori_shape'][:2]
-#             seg_logit = resize(
-#                 seg_logit,
-#                 size=size,
-#                 mode='bilinear',
-#                 align_corners=self.align_corners,
-#                 warning=False)
+        seg_logit = self.encode_decode(img, img_meta)
+        if rescale:
+            # support dynamic shape for onnx
+            if torch.onnx.is_in_onnx_export():
+                size = img.shape[2:]
+            else:
+                size = img_meta[0]['ori_shape'][:2]
+            seg_logit = resize(
+                seg_logit,
+                size=size,
+                mode='bilinear',
+                align_corners=self.align_corners,
+                warning=False)
 
-#         return seg_logit
+        return seg_logit
 
-#     def inference(self, img, img_meta, rescale):
-#         """Inference with slide/whole style.
+    def inference(self, img, img_meta, rescale):
+        """Inference with slide/whole style.
 
-#         Args:
-#             img (Tensor): The input image of shape (N, 3, H, W).
-#             img_meta (dict): Image info dict where each dict has: 'img_shape',
-#                 'scale_factor', 'flip', and may also contain
-#                 'filename', 'ori_shape', 'pad_shape', and 'img_norm_cfg'.
-#                 For details on the values of these keys see
-#                 `mmseg/datasets/pipelines/formatting.py:Collect`.
-#             rescale (bool): Whether rescale back to original shape.
+        Args:
+            img (Tensor): The input image of shape (N, 3, H, W).
+            img_meta (dict): Image info dict where each dict has: 'img_shape',
+                'scale_factor', 'flip', and may also contain
+                'filename', 'ori_shape', 'pad_shape', and 'img_norm_cfg'.
+                For details on the values of these keys see
+                `mmseg/datasets/pipelines/formatting.py:Collect`.
+            rescale (bool): Whether rescale back to original shape.
 
-#         Returns:
-#             Tensor: The output segmentation map.
-#         """
+        Returns:
+            Tensor: The output segmentation map.
+        """
 
-#         assert self.test_cfg.mode in ['slide', 'whole']
-#         ori_shape = img_meta[0]['ori_shape']
-#         assert all(_['ori_shape'] == ori_shape for _ in img_meta)
-#         if self.cpu_test:
-#             if self.test_cfg.mode == 'slide':
-#                 seg_logit = self.slide_inference(img, img_meta, rescale)
-#             else:
-#                 assert False
-#             output = seg_logit
-#         else:
-#             if self.test_cfg.mode == 'slide':
-#                 seg_logit = self.slide_inference(img, img_meta, rescale)
-#             else:
-#                 seg_logit = self.whole_inference(img, img_meta, rescale)
-#             # output = F.softmax(seg_logit, dim=1)
-#             output = seg_logit
-#         flip = img_meta[0]['flip']
-#         if flip:
-#             flip_direction = img_meta[0]['flip_direction']
-#             assert flip_direction in ['horizontal', 'vertical']
-#             if flip_direction == 'horizontal':
-#                 output = output.flip(dims=(3, ))
-#             elif flip_direction == 'vertical':
-#                 output = output.flip(dims=(2, ))
+        assert self.test_cfg.mode in ['slide', 'whole']
+        ori_shape = img_meta[0]['ori_shape']
+        assert all(_['ori_shape'] == ori_shape for _ in img_meta)
+        if self.cpu_test:
+            if self.test_cfg.mode == 'slide':
+                seg_logit = self.slide_inference(img, img_meta, rescale)
+            else:
+                assert False
+            output = seg_logit
+        else:
+            if self.test_cfg.mode == 'slide':
+                seg_logit = self.slide_inference(img, img_meta, rescale)
+            else:
+                seg_logit = self.whole_inference(img, img_meta, rescale)
+            # output = seg_logit
+            # print(output.shape)
+            output = F.softmax(seg_logit, dim=1)
+        flip = img_meta[0]['flip']
+        if flip:
+            flip_direction = img_meta[0]['flip_direction']
+            assert flip_direction in ['horizontal', 'vertical']
+            if flip_direction == 'horizontal':
+                output = output.flip(dims=(3, ))
+            elif flip_direction == 'vertical':
+                output = output.flip(dims=(2, ))
+        # topk2_logit = output[0].topk(2, dim=0, sorted=True).values
+        # margin = topk2_logit[0] - topk2_logit[1]
+        # print(margin.max(), margin.min())
+        # entropy = -(output[0] * output[0].log()).sum(dim=0)
+        # print(entropy.shape, entropy.max(), entropy.min())
+        # mu = output[0].mean(dim=0, keepdim=True)
+        # demean_output = output[0] - mu
+        # mean_demean_output2 = torch.pow(demean_output, 2).mean(dim=0)
+        # kurtosis = torch.pow(demean_output, 4).mean(dim=0) / torch.pow(mean_demean_output2, 2)
+        # print(kurtosis.shape, kurtosis.max(), kurtosis.min())
+        # save_path = os.path.join(
+        #     "work_dirs/segmenter-propagate_vit-b16_512x512_160k_bs16_prior_1.0_lambda_0.0_downsample_2_in21k_ade_filter_prior_0.05_loss_weight_0.1_mix_batch_coco-stuff164k_imagenet21k_local/",
+        #     "inference_kurtosis",
+        #     img_meta[0]['ori_filename'].replace("jpg", "pth")
+        # )
+        # torch.save(kurtosis.half().cpu(), save_path)
+        return output
 
-#         # mu = output[0].mean(dim=0, keepdim=True)
-#         # demean_output = output[0] - mu
-#         # mean_demean_output2 = torch.pow(demean_output, 2).mean(dim=0)
-#         # kurtosis = torch.pow(demean_output, 4).mean(dim=0) / torch.pow(mean_demean_output2, 2)
-#         # valid_mask = kurtosis > 3
-
-#         return output, None
-
-#     def simple_test(self, img, img_meta, rescale=True):
-#         """Simple test with single image."""
-#         seg_logit, valid_mask = self.inference(img, img_meta, rescale)
+    def simple_test(self, img, img_meta, rescale=True):
+        """Simple test with single image."""
+        seg_logit = self.inference(img, img_meta, rescale)
+        # seg inference
+        seg_pred = seg_logit.argmax(dim=1)
+        # imagenet inference
+        # import json
+        # imagenet_class_path = "notebook/in21k_inter_ade_filter.json"
+        # with open(imagenet_class_path, "r") as f:
+        #     in21k_id_name_dict = json.load(f)
+        #     # in21k_names = list(in21k_id_name_dict.values())
+        #     in21k_ids = list(in21k_id_name_dict.keys())
+        # img_name = img_meta[0]['ori_filename'].split("/")[-1]
+        # img_id = img_name[:img_name.find("_")]
+        # img_label = in21k_ids.index(img_id)
+        # seg_pred = seg_logit[:, img_label]
+        # seg_pred = (
+        #     (seg_pred - seg_pred.min()) / (seg_pred.max() - seg_pred.min()) * 255
+        # ).to(torch.uint8)
         
-#         if valid_mask is not None:
-#             seg_pred[:, ~valid_mask] = self.decode_head.ignore_index
-#         # print(seg_pred.shape)
-#         feature_dir = 'work_dirs/feature_maps_segmenter-pixemb_vit-b16_512x512_160k_ade20k_test_whole'
-#         import os
-#         pix_embedding = torch.load(
-#             os.path.join(
-#                 feature_dir,
-#                 img_meta[0]['ori_filename'].replace("jpg", "pth")
-#         )).float().to(seg_logit.device)
-#         size = img_meta[0]['ori_shape'][:2]
-#         pix_embedding = resize(
-#             input=pix_embedding,
-#             size=(size[0]//8, size[1]//8),
-#             mode='bilinear',
-#             align_corners=False
-#         )
-#         seg_logit = resize(
-#             input=seg_logit,
-#             size=(size[0]//8, size[1]//8),
-#             mode='bilinear',
-#             align_corners=False
-#         )
-#         pix_embedding = pix_embedding[0].permute(1, 2, 0)
-#         seg_pred = graph_cut_post_process(
-#             seg_logit[0], 
-#             pix_embedding, 
-#             unary_mul=100,
-#             unary_only=False,
-#             unary_from_embedding=False,
-#             pairwise_weight=True
-#         )
-#         seg_pred = resize(
-#             input=seg_pred[None, None].float(),
-#             size=size,
-#         )[0].long()
+        if torch.onnx.is_in_onnx_export():
+            # our inference backend only support 4D output
+            seg_pred = seg_pred.unsqueeze(0)
+            return seg_pred
+        seg_pred = seg_pred.cpu().numpy()
+        # unravel batch dim
+        seg_pred = list(seg_pred)
+        return seg_pred
 
-#         if torch.onnx.is_in_onnx_export():
-#             # our inference backend only support 4D output
-#             seg_pred = seg_pred.unsqueeze(0)
-#             return seg_pred
-#         seg_pred = seg_pred.cpu().numpy()
-#         # unravel batch dim
-#         seg_pred = list(seg_pred)
-#         return seg_pred
+    def aug_test(self, imgs, img_metas, rescale=True):
+        """Test with augmentations.
 
-#     def aug_test(self, imgs, img_metas, rescale=True):
-#         """Test with augmentations.
-
-#         Only rescale=True is supported.
-#         """
-#         # aug_test rescale all imgs back to ori_shape for now
-#         assert rescale
-#         # to save memory, we get augmented seg logit inplace
-#         seg_logit = self.inference(imgs[0], img_metas[0], rescale)
-#         for i in range(1, len(imgs)):
-#             cur_seg_logit = self.inference(imgs[i], img_metas[i], rescale)
-#             seg_logit += cur_seg_logit
-#         seg_logit /= len(imgs)
-#         seg_pred = seg_logit.argmax(dim=1)
-#         seg_pred = seg_pred.cpu().numpy()
-#         # unravel batch dim
-#         seg_pred = list(seg_pred)
-#         return seg_pred
+        Only rescale=True is supported.
+        """
+        # aug_test rescale all imgs back to ori_shape for now
+        assert rescale
+        # to save memory, we get augmented seg logit inplace
+        seg_logit = self.inference(imgs[0], img_metas[0], rescale)
+        for i in range(1, len(imgs)):
+            cur_seg_logit = self.inference(imgs[i], img_metas[i], rescale)
+            seg_logit += cur_seg_logit
+        seg_logit /= len(imgs)
+        seg_pred = seg_logit.argmax(dim=1)
+        seg_pred = seg_pred.cpu().numpy()
+        # unravel batch dim
+        seg_pred = list(seg_pred)
+        return seg_pred

@@ -52,6 +52,7 @@ class MaskTransformerPropagationHead(BaseDecodeHead):
         cls_emb_concat=False,
         imagenet_class_path="notebook/in21k_inter_ade_filter.json",
         imagenet_prior_loss_weight=1.0,
+        imagenet_pseudo_label=False,
         propagation_loss_weight=1.0,
         structure_loss_weight=1.0,
         downsample_rate=8,
@@ -84,6 +85,7 @@ class MaskTransformerPropagationHead(BaseDecodeHead):
         self.downsample_rate = downsample_rate
         self.prior_rate = prior_rate
         self.imagenet_prior_rate = imagenet_prior_rate
+        self.imagenet_pseudo_label = imagenet_pseudo_label
         self.cls_emb_path = cls_emb_path
         self.cls_emb_path_test = cls_emb_path_test if len(
             cls_emb_path_test) else self.cls_emb_path
@@ -282,9 +284,9 @@ class MaskTransformerPropagationHead(BaseDecodeHead):
             loss['loss_prior'] = torch.tensor(
                 0, dtype=seg_mask.dtype, device=seg_mask.device, requires_grad=True
             )
-            loss['loss_structure'] = torch.tensor(
-                0, dtype=seg_mask.dtype, device=seg_mask.device, requires_grad=True
-            )
+            # loss['loss_structure'] = torch.tensor(
+            #     0, dtype=seg_mask.dtype, device=seg_mask.device, requires_grad=True
+            # )
         else:
             prior_inds = torch.cat(prior_bucket)
             loss['loss_prior'] = self.loss_decode(
@@ -293,11 +295,11 @@ class MaskTransformerPropagationHead(BaseDecodeHead):
                 weight=None,
                 ignore_index=self.ignore_index
             ) * self.prior_loss_weight
-            loss['loss_structure'] = self.loss_structure(
-                seg_logit,
-                seg_label,
-                prior_bucket,
-            ) * self.structure_loss_weight
+            # loss['loss_structure'] = self.loss_structure(
+            #     seg_logit,
+            #     seg_label,
+            #     prior_bucket,
+            # ) * self.structure_loss_weight
 
         acc_weight = 0.0 if self.imagenet_on_gpu else 2.0
         acc_weight = acc_weight if self.imagenet_in_batch else 1.0
@@ -372,10 +374,15 @@ class MaskTransformerPropagationHead(BaseDecodeHead):
     def _sample_imagenet(self, seg_logit, cam_label, img_labels):
         B, N, H, W = seg_logit.size()
         cam_label = cam_label.reshape(B, H * W)
-        K = int(self.imagenet_prior_rate * H * W)
-        prior_bucket = [
-            cam.topk(K).indices + b * H * W for b, cam in enumerate(cam_label)
-        ]
+        if self.imagenet_pseudo_label:
+            prior_bucket = [
+                cam.topk(int((cam > 0).sum())).indices + b * H * W for b, cam in enumerate(cam_label)
+            ]
+        else:
+            K = int(self.imagenet_prior_rate * H * W)
+            prior_bucket = [
+                cam.topk(K).indices + b * H * W for b, cam in enumerate(cam_label)
+            ]
         assert len(cam_label) == len(img_labels)
         seg_label = torch.cat([
             torch.ones_like(cam) * l for cam, l in zip(cam_label, img_labels)

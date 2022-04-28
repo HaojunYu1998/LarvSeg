@@ -63,8 +63,8 @@ data = dict(
                 type='ImageNet21K',
                 data_root=in21k_data_root,
                 img_dir='jpg_images_ade_inter_in21k_by_wordnet',
-                ann_dir='pa_pseudo_label',
-                split='pa_pseudo_label.txt',
+                ann_dir='pa_pseudo_label_cam',
+                split="in21k_inter_ade_v2_pseudo_label_cam.txt",
                 pipeline=in21k_train_pipeline),
         ]
     ),
