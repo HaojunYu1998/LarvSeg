@@ -217,15 +217,27 @@ class MaskTransformerPropagationHead(BaseDecodeHead):
         #     img_names = [meta['ori_filename'] for meta in img_metas]
         #     img_ids = [name[:name.find("_")] for name in img_names]
         #     img_labels = [self.in21k_ids.index(img_id) for img_id in img_ids]
-
+        #     img_shapes = [meta['ori_shape'][:-1] for meta in img_metas]
+        
+        # os.makedirs(self.imagenet_pred_save_dir, exist_ok=True)
         # if self.imagenet_pred_save_dir is not None:
-        #     pred = masks[0, img_labels[0]]
-        #     os.makedirs(self.imagenet_pred_save_dir, exist_ok=True)
-        #     torch.save(
-        #         pred.cpu().half(),
-        #         os.path.join(self.imagenet_pred_save_dir, img_names[0].replace(".jpg", ".pth")
-        #     ))
-
+        #     pred = masks.softmax(dim=1)
+        #     pred = pred[0, img_labels[0]]
+        #     h, w = img_shapes[0]
+        #     pred = F.interpolate(
+        #         pred[None, None], size=(h, w), mode="bilinear", align_corners=False
+        #     )[0,0]
+        #     pred = (pred - pred.min()) / (pred.max() - pred.min())
+        #     pred = pred.cpu().numpy()
+        #     # torch.save(
+        #     #     pred.cpu().half(),
+        #     #     os.path.join(self.imagenet_pred_save_dir, img_names[0].replace(".jpg", ".pth")
+        #     # ))
+        #     Image.fromarray((pred * 255).astype(np.uint8)).save(
+        #         os.path.join(self.imagenet_pred_save_dir, img_names[0].replace(".jpg", ".png"))
+        #     )
+        
+        #     masks = masks[:, [0]]
         if self.grounding_inference:
             # fname = img_metas[0]["ori_filename"].replace("jpg", "png")
             gt_path = img_metas[0]["filename"].replace("images", "annotations").replace("jpg", "png")

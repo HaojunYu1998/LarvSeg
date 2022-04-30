@@ -42,6 +42,8 @@ def parse_args():
         nargs='+',
         help='evaluation metrics, which depends on the dataset, e.g., "mIoU"'
         ' for generic datasets, and "cityscapes" for Cityscapes')
+    parser.add_argument(
+        '--no-rescale', action='store_true')
     parser.add_argument('--show', action='store_true', help='show results')
     parser.add_argument(
         '--show-dir', help='directory where painted images will be saved')
@@ -202,7 +204,8 @@ def main():
             False,
             pre_eval=args.eval is not None and not eval_on_format_results,
             format_only=args.format_only or eval_on_format_results,
-            format_args=eval_kwargs)
+            format_args=eval_kwargs,
+            rescale=not args.no_rescale)
 
     rank, _ = get_dist_info()
     if rank == 0:
