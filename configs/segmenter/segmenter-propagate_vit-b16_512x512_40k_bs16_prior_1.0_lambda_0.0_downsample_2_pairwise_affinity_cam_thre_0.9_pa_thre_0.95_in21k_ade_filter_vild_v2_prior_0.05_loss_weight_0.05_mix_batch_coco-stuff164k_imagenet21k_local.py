@@ -31,7 +31,7 @@ model = dict(
         propagation_loss_weight=0.0,
         use_pairwise_affinity=True,
         pairwise_affinity_thresh=0.95,
-        cam_thresh=0.9
+        cam_thresh=0.9,
     ),
     test_cfg=dict(mode="slide", crop_size=(512, 512), stride=(512, 512)),
 )
