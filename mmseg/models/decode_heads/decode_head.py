@@ -63,7 +63,6 @@ class BaseDecodeHead(BaseModule, metaclass=ABCMeta):
                  ignore_index=255,
                  sampler=None,
                  align_corners=False,
-                 
                  init_cfg=dict(
                      type='Normal', std=0.01, override=dict(name='conv_seg'))):
         super(BaseDecodeHead, self).__init__(init_cfg)

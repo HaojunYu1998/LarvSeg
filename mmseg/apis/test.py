@@ -212,7 +212,6 @@ def multi_gpu_test(model,
 
     for batch_indices, data in zip(loader_indices, data_loader):
         with torch.no_grad():
-            print(rescale)
             result = model(return_loss=False, rescale=rescale, **data)
 
         if efficient_test:

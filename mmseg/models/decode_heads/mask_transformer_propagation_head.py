@@ -61,6 +61,10 @@ class MaskTransformerPropagationHead(BaseDecodeHead):
         grounding_inference=False,
         imagenet_pred_save_dir=None,
         temperature=1.0,
+        ann_suffix=".png",
+        use_pairwise_affinity=False,
+        pairwise_affinity_thresh=0.95,
+        cam_thresh=0.9,
         **kwargs,
     ):
         # in_channels & channels are dummy arguments to satisfy signature of
@@ -93,6 +97,11 @@ class MaskTransformerPropagationHead(BaseDecodeHead):
         self.grounding_inference = grounding_inference
         self.imagenet_pred_save_dir = imagenet_pred_save_dir
         self.temperature = temperature
+        self.ann_suffix = ann_suffix
+        # Pairwise Affinity for ImageNet21K supervision
+        self.use_pairwise_affinity = use_pairwise_affinity
+        self.pairwise_affinity_thresh = pairwise_affinity_thresh
+        self.cam_thresh = cam_thresh
 
         dpr = [x.item() for x in torch.linspace(0, drop_path_rate, n_layers)]
         self.blocks = nn.ModuleList([
@@ -239,10 +248,12 @@ class MaskTransformerPropagationHead(BaseDecodeHead):
         
         #     masks = masks[:, [0]]
         if self.grounding_inference:
-            # fname = img_metas[0]["ori_filename"].replace("jpg", "png")
-            gt_path = img_metas[0]["filename"].replace("images", "annotations").replace("jpg", "png")
+            gt_path = img_metas[0]["filename"].replace("images", "annotations").replace(".jpg", self.ann_suffix)
             gt = np.array(Image.open(gt_path))
-            gt = (gt - 1).astype(np.uint8)
+            if self.ann_suffix == ".png":
+                gt = (gt - 1).astype(np.uint8)
+            else:
+                gt = gt.astype(np.uint16)
             unique_label = list(np.unique(gt))
             unique_label = [l for l in unique_label if l != self.ignore_index]
             B, N, H, W = masks.shape
@@ -255,7 +266,7 @@ class MaskTransformerPropagationHead(BaseDecodeHead):
             masks = masks.unsqueeze(0)
         return masks
 
-    @force_fp32(apply_to=('seg_logit', ))
+    @force_fp32(apply_to=('seg_mask', ))
     def losses(self, seg_mask, seg_logit, seg_label, img_labels=None):
         """Compute segmentation loss."""
         loss = dict()
