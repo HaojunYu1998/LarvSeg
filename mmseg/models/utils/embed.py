@@ -35,6 +35,7 @@ class PatchEmbed(BaseModule):
                  stride=16,
                  padding=0,
                  dilation=1,
+                 bias=True,
                  pad_to_patch_size=True,
                  norm_cfg=None,
                  init_cfg=None):
@@ -70,7 +71,8 @@ class PatchEmbed(BaseModule):
             kernel_size=kernel_size,
             stride=stride,
             padding=padding,
-            dilation=dilation)
+            dilation=dilation,
+            bias=bias)
 
         if norm_cfg is not None:
             self.norm = build_norm_layer(norm_cfg, embed_dims)[1]

@@ -14,57 +14,36 @@ import mmcv
 class ImageNet21K(CustomDataset):
 
     # define CLASSES, PALETTE here to satisfy mmseg assertions
-    CLASSES = ('person', )
+    CLASSES = (
+        'bookcase', 'stool', 'bed', 'vase', 'dirt track', 'buffet', 
+        'stove', 'skyscraper', 'bridge', 'box', 'pole', 'grass', 'tent', 
+        'flower', 'stairs', 'chair', 'house', 'bench', 'door', 'cushion', 
+        'rock', 'bannister', 'trade name', 'car', 'bicycle', 'wall', 'fan', 
+        'truck', 'hill', 'shelf', 'kitchen island', 'conveyer belt', 'wardrobe', 
+        'airplane', 'refrigerator', 'tower', 'sky', 'ball', 'tray', 'chandelier', 
+        'sidewalk', 'wall', 'sand', 'tank', 'stage', 
+        'radiator', 'house', 'toilet', 'monitor', 'road', 'awning', 'pool table', 
+        'windowpane', 'booth', 'lake', 'radiator', 'base', 'glass', 'swivel chair', 
+        'floor', 'radiator', 'cradle', 'river', 'canopy', 'sink', 'arcade machine', 
+        'palm', 'bathtub', 'curtain', 'ship', 'streetlight', 'dishwasher', 'plate', 
+        'fireplace', 'mirror', 'plant', 'traffic light', 'lamp', 'cabinet', 'truck', 
+        'rug', 'water', 'flag', 'bus', 'bar', 'tent', 'fence', 'computer', 'van', 
+        'lake', 'minibike', 'table', 'screen door', 'monitor', 'column', 'sconce', 
+        'railing', 'towel', 'stove', 'floor', 'kitchen island', 'oven', 'blind', 
+        'case', 'bridge', 'lamp', 'monitor', 'pier', 'mountain', 'crt screen', 'railing', 
+        'sculpture', 'clock', 'ashcan', 'bar', 'ceiling', 'hovel', 'wardrobe', 'door', 
+        'animal', 'bag', 'wall', 'bed', 'ottoman', 'armchair', 'bag', 'chest of drawers', 
+        'pole', 'ottoman', 'tree', 'pot', 'bag', 'chair', 'ball', 'door', 'boat', 
+        'counter', 'shower', 'bar', 'coffee table', 'glass', 'column', 'wall', 'washer', 
+        'double door', 'bar', 'building', 'microwave', 'table', 'book', 'minibike', 
+        'lake', 'fountain', 'television receiver', 'bottle', 'desk', 'person', 'grass', 
+        'animal', 'apparel', 'animal', 'field', 'palm', 'bathtub', 'blanket', 'light', 
+        'tent', 'basket', 'pier', 'runway', 'food', 'sconce', 'sofa', 'earth')
 
-    PALETTE = [[0, 192, 64],]
+    PALETTE = None
 
     def __init__(self, **kwargs):
         super(ImageNet21K, self).__init__(img_suffix=".jpg", seg_map_suffix=".png", **kwargs)
-        # load annotations
-    #     self.img_infos = self.load_annotations(
-    #         self.img_dir, self.img_suffix, self.ann_dir, self.seg_map_suffix, self.split
-    #     )
-    
-    # def load_annotations(self, img_dir, img_suffix, ann_dir, seg_map_suffix, split):
-    #     """Load annotation from directory.
-
-    #     Args:
-    #         img_dir (str): Path to image directory
-    #         img_suffix (str): Suffix of images.
-    #         ann_dir (str|None): Path to annotation directory.
-    #         seg_map_suffix (str|None): Suffix of segmentation maps.
-    #         split (str|None): Split txt file. If split is specified, only file
-    #             with suffix in the splits will be loaded. Otherwise, all images
-    #             in img_dir/ann_dir will be loaded. Default: None
-
-    #     Returns:
-    #         list[dict]: All image info of dataset.
-    #     """
-
-    #     img_infos = []
-    #     if split is not None:
-    #         with open(split) as f:
-    #             for line in f:
-    #                 img_name = line.strip()
-    #                 img_info = dict(filename=img_name + img_suffix)
-    #                 if ann_dir is not None:
-    #                     seg_map = img_name + seg_map_suffix
-    #                     img_info["ann"] = dict(seg_map=seg_map)
-    #                 img_infos.append(img_info)
-    #     else:
-    #         for img in mmcv.scandir(img_dir, img_suffix, recursive=True):
-    #             seg_map = img.replace(img_suffix, seg_map_suffix)
-    #             if not osp.exists(osp.join(ann_dir, seg_map)):
-    #                 print(f"{osp.join(ann_dir, seg_map)} NOT EXISTS!")
-    #                 continue
-    #             img_info = dict(filename=img)
-    #             if ann_dir is not None:
-    #                 img_info["ann"] = dict(seg_map=seg_map)
-    #             img_infos.append(img_info)
-    #         img_infos = sorted(img_infos, key=lambda x: x["filename"])
-
-    #     # print_log(f"Loaded {len(img_infos)} images", logger=get_root_logger())
-    #     return img_infos
 
     def results2img(self, results, imgfile_prefix, to_label_id, indices=None):
         """Write the segmentation results to images.
