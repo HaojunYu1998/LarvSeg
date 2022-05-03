@@ -21,6 +21,11 @@ from timm.models.layers import DropPath
 from mmcv.runner import get_dist_info
 from random import sample
 
+from mmseg.models.clip_adapter import (
+    build_prompt_learner, ClipAdapter
+)
+from mmseg.datasets import COCOStuffDataset, ADE20KDataset, ImageNet21K
+
 
 def init_weights(m):
     if isinstance(m, nn.Linear):
@@ -33,7 +38,7 @@ def init_weights(m):
 
 
 @HEADS.register_module()
-class MaskTransformerPropagationHead(BaseDecodeHead):
+class MaskTransformerPromptLearningHead(BaseDecodeHead):
 
     def __init__(
         self,
@@ -61,10 +66,14 @@ class MaskTransformerPropagationHead(BaseDecodeHead):
         grounding_inference=False,
         imagenet_pred_save_dir=None,
         temperature=1.0,
-        use_pixel_embedding=False,
+        ann_suffix=".png",
         use_pairwise_affinity=False,
         pairwise_affinity_thresh=0.95,
         cam_thresh=0.9,
+        prompt_type="learnable",
+        clip_model_name="ViT-B/16",
+        prompt_dim=768,
+        prompt_shape=(16, 0),
         **kwargs,
     ):
         # in_channels & channels are dummy arguments to satisfy signature of
@@ -97,7 +106,7 @@ class MaskTransformerPropagationHead(BaseDecodeHead):
         self.grounding_inference = grounding_inference
         self.imagenet_pred_save_dir = imagenet_pred_save_dir
         self.temperature = temperature
-        self.use_pixel_embedding = use_pixel_embedding
+        self.ann_suffix = ann_suffix
         # Pairwise Affinity for ImageNet21K supervision
         self.use_pairwise_affinity = use_pairwise_affinity
         self.pairwise_affinity_thresh = pairwise_affinity_thresh
@@ -109,6 +118,15 @@ class MaskTransformerPropagationHead(BaseDecodeHead):
             for i in range(n_layers)
         ])
 
+        # Build CLIP
+        cls_prompt_learner = build_prompt_learner(
+            prompt_type, prompt_dim=prompt_dim, prompt_shape=prompt_shape
+        )
+        # print(cls_prompt_learner)
+        self.clip_adapter = ClipAdapter(
+            clip_model_name, cls_prompt_learner
+        )
+        # Which dataset to use on this GPU?
         self.cls_emb_from_backbone = cls_emb_from_backbone
         self.imagenet_in_batch = False
         if isinstance(cls_emb_path, list):
@@ -147,16 +165,40 @@ class MaskTransformerPropagationHead(BaseDecodeHead):
         self.beta = nn.Parameter(torch.zeros([]))
         # self.mask_norm = nn.LayerNorm(n_cls)
 
+    def apply_without_clip_model(self, fn):
+        # reload apply function in nn.Module
+        for name, module in self.named_children():
+            if "clip" not in name:
+                module.apply(fn)
+        fn(self)
+        return self
+
     def init_weights(self):
-        self.apply(init_weights)
-        # if not self.cls_emb_from_backbone:
-        #     trunc_normal_(self.cls_emb, std=0.02)
+        self.apply_without_clip_model(init_weights)
+
+    # def get_class_name(self):
+    #     if self.
+    @property
+    def class_names(self):
+        cls_emb_path = self.cls_emb_path if self.training else self.cls_emb_path_test
+        if "coco" in cls_emb_path:
+            return COCOStuffDataset.CLASSES
+        elif "ade" in cls_emb_path:
+            return ADE20KDataset.CLASSES
+        elif "in21k" in cls_emb_path:
+            return ImageNet21K.CLASSES
+        raise NotImplementedError
 
     def forward(self, x, img_metas):
         if self.cls_emb_from_backbone:
             x, cls_emb = x
         else:
-            cls_emb = self.cls_emb.expand(x.size(0), -1, -1)
+            cls_emb = self.clip_adapter.get_text_features(self.class_names)
+            # from mmcv.runner import get_dist_info
+            # rank, _ = get_dist_info()
+            # print(rank, cls_emb[0,:3], self.cls_emb[0,:3])
+            # torch.cuda.synchronize()
+            cls_emb = cls_emb.expand(x.size(0), -1, -1)
         x = self._transform_inputs(x)
         cls_emb = cls_emb.to(x.device)
 
@@ -179,7 +221,7 @@ class MaskTransformerPropagationHead(BaseDecodeHead):
         cls_seg_feat = cls_seg_feat / cls_seg_feat.norm(dim=-1, keepdim=True)
 
         masks = patches @ cls_seg_feat.transpose(1, 2)
-        # logits = masks.clone()
+        embeds = patches.clone()
         if self.training:
             # masks = self.mask_norm(masks)
             masks = (
@@ -189,21 +231,17 @@ class MaskTransformerPropagationHead(BaseDecodeHead):
         B, HW, N = masks.size()
 
         masks = masks.view(B, H, W, N).permute(0, 3, 1, 2)
-        # logits = logits.view(B, H, W, N).permute(0, 3, 1, 2)
-        # if self.use_pixel_embedding:
-        embeds = patches.clone()
         embeds = embeds.view(B, H, W, C).permute(0, 3, 1, 2)
-        # patches = patches.view(B, H, W, C).permute(0, 3, 1, 2)
-        return masks, embeds#, logits
+        return masks, embeds
 
     def forward_train(self, inputs, img_metas, gt_semantic_seg, train_cfg):
-        # load cls_emb, and avoid unnecessary loading
-        if (not self.cls_emb_from_backbone) and (not self.loaded_cls_emb_train):
-            self.cls_emb = torch.load(self.cls_emb_path, map_location="cpu")            
-            self.cls_emb.requires_grad = False
-            self.loaded_cls_emb_test = False
-            self.loaded_cls_emb_train = True
 
+        # if (not self.cls_emb_from_backbone) and (not self.loaded_cls_emb_train):
+        #     self.cls_emb = torch.load(self.cls_emb_path, map_location="cpu")            
+        #     self.cls_emb.requires_grad = False
+        #     self.loaded_cls_emb_test = False
+        #     self.loaded_cls_emb_train = True
+        
         masks, embeds = self.forward(inputs, img_metas)
 
         img_labels = None
@@ -216,12 +254,7 @@ class MaskTransformerPropagationHead(BaseDecodeHead):
         return losses
 
     def forward_test(self, inputs, img_metas, test_cfg):
-        if not self.loaded_cls_emb_test:
-            self.cls_emb = torch.load(
-                self.cls_emb_path_test, map_location="cpu")
-            self.loaded_cls_emb_test = True
-            self.loaded_cls_emb_train = False
-        
+
         masks, _ = self.forward(inputs, img_metas)
 
         # img_labels = None
@@ -237,24 +270,21 @@ class MaskTransformerPropagationHead(BaseDecodeHead):
         #     pred = pred[0, img_labels[0]]
         #     h, w = img_shapes[0]
         #     pred = F.interpolate(
-        #         pred[None, None], size=(h //2, w //2), mode="bilinear", align_corners=False
+        #         pred[None, None], size=(h, w), mode="bilinear", align_corners=False
         #     )[0,0]
         #     pred = (pred - pred.min()) / (pred.max() - pred.min())
         #     pred = pred.cpu().numpy()
-        #     # torch.save(
-        #     #     pred.cpu().half(),
-        #     #     os.path.join(self.imagenet_pred_save_dir, img_names[0].replace(".jpg", ".pth")
-        #     # ))
         #     Image.fromarray((pred * 255).astype(np.uint8)).save(
         #         os.path.join(self.imagenet_pred_save_dir, img_names[0].replace(".jpg", ".png"))
         #     )
-        #     masks = masks[:, [0]]
-
+        
         if self.grounding_inference:
-            # fname = img_metas[0]["ori_filename"].replace("jpg", "png")
-            gt_path = img_metas[0]["filename"].replace("images", "annotations").replace("jpg", "png")
+            gt_path = img_metas[0]["filename"].replace("images", "annotations").replace(".jpg", self.ann_suffix)
             gt = np.array(Image.open(gt_path))
-            gt = (gt - 1).astype(np.uint8)
+            if self.ann_suffix == ".png":
+                gt = (gt - 1).astype(np.uint8)
+            else:
+                gt = gt.astype(np.uint16)
             unique_label = list(np.unique(gt))
             unique_label = [l for l in unique_label if l != self.ignore_index]
             B, N, H, W = masks.shape
@@ -273,8 +303,6 @@ class MaskTransformerPropagationHead(BaseDecodeHead):
         loss = dict()
         h = seg_label.shape[-2] // self.downsample_rate
         w = seg_label.shape[-1] // self.downsample_rate
-        # print(h*2, w*2)
-        # print(h, w, self.downsample_rate)
         seg_mask = resize(
             input=seg_mask,
             size=(h, w),
@@ -303,16 +331,11 @@ class MaskTransformerPropagationHead(BaseDecodeHead):
 
         seg_label = seg_label.reshape(B * H * W)
         seg_mask = seg_mask.permute(0, 2, 3, 1).reshape(B * H * W, N)
-        # seg_embed = seg_embed.permute(0, 2, 3, 1).reshape(B * H * W, N)
 
         if len(prior_bucket) == 0:
             loss['loss_prior'] = torch.tensor(
                 0, dtype=seg_mask.dtype, device=seg_mask.device, requires_grad=True
             )
-            if self.use_pixel_embedding:
-                loss['loss_emb'] = torch.tensor(
-                    0, dtype=seg_mask.dtype, device=seg_mask.device, requires_grad=True
-                )
         else:
             prior_inds = torch.cat(prior_bucket)
             loss['loss_prior'] = self.loss_decode(
@@ -321,138 +344,24 @@ class MaskTransformerPropagationHead(BaseDecodeHead):
                 weight=None,
                 ignore_index=self.ignore_index
             ) * self.prior_loss_weight
-            if self.use_pixel_embedding:
-                pos_bucket = prior_bucket if self.imagenet_on_gpu else None
-                loss['loss_emb'] = self.loss_pix_embed(
-                    seg_embed=seg_embed, seg_label=seg_label, pos_bucket=pos_bucket
-                )
 
         acc_weight = 0.0 if self.imagenet_on_gpu else 2.0
         acc_weight = acc_weight if self.imagenet_in_batch else 1.0
         loss['acc_seg'] = accuracy(seg_mask, seg_label) * acc_weight
         return loss
 
-    def loss_structure(self, seg_logit, seg_label, prior_bucket, eps=1e-6):
-        """
-        Args:
-            seg_logit (torch.Tensor): segmentation logits, shape (B * H * W, N)
-        """
-        BHW, N = seg_logit.shape
-        # seg_logit = seg_logit.reshape(B * HW, N)
-        cls_sim_mat = self.cls_emb @ self.cls_emb.T
-        cls_sim_mat = cls_sim_mat.to(seg_logit.device)
-        seg_prob = (seg_logit / self.temperature).softmax(dim=-1) + eps
-        cls_prob = (cls_sim_mat / self.temperature).softmax(dim=-1) + eps
-        
-        kl_div_loss = torch.tensor(
-            0, dtype=seg_logit.dtype, device=seg_logit.device, requires_grad=True
-        )
-        valid_num = 0
-        for prior_ind in prior_bucket:
-            prior_label = int(seg_label[prior_ind[0]])
-            assert seg_label[prior_ind].unique().numel() == 1, \
-                f"{seg_label[prior_ind].unique()}"
-            if len(prior_ind) == 0:
-                continue
-            kl_div = seg_prob[prior_ind] * (
-                seg_prob[prior_ind].log() - \
-                cls_prob[prior_label][None].log()
-            )
-            kl_div_loss = kl_div_loss + kl_div.sum()
-            valid_num += 1
-        return kl_div_loss / BHW # max(valid_num, 1)
-
-    def loss_pix_embed(self, seg_embed, seg_label, pos_bucket=None):
-        """
-        Params:
-            seg_embed: B, C, H, W
-            seg_label: B, 1, H_, W_
-        """
-        B, C, H, W = seg_embed.size()
-        # seg_label = F.interpolate(seg_label.float(), size=(H, W)).long()
-        seg_embed = seg_embed.permute(0, 2, 3, 1).reshape(B * H * W, C)
-        seg_label = seg_label.reshape(B * H * W)
-        unique_label = torch.unique(seg_label)
-        if pos_bucket is None:
-            pos_bucket = [
-                torch.nonzero(seg_label == l)[:, 0]
-                for l in unique_label
-                if l != self.ignore_index
-            ]
-        if len(pos_bucket) == 0:
-            return {
-                "loss_emb": seg_embed[seg_label != self.ignore_index].sum()
-            }
-        pos_inds = self._sample_pixel(pos_bucket)
-        sample_cls = torch.cat(
-            [torch.Tensor([i for _ in range(len(p))]) for i, p in enumerate(pos_inds)],
-            dim=0,
-        ).to(seg_embed.device)
-        sample_embed = torch.cat([seg_embed[i] for i in pos_inds], dim=0)
-        loss = self.loss_similarity(sample_embed, sample_cls)
-        return loss
-
-    def loss_similarity(self, embedding, label, temperature=0.02):
-        """Compute the similarity loss
-        Args:
-            embedding (torch.Tensor): [B,C]
-            label (torch.Tensor): [B]
-        """
-        embedding = embedding / embedding.norm(dim=-1, keepdim=True)
-        cos_sim = embedding @ embedding.T  # [B,B]
-        exp_sim = torch.exp(cos_sim / temperature)
-        pos_mask = (label[:, None] == label[None, :]).type(exp_sim.dtype)  # [B,B]
-        neg_mask = 1 - pos_mask
-        # remove self-to-self sim
-        pos_mask[
-            torch.arange(len(pos_mask)).to(pos_mask.device),
-            torch.arange(len(pos_mask)).to(pos_mask.device),
-        ] = 0
-
-        neg_exp_sim_sum = (exp_sim * neg_mask).sum(dim=-1, keepdim=True)
-        prob = exp_sim / (exp_sim + neg_exp_sim_sum).clamp(min=1e-8)
-        # select positive pair
-        pos_prob = prob[pos_mask == 1]
-        loss = -torch.log(pos_prob + 1e-8).mean()
-        return loss
-
-    def _sample_pixel(self, buckets, total_sample_num=512):
-        """Sample points from each buckets
-        Args:
-            num_per_buckets (list): number of points in each class
-        """
-        num_per_buckets = [len(p) for p in buckets]
-        sample_per_bucket = [
-            total_sample_num // len(buckets)
-            for _ in range(len(num_per_buckets))
-        ]
-        
-        if len(sample_per_bucket) > 1:
-            sample_per_bucket[-1] = total_sample_num - sum(sample_per_bucket[:-1])
-        else:
-            sample_per_bucket[0] = total_sample_num
-        samples = [
-            p[
-                torch.from_numpy(
-                    np.random.choice(len(p), sample_per_bucket[i], replace=True)
-                ).to(p.device)
-            ]
-            for i, p in enumerate(buckets)
-        ]
-        return samples
-    
-    def _sample(self, seg_logit, seg_label, min_kept=10):
+    def _sample(self, seg_mask, seg_label, min_kept=10):
         """Sample pixels that have high loss or with low prediction confidence.
 
         Args:
-            seg_logit (torch.Tensor): segmentation logits, shape (B, N, H, W)
+            seg_mask (torch.Tensor): segmentation logits, shape (B, N, H, W)
             seg_label (torch.Tensor): segmentation label, shape (B, 1, H, W)
 
         Returns:
             pos_bucket
             prior_bucket
         """
-        B, N, H, W = seg_logit.size()
+        B, N, H, W = seg_mask.size()
         seg_label = seg_label.reshape(B * H * W)
         unique_label = torch.unique(seg_label)
         unique_label = unique_label[unique_label != self.ignore_index]
@@ -463,7 +372,7 @@ class MaskTransformerPropagationHead(BaseDecodeHead):
             )
         if len(pos_bucket) == 0:
             return [], []
-        seg_logit = seg_logit.permute(0, 2, 3, 1).reshape(B * H * W, N)
+        seg_mask = seg_mask.permute(0, 2, 3, 1).reshape(B * H * W, N)
         num_per_bucket = []
         for p in pos_bucket:
             k = int(self.prior_rate * len(p))
@@ -472,7 +381,7 @@ class MaskTransformerPropagationHead(BaseDecodeHead):
             num_per_bucket.append(k)
         prior_bucket = []
         for k, p, l in zip(num_per_bucket, pos_bucket, unique_label):
-            inds = seg_logit[p, int(l)].topk(k).indices
+            inds = seg_mask[p, int(l)].topk(k).indices
             prior_bucket.append(p[inds])
         return prior_bucket
 
@@ -498,9 +407,10 @@ class MaskTransformerPropagationHead(BaseDecodeHead):
                     cos_sim = cos_sim.mean(dim=-1) # (H*W,)
                     pa_inds = (cos_sim > self.pairwise_affinity_thresh).nonzero().flatten()
                     inds = torch.unique(torch.cat([inds, pa_inds]))
-                    # print(f"{cam_score:.4f}, {K}, {len(inds)}, {float(cos_sim[inds].mean()):.4f}")
+                    print(f"{cam_score:.4f}, {K}, {len(inds)}, {float(cos_sim[inds].mean()):.4f}")
 
                 prior_bucket.append(inds + b * H * W)
+                
         assert len(cam_label) == len(img_labels)
         seg_label = torch.cat([
             torch.ones_like(cam) * l for cam, l in zip(cam_label, img_labels)

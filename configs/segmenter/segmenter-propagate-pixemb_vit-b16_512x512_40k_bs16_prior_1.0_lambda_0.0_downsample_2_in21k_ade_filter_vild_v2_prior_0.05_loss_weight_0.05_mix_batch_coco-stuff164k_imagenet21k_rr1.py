@@ -1,7 +1,6 @@
 _base_ = [
-    # "./training_scheme.py",
     "../_base_/models/segmenter_vit-b16.py",
-    "../_base_/datasets/imagenet21k_inter_ade_filter_v2_rr1.py",
+    "../_base_/datasets/mix_batch_coco-stuff164k_imagenet21k_ade_filter_v2_rr1.py",
     "../_base_/default_runtime.py",
     "../_base_/schedules/schedule_40k.py",
 ]
@@ -17,14 +16,20 @@ model = dict(
     ),
     decode_head=dict(
         type="MaskTransformerPropagationHead",
-        n_cls=174,
-        cls_emb_path="pretrain/cls_emb_in21k_vild_v2.pth",
+        n_cls=150,
+        downsample_rate=2,
+        cls_emb_path=[
+            "pretrain/cls_emb_coco_vild_v2.pth",
+            "pretrain/cls_emb_in21k_vild_v2.pth"
+        ],
+        cls_emb_path_test = "pretrain/cls_emb_ade_vild_v2.pth",
         imagenet_class_path="notebook/in21k_inter_ade_filter_v2.json",
-        prior_rate=0.1,
-        # contrastive_propagation=True,
-        propagation_loss_weight=1.0,
-        imagenet_pred_save_dir="/mnt/haojun2/dataset/imagenet22k_azcopy/annotations_cam_self_train",
-        # propagation_loss_mode="kl_div",
+        imagenet_prior_rate=0.05,
+        imagenet_pseudo_label=False,
+        prior_rate=1.0,
+        imagenet_prior_loss_weight=0.05,
+        propagation_loss_weight=0.0,
+        use_pixel_embedding=True,
     ),
     test_cfg=dict(mode="slide", crop_size=(512, 512), stride=(512, 512)),
 )
@@ -53,8 +58,5 @@ lr_config = dict(
     by_epoch=False,
 )
 
-
 # By default, models are trained on 8 GPUs with 1 images per GPU
-data = dict(
-    samples_per_gpu=4,
-)
+data = dict(samples_per_gpu=2)

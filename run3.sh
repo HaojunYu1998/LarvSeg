@@ -12,21 +12,12 @@
 
 touch /mnt/data0/suspend.txt
 
-python -m torch.distributed.launch --nproc_per_node=8 --master_port=233333 \
-tools/train.py \
-configs/segmenter/segmenter-propagate_vit-b16_512x512_320k_bs16_prior_1.0_lambda_0.0_downsample_2_pairwise_affinity_cam_thre_0.7_pa_thre_0.9_weight_decay_1e-5_in21k_ade_filter_vild_v2_prior_0.05_loss_weight_0.05_mix_batch_coco-stuff164k_imagenet21k_rr1.py \
---launcher pytorch
+# pip install mmcv-full==1.3.12 -f https://download.openmmlab.com/mmcv/dist/cu113/torch1.9.0a0+2ecb2c7/index.html
+# pip install -e .
 
-sleep 10
+export OMP_NUM_THREADS=1
 
 python -m torch.distributed.launch --nproc_per_node=8 --master_port=233333 \
 tools/train.py \
-configs/segmenter/segmenter-propagate_vit-b16_512x512_320k_bs16_prior_1.0_lambda_0.0_downsample_2_pairwise_affinity_cam_thre_0.7_pa_thre_0.9_weight_decay_1e-4_in21k_ade_filter_vild_v2_prior_0.05_loss_weight_0.05_mix_batch_coco-stuff164k_imagenet21k_rr1.py \
---launcher pytorch
-
-sleep 10
-
-python -m torch.distributed.launch --nproc_per_node=8 --master_port=233333 \
-tools/train.py \
-configs/segmenter/segmenter-propagate_vit-b16_512x512_320k_bs16_prior_1.0_lambda_0.0_downsample_2_pairwise_affinity_cam_thre_0.7_pa_thre_0.9_weight_decay_1e-3_in21k_ade_filter_vild_v2_prior_0.05_loss_weight_0.05_mix_batch_coco-stuff164k_imagenet21k_rr1.py \
+configs/segmenter/segmenter-propagate_vit-b16_512x512_320k_bs16_downsample_2_base_config_prompt_learning_shape_16_0_lr_1e-4_wd_1e-2_rr1.py \
 --launcher pytorch

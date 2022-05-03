@@ -29,6 +29,8 @@ from .uper_mlseg_head import UPerMLSegHead
 from .mask_transformer_head import MaskTransformerHead
 from .mask_transformer_pix_embed_head import MaskTransformerPixEmbedHead
 from .mask_transformer_propagation_head import MaskTransformerPropagationHead
+from .mask_transformer_prompt_learning_head import MaskTransformerPromptLearningHead
+from .mask_transformer_contrastive_head import MaskTransformerContrastiveHead
 from .mask_transformer_lseg import MaskTransformerLSegHead
 from .mask_transformer_essnet_head import MaskTransformerNNCEESSNetHead
 from .mask_transformer_mlseg_head import MaskTransformerMLSegHead
@@ -46,5 +48,6 @@ __all__ = [
     'MaskTransformerHead', 'MaskTransformerMLSegGTHead', 'MaskTransformerNNCEESSNetHead', 
     'MaskTransformerMLSegHead', 'MLSegDecoderHead',
     'UPerMLSegHead', 'MaskTransformerMLSegDecoderHead',
-    'MaskTransformerPixEmbedHead', 'MaskTransformerPropagationHead', 'MaskTransformerLSegHead'
+    'MaskTransformerPixEmbedHead', 'MaskTransformerPropagationHead', 'MaskTransformerLSegHead',
+    'MaskTransformerContrastiveHead', 'MaskTransformerPromptLearningHead'
 ]
