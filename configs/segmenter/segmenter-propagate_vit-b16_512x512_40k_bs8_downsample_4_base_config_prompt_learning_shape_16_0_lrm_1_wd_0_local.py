@@ -2,7 +2,7 @@ _base_ = [
     "../_base_/models/segmenter_vit-b16.py",
     "../_base_/datasets/mix_batch_coco-stuff164k_imagenet21k_ade_filter_v2.py",
     "../_base_/default_runtime.py",
-    "../_base_/schedules/schedule_320k.py",
+    "../_base_/schedules/schedule_40k.py",
 ]
 
 model = dict(
@@ -15,21 +15,24 @@ model = dict(
         index=-1,
     ),
     decode_head=dict(
-        type="MaskTransformerPropagationHead",
+        type="MaskTransformerPromptLearningHead",
         n_cls=150,
-        downsample_rate=2,
+        downsample_rate=4,
         cls_emb_path=[
             "pretrain/cls_emb_coco_vild_v2.pth",
             "pretrain/cls_emb_in21k_vild_v2.pth"
         ],
-        cls_emb_path_test = "pretrain/cls_emb_ade_vild_v2.pth",
+        cls_emb_path_test="pretrain/cls_emb_ade_vild_v2.pth",
         imagenet_class_path="notebook/in21k_inter_ade_filter_v2.json",
         imagenet_prior_rate=0.05,
         imagenet_pseudo_label=False,
         prior_rate=1.0,
         imagenet_prior_loss_weight=0.05,
         propagation_loss_weight=0.0,
-        # grounding_inference=True,
+        prompt_type="learnable",
+        clip_model_name="RN50x16",
+        prompt_dim=768,
+        prompt_shape=(16, 0),
     ),
     test_cfg=dict(mode="slide", crop_size=(512, 512), stride=(512, 512)),
 )
@@ -38,13 +41,15 @@ optimizer = dict(
     _delete_=True,
     type="SGD",
     lr=0.001,
-    weight_decay=0.0,
+    weight_decay=0.0, # replace 0.0 by 1e-10
     momentum=0.9,
     paramwise_cfg=dict(
         custom_keys={
             "pos_embed": dict(decay_mult=0.0),
             "cls_token": dict(decay_mult=0.0),
             "norm": dict(decay_mult=0.0),
+            # NOTE: add prompt learning
+            "prompt_learner": dict(lr_mult=1.0, decay_mult=1.0),
         }
     ),
 )
@@ -59,4 +64,4 @@ lr_config = dict(
 )
 
 # By default, models are trained on 8 GPUs with 1 images per GPU
-data = dict(samples_per_gpu=4)
+data = dict(samples_per_gpu=2)

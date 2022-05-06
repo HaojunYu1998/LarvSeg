@@ -53,8 +53,10 @@ class MaskTransformerPropagationHead(BaseDecodeHead):
         imagenet_class_path="notebook/in21k_inter_ade_filter.json",
         imagenet_prior_loss_weight=1.0,
         imagenet_pseudo_label=False,
-        propagation_loss_weight=1.0,
-        structure_loss_weight=1.0,
+        imagenet_cam_thresh=0,
+        pseudo_label_thresh=0.0,
+        propagation_loss_weight=0.0,
+        structure_loss_weight=0.0,
         downsample_rate=8,
         prior_rate=0.1,
         imagenet_prior_rate=0.1,
@@ -62,9 +64,11 @@ class MaskTransformerPropagationHead(BaseDecodeHead):
         imagenet_pred_save_dir=None,
         temperature=1.0,
         ann_suffix=".png",
+        test_anno_dir="",
         use_pairwise_affinity=False,
         pairwise_affinity_thresh=0.95,
         cam_thresh=0.9,
+        call_init_weight=True,
         **kwargs,
     ):
         # in_channels & channels are dummy arguments to satisfy signature of
@@ -90,6 +94,8 @@ class MaskTransformerPropagationHead(BaseDecodeHead):
         self.prior_rate = prior_rate
         self.imagenet_prior_rate = imagenet_prior_rate
         self.imagenet_pseudo_label = imagenet_pseudo_label
+        self.imagenet_cam_thresh = imagenet_cam_thresh
+        self.pseudo_label_thresh = pseudo_label_thresh
         self.cls_emb_path = cls_emb_path
         self.cls_emb_path_test = cls_emb_path_test if len(
             cls_emb_path_test) else self.cls_emb_path
@@ -98,10 +104,13 @@ class MaskTransformerPropagationHead(BaseDecodeHead):
         self.imagenet_pred_save_dir = imagenet_pred_save_dir
         self.temperature = temperature
         self.ann_suffix = ann_suffix
+        self.test_anno_dir = test_anno_dir
         # Pairwise Affinity for ImageNet21K supervision
         self.use_pairwise_affinity = use_pairwise_affinity
         self.pairwise_affinity_thresh = pairwise_affinity_thresh
         self.cam_thresh = cam_thresh
+
+        self.call_init_weight = call_init_weight
 
         dpr = [x.item() for x in torch.linspace(0, drop_path_rate, n_layers)]
         self.blocks = nn.ModuleList([
@@ -148,6 +157,7 @@ class MaskTransformerPropagationHead(BaseDecodeHead):
         # self.mask_norm = nn.LayerNorm(n_cls)
 
     def init_weights(self):
+        # if self.call_init_weight:
         self.apply(init_weights)
         # if not self.cls_emb_from_backbone:
         #     trunc_normal_(self.cls_emb, std=0.02)
@@ -242,7 +252,15 @@ class MaskTransformerPropagationHead(BaseDecodeHead):
         #     )
         
         if self.grounding_inference:
-            gt_path = img_metas[0]["filename"].replace("images", "annotations").replace(".jpg", self.ann_suffix)
+            
+            if len(self.test_anno_dir) > 0:
+                gt_path = os.path.join(
+                    self.test_anno_dir,
+                    img_metas[0]["filename"].split("/")[-1].replace(".jpg", self.ann_suffix)
+                )
+            else:
+                gt_path = img_metas[0]["filename"].replace(
+                    "images", "annotations").replace(".jpg", self.ann_suffix)
             gt = np.array(Image.open(gt_path))
             if self.ann_suffix == ".png":
                 gt = (gt - 1).astype(np.uint8)
@@ -295,18 +313,26 @@ class MaskTransformerPropagationHead(BaseDecodeHead):
         seg_label = seg_label.reshape(B * H * W)
         seg_mask = seg_mask.permute(0, 2, 3, 1).reshape(B * H * W, N)
 
+        # prior_inds = None if len(prior_bucket) == 0 else torch.cat(prior_bucket)
         if len(prior_bucket) == 0:
             loss['loss_prior'] = torch.tensor(
                 0, dtype=seg_mask.dtype, device=seg_mask.device, requires_grad=True
             )
+            # from mmcv.runner import get_dist_info
+            # rank, _ = get_dist_info()
+            # print(rank, 1)
         else:
             prior_inds = torch.cat(prior_bucket)
+            assert prior_inds.numel() > 0
             loss['loss_prior'] = self.loss_decode(
                 seg_mask[prior_inds],
                 seg_label[prior_inds],
                 weight=None,
                 ignore_index=self.ignore_index
             ) * self.prior_loss_weight
+            # from mmcv.runner import get_dist_info
+            # rank, _ = get_dist_info()
+            # print(rank, 2)
 
         acc_weight = 0.0 if self.imagenet_on_gpu else 2.0
         acc_weight = acc_weight if self.imagenet_in_batch else 1.0
@@ -346,6 +372,7 @@ class MaskTransformerPropagationHead(BaseDecodeHead):
         for k, p, l in zip(num_per_bucket, pos_bucket, unique_label):
             inds = seg_mask[p, int(l)].topk(k).indices
             prior_bucket.append(p[inds])
+        # print("coco", [x.shape for x in prior_bucket])
         return prior_bucket
 
     def _sample_imagenet(self, seg_mask, seg_embed, cam_label, img_labels):
@@ -355,24 +382,41 @@ class MaskTransformerPropagationHead(BaseDecodeHead):
         seg_embed = seg_embed.permute(0, 2, 3, 1).reshape(B, H * W, C)
         cam_label = cam_label.reshape(B, H * W)
         if self.imagenet_pseudo_label:
-            prior_bucket = [
-                cam.topk(int((cam > 0).sum())).indices + b * H * W for b, cam in enumerate(cam_label)
-            ]
-        else:
-            K = int(self.imagenet_prior_rate * H * W)
             prior_bucket = []
+            #     cam.topk(int((cam > 0).sum())).indices + b * H * W for b, cam in enumerate(cam_label)
+            # ]
+            seg_label = []
             for b, cam in enumerate(cam_label):
-                inds = cam.topk(K).indices
-                # print(float(seg_mask[b, inds, img_labels[b]].mean()))
+                inds = (cam > 0).nonzero().flatten()
                 cam_score = float(seg_mask[b, inds, img_labels[b]].mean())
-                if self.use_pairwise_affinity and (cam_score > self.cam_thresh):
-                    cos_sim = seg_embed[b] @ seg_embed[b, inds].T
-                    cos_sim = cos_sim.mean(dim=-1) # (H*W,)
-                    pa_inds = (cos_sim > self.pairwise_affinity_thresh).nonzero().flatten()
-                    inds = torch.unique(torch.cat([inds, pa_inds]))
-                    print(f"{cam_score:.4f}, {K}, {len(inds)}, {float(cos_sim[inds].mean()):.4f}")
-
                 prior_bucket.append(inds + b * H * W)
+                if cam_score > self.pseudo_label_thresh:
+                    seg_label.append(torch.ones_like(cam) * img_labels[b])
+                else:
+                    seg_label.append(torch.ones_like(cam) * self.ignore_index)
+            # print("in21k", [x.shape for x in prior_bucket])
+            seg_label = torch.cat(seg_label) # B * H * W
+            return prior_bucket, seg_label
+        # CAM
+        K = int(self.imagenet_prior_rate * H * W)
+        prior_bucket = []
+        for b, cam in enumerate(cam_label):
+            # use threshold if thresh is defined, else use prior rate
+            if self.imagenet_cam_thresh > 0:
+                inds = (cam >= self.imagenet_cam_thresh).nonzero().flatten()
+                # print(int(inds.numel()))
+            else:
+                inds = cam.topk(K).indices
+            # print(float(seg_mask[b, inds, img_labels[b]].mean()))
+            cam_score = float(seg_mask[b, inds, img_labels[b]].mean())
+            if self.use_pairwise_affinity and (cam_score > self.cam_thresh):
+                cos_sim = seg_embed[b] @ seg_embed[b, inds].T
+                cos_sim = cos_sim.mean(dim=-1) # (H*W,)
+                pa_inds = (cos_sim > self.pairwise_affinity_thresh).nonzero().flatten()
+                inds = torch.unique(torch.cat([inds, pa_inds]))
+                print(f"{cam_score:.4f}, {K}, {len(inds)}, {float(cos_sim[inds].mean()):.4f}")
+
+            prior_bucket.append(inds + b * H * W)
                 
         assert len(cam_label) == len(img_labels)
         seg_label = torch.cat([

@@ -16,11 +16,14 @@ ARGS=("$@")
 QUOTED_ARGS=$(printf "'%s' " "${ARGS[@]}")
 
 read -d '' CMD <<EOF
-export CUDA_VISIBLE_DEVICES=0,1,2,3
+export CUDA_VISIBLE_DEVICES=1,2,3
 ln -s /mdata/ade /data/ade
 ln -s /mdata/ade20k_full /data/ade20k_full
 ln -s /mdata/coco_stuff164k /data/coco_stuff164k
 ln -s /mdata/imagenet21k /data/imagenet21k
+
+cd third_party/CLIP
+pip install -e .
 
 cd /workspace
 if $TASK_IS_EXPERIMENT; then

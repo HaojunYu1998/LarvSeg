@@ -398,3 +398,199 @@ class ADE20KFULLDataset(CustomDataset):
                                         indices)
         return result_files
 
+
+@DATASETS.register_module()
+class ADE20KFULLMergedDataset(CustomDataset):
+    """ADE20KFULL dataset.
+
+    In segmentation map annotation for ADE20K, 0 stands for background, which
+    is not included in 847 categories. ``reduce_zero_label`` is fixed to True.
+    The ``img_suffix`` is fixed to '.jpg' and ``seg_map_suffix`` is fixed to
+    '.tif'.
+    """
+    CLASSES = (
+        "drawing", "baseboard, skirting board", "chess", "smoke", "entry phone", 
+        "decoration", "text", "cover", "chopping board", "mattress", "straw", 
+        "painting", "gutter", "silver screen", "handle", "mousepad", "diploma", 
+        "grill", "snooker chalk", "viewpoint", "rowing machine", "plug", 
+        "toll plaza", "panel", "central reservation, median strip", "work surface", 
+        "roundabout", "rocking horse", "swimming pool ladder", "canvas", "post-it", 
+        "notice board", "skeleton", "bone", "fireplug, fire hydrant", "soap", 
+        "pen container", "towel ring", "plastic", "calendar", "bulletin board", 
+        "scourer", "countertop", "notepad", "paper weight", "card game", "soap", 
+        "toilet paper holder", "service station", "transformer", "fluorescent", 
+        "poster", "price tag", "baseboard, skirting board", "ladder", "clipboard", 
+        "pulpit", "chimney", "grill", "sponge", "island", "paper filer", "garland", 
+        "sewer", "stair edge", "aircraft carrier", "stage", "key", "vent", "alga", 
+        "ashcan", "tunnel", "drawer", "throne", "workbench", "swimming pool", 
+        "computer", "buffet", "switch", "rake", "funnel", "plant", "tongs", "oven", 
+        "stall", "pantry", "food", "easel", "lectern", "viaduct", "scoreboard", 
+        "videocassette recorder", "wardrobe", "sweatshirt", "jail cell", "map", 
+        "vase", "air conditioner", "calculator", "tower", "control tower", "basket", 
+        "arch", "mast", "skirt", "grass", "push button", "sunglasses", "organ", 
+        "support", "washer", "office", "windmill", "shower stall", "flip flop", 
+        "console table", "tree", "shower", "beacon", "plaything, toy", "ball", 
+        "adding machine", "field", "spray", "spanners", "telescope", "scaffolding", 
+        "car", "umbrella", "monument", "gym shoe", "soap dish", "ski slope", 
+        "synthesizer", "chest of drawers", "sword", "person", "funfair", "skyscraper", 
+        "double door", "helicopter", "bag", "folders", "net", "shoe", "frame", 
+        "postbox", "dumbbells", "bus", "soap dispenser", "ashtray", "coffee maker", 
+        "conveyer belt", "root", "dome", "golf bag", "watering can", "shutter", 
+        "roof rack", "stool", "sport basket", "cat", "mouse", "games", "music stand", 
+        "patio", "tractor", "signboard", "alarm clock", "ladle", "tureen", "mirror", 
+        "bowl", "bidet", "wire", "food processor", "cellular telephone", "canoe", 
+        "fireplace", "chips", "machine", "boot", "pumpkin", "valley", "snow", "bat", 
+        "wheel", "sea", "candlestick", "belt", "table cloth", "cooker", "laptop", 
+        "casserole", "roll", "hammock", "trough", "elevator door", "document", 
+        "monitor", "notebook", "dirt track", "cue", "tramway", "boat", "column", 
+        "lock", "teapot", "plate", "statue", "bell", "crt screen", "parterre", 
+        "water faucet", "desk", "fan", "wallet", "knife", "sofa", "covered bridge", 
+        "rock", "dummy", "bird", "gear", "mug", "towel", "radiator", "crane", "box", 
+        "door", "dollhouse", "ice floe", "railway", "blackboard", "windowpane", 
+        "sconce", "pier", "streetlight", "saucepan", "banner", "trouser", "curb", 
+        "dashboard", "hen", "canister", "iceberg", "patty", "shop", "garage", "cutlery", 
+        "weighbridge", "pallet", "cabin", "scale", "streetcar", "airplane", 
+        "butane gas cylinder", "roulette", "truck", "boiler", "heater", "table", 
+        "toilet", "goal", "water mill", "bridge", "carapace", "house", "cockpit", 
+        "scarf", "rocking chair", "stapler", "counter", "big top", "street number", 
+        "aquarium", "tie", "tins", "hotplate", "glacier", "labyrinth", "flag", "weeds", 
+        "wall", "van", "greenhouse", "eaves", "altarpiece", "folding screen", "sea star", 
+        "awning", "hood", "kitchen island", "sprinkler", "service elevator", "grandstand", 
+        "terminal", "necklace", "grille door", "paper towel", "treadmill", "backpack", 
+        "plaque", "sugar bowl", "steam shovel", "keyboard", "caravan", "trestle", "rug", 
+        "dishwasher", "stairs", "trench", "shipyard", "kennel", "candelabrum", "guitar", 
+        "hot tub", "dvds", "blanket", "pen", "canyon", "chandelier", "mitten", 
+        "hard drive", "pottery", "swivel chair", "target", "sand trap", "ice", 
+        "coffee table", "lamp", "tent", "building", "shovel", "hole", "lab bench", "side", 
+        "golf cart", "ironing board", "fence", "train", "portable fridge", "seat", "canopy", 
+        "playground", "shelf", "hair spray", "parking meter", "structure", "court", "alarm", 
+        "racket", "radio", "magazine", "newspaper", "horse", "motorboat", "coffin", "mask", 
+        "booth", "cushion", "grating", "wheelbarrow", "pergola", "sleeping robe", 
+        "smoothing iron", "fire extinguisher", "gravestone", "telephone", "bowling alley", 
+        "container", "case", "apron", "dam", "hair dryer", "telephone booth", "skimmer", 
+        "valve", "bicycle rack", "wheelchair", "curtain", "track", "helmet", "tray", "stick", 
+        "palm", "finger", "tape", "sweater", "toaster", "hill", "bench", "alembic", "coat", 
+        "screen door", "light bulb", "cross", "ear, spike", "bookcase", "envelopes", "beam", 
+        "forklift", "dish antenna", "steering wheel", "vault", "grand piano", "ceiling", 
+        "engine", "brick", "jar", "shaving brush", "bathtub", "road", "gate", "tarp", "ruins", 
+        "boxing ring", "roller coaster", "microphone", "bucket", "ice hockey rink", "kettle", 
+        "hay", "fountain", "well", "microwave", "place mat", "base", "hovel", "bottle", "mill", 
+        "hairbrush", "refrigerator", "baptismal font", "confessional booth, booth", "box office", 
+        "towel rack", "drum", "ski lift", "leash", "sand dune", "briefcase", "jack", "broom", 
+        "safety belt", "branch", "forecourt", "salt", "pot", "apparel", "bannister", "faucet", 
+        "cup", "watch", "altar", "bus stop", "tapestry", "watchtower", "tripod", "paper", "tank", 
+        "pool table", "eiderdown", "gear shift", "water wheel", "jersey", "shower room", 
+        "sidewalk", "pepper shaker", "cabinet", "hammer", "revolving door", "water tower", 
+        "shore", "cds", "typewriter", "toilet tissue", "porch", "catwalk", "spotlight", 
+        "equipment", "minibike", "coat rack", "doorframe", "bonfire", "skylight", "carport", 
+        "flower", "obelisk", "stove", "drinking glass", "trailer", "controls", "barrel", "onions", 
+        "clock", "remote control", "sand", "dog dish", "arcade machine", "antenna", "piano", 
+        "billboard", "sink", "tomb", "brush", "television camera", "hat", "dishrag", "bulldozer", 
+        "grinder", "trunk", "henhouse", "recycling bin", "pitcher", "plate rack", "spoon", 
+        "locker", "lockers", "menu", "laptop bag, travelling bag", "loudspeaker", "witness stand", 
+        "television receiver", "dish rack", "traffic light", "fish", "sewing machine", "ramp", 
+        "star", "padlock", "gas pump", "sun", "tallboy", "teacup", "cliff", "blender", 
+        "golf club", "tools", "hanger", "fruit", "palette", "cash register", "inflatable glove", 
+        "block pier", "candy", "niche", "excavator", "arcade", "rope", "cap", "shaker", "printer", 
+        "frying pan", "bread", "fire alarm", "shrine", "mezzanine", "armchair", "bowling pins", 
+        "embankment", "blind", "ship", "dog", "shirt", "traffic cone", "fork", "board", "barrier", 
+        "animal", "barbecue", "punching bag", "bicycle", "partition", "rubbish", "scissors", 
+        "vending machine", "andiron", "magazine rack", "stretcher", "file cabinet", "sky", 
+        "bleachers", "chain", "wind chime", "photocopier", "bar", "pool ball", "balloon", 
+        "tricycle", "gravy boat", "book", "towel dispenser", "hook", "chair", "light", "carriage", 
+        "meter", "railing", "pipe", "rifle", "runway", "earth", "carousel", "rod", "blast furnace", 
+        "floor", "windshield", "spectacles", "water", "wall socket", "slot machine", "sheet", 
+        "podium", "gazebo", "exhibitor", "barbed wire", "candle", "manhole", "potatoes", "can", 
+        "cradle", "ferris wheel", "sauna", "cart", "temple", "projector", "violin", "water cooler", 
+        "system", "pole", "shawl", "stethoscope", "pack", "roof", "napkin", "ottoman", "mountain", 
+        "bed", "shelter", "trellis", "fireplace utensils", "rocket", "spice rack", "deck chair", 
+        "shopping carts", "sculpture", "baby buggy", "reel", "amphitheater", "jacket", "sofa bed", 
+        "climbing frame", "towel rail", "cannon"
+    )
+
+    PALETTE = None
+
+    def __init__(self, **kwargs):
+        super(ADE20KFULLMergedDataset, self).__init__(
+            img_suffix='.jpg',
+            seg_map_suffix='.tif',
+            ignore_index=-1,
+            reduce_zero_label=False,
+            int16=True,
+            **kwargs)
+
+    def results2img(self, results, imgfile_prefix, to_label_id, indices=None):
+        """Write the segmentation results to images.
+
+        Args:
+            results (list[list | tuple | ndarray]): Testing results of the
+                dataset.
+            imgfile_prefix (str): The filename prefix of the png files.
+                If the prefix is "somepath/xxx",
+                the png files will be named "somepath/xxx.png".
+            to_label_id (bool): whether convert output to label_id for
+                submission.
+            indices (list[int], optional): Indices of input results, if not
+                set, all the indices of the dataset will be used.
+                Default: None.
+
+        Returns:
+            list[str: str]: result txt files which contains corresponding
+            semantic segmentation images.
+        """
+        if indices is None:
+            indices = list(range(len(self)))
+
+        mmcv.mkdir_or_exist(imgfile_prefix)
+        result_files = []
+        for result, idx in zip(results, indices):
+
+            filename = self.img_infos[idx]['filename']
+            basename = osp.splitext(osp.basename(filename))[0]
+
+            tif_filename = osp.join(imgfile_prefix, f'{basename}.tif')
+
+            # The  index range of official requirement is from 0 to 150.
+            # But the index range of output is from 0 to 149.
+            # That is because we set reduce_zero_label=True.
+            result = result + 1
+
+            output = Image.fromarray(result.astype(np.uint16))
+            output.save(tif_filename)
+            result_files.append(tif_filename)
+
+        return result_files
+
+    def format_results(self,
+                       results,
+                       imgfile_prefix,
+                       to_label_id=True,
+                       indices=None):
+        """Format the results into dir (standard format for ade20k evaluation).
+
+        Args:
+            results (list): Testing results of the dataset.
+            imgfile_prefix (str | None): The prefix of images files. It
+                includes the file path and the prefix of filename, e.g.,
+                "a/b/prefix".
+            to_label_id (bool): whether convert output to label_id for
+                submission. Default: False
+            indices (list[int], optional): Indices of input results, if not
+                set, all the indices of the dataset will be used.
+                Default: None.
+
+        Returns:
+            tuple: (result_files, tmp_dir), result_files is a list containing
+               the image paths, tmp_dir is the temporal directory created
+                for saving json/png files when img_prefix is not specified.
+        """
+
+        if indices is None:
+            indices = list(range(len(self)))
+
+        assert isinstance(results, list), 'results must be a list.'
+        assert isinstance(indices, list), 'indices must be a list.'
+
+        result_files = self.results2img(results, imgfile_prefix, to_label_id,
+                                        indices)
+        return result_files
