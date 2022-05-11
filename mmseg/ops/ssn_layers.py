@@ -3,7 +3,7 @@ import torch.nn as nn
 import math
 
 # from .gSLICr.modules import DeNormalize, TransformColorSpace
-from .ssn.lib.ssn.ssn import ssn_iter, sparse_ssn_iter
+# from .ssn.lib.ssn.ssn import ssn_iter, sparse_ssn_iter
 
 
 def get_aspect_ratio(x, y):
@@ -47,7 +47,7 @@ class SSNIterations(nn.Module):
         self.n_iters = n_iters
 
     def forward(self, f):
-        func = ssn_iter if self.training else sparse_ssn_iter
+        func = None #ssn_iter if self.training else sparse_ssn_iter
         *_, spixel_features, hard_labels = func(f, self.num_spixels, self.n_iters)
         return spixel_features.permute(0, 2, 1), hard_labels
 

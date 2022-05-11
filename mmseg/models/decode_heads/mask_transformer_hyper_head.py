@@ -14,7 +14,6 @@ from torch.nn.init import trunc_normal_
 from ..builder import HEADS
 from .decode_head import BaseDecodeHead
 from ..losses.accuracy import accuracy
-
 from mmseg.ops import resize
 from mmcv.runner import force_fp32
 
@@ -34,7 +33,7 @@ def init_weights(m):
 
 
 @HEADS.register_module()
-class MaskTransformerPropagationHead(BaseDecodeHead):
+class MaskTransformerHyperHead(BaseDecodeHead):
 
     def __init__(
         self,
@@ -50,6 +49,8 @@ class MaskTransformerPropagationHead(BaseDecodeHead):
         cls_emb_from_backbone=False,
         cls_emb_path="",
         cls_emb_path_test="",
+        cls_emb_hyper_path_test="",
+        cls_emb_hyper_ensemble_weight=0.0,
         cls_emb_concat=False,
         imagenet_class_path="notebook/in21k_inter_ade_filter.json",
         imagenet_prior_loss_weight=1.0,
@@ -100,6 +101,8 @@ class MaskTransformerPropagationHead(BaseDecodeHead):
         self.cls_emb_path = cls_emb_path
         self.cls_emb_path_test = cls_emb_path_test if len(
             cls_emb_path_test) else self.cls_emb_path
+        self.cls_emb_hyper_path_test = cls_emb_hyper_path_test
+        self.cls_emb_hyper_ensemble_weight = cls_emb_hyper_ensemble_weight
         self.cls_emb_concat = cls_emb_concat
         self.grounding_inference = grounding_inference
         self.imagenet_pred_save_dir = imagenet_pred_save_dir
@@ -172,7 +175,6 @@ class MaskTransformerPropagationHead(BaseDecodeHead):
         cls_emb = cls_emb.to(x.device)
 
         B, C, H, W = x.size()
-        
         x = x.view(B, C, -1).permute(0, 2, 1)
 
         x = self.proj_dec(x)
@@ -229,6 +231,16 @@ class MaskTransformerPropagationHead(BaseDecodeHead):
                 self.cls_emb_path_test, map_location="cpu")
             self.loaded_cls_emb_test = True
             self.loaded_cls_emb_train = False
+
+            if self.cls_emb_hyper_ensemble_weight > 0:
+                self.cls_emb_hyper = torch.load(
+                    self.cls_emb_hyper_path_test, map_location="cpu")
+                self.cls_emb = (
+                    self.cls_emb_hyper_ensemble_weight * self.cls_emb_hyper +
+                    (1-self.cls_emb_hyper_ensemble_weight) * self.cls_emb
+                )
+                self.cls_emb = self.cls_emb / self.cls_emb.norm(dim=-1, keepdim=True)
+                
         
         masks, _ = self.forward(inputs, img_metas)
 
@@ -362,7 +374,7 @@ class MaskTransformerPropagationHead(BaseDecodeHead):
                 (seg_label == l).nonzero(as_tuple=False)[:, 0]
             )
         if len(pos_bucket) == 0:
-            return []
+            return [], []
         seg_mask = seg_mask.permute(0, 2, 3, 1).reshape(B * H * W, N)
         num_per_bucket = []
         for p in pos_bucket:

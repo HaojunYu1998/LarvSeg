@@ -3,6 +3,11 @@ import copy
 import platform
 import random
 from functools import partial
+# for different batch size
+import operator
+import itertools
+from typing import Optional
+
 
 import numpy as np
 import torch
@@ -10,6 +15,7 @@ from mmcv.parallel import collate
 from mmcv.runner import get_dist_info
 from mmcv.utils import Registry, build_from_cfg, digit_version
 from torch.utils.data import DataLoader, DistributedSampler
+from torch.utils.data.sampler import Sampler
 
 if platform.system() != 'Windows':
     # https://github.com/pytorch/pytorch/issues/973
@@ -121,6 +127,25 @@ def build_dataloader(dataset,
         DataLoader: A PyTorch dataloader.
     """
     rank, world_size = get_dist_info()
+    # assert False, f"{samples_per_gpu}, {type(samples_per_gpu)}"
+    if isinstance(samples_per_gpu, list) or isinstance(samples_per_gpu, tuple):
+        from detectron2.data.build import worker_init_reset_seed
+        # from detectron2.data.samplers import TrainingSampler
+        num_workers = workers_per_gpu
+        sampler = DistributedSampler(
+            dataset, world_size, rank, shuffle=shuffle)
+        # sampler = TrainingSampler(len(dataset))
+        data_loader = torch.utils.data.DataLoader(
+            dataset,
+            sampler=sampler,
+            num_workers=num_workers,
+            batch_sampler=None,
+            collate_fn=operator.itemgetter(0),  # don't batch, but yield individual elements
+            worker_init_fn=worker_init_reset_seed,
+        )  # yield individual mapped dict
+
+        return DiffBatchSizeDataset(data_loader, samples_per_gpu)
+
     if dist:
         sampler = DistributedSampler(
             dataset, world_size, rank, shuffle=shuffle)
@@ -180,3 +205,27 @@ def worker_init_fn(worker_id, num_workers, rank, seed):
     worker_seed = num_workers * rank + worker_id + seed
     np.random.seed(worker_seed)
     random.seed(worker_seed)
+
+
+class DiffBatchSizeDataset(torch.utils.data.IterableDataset):
+    def __init__(self, dataset, batch_sizes):
+        self.dataset = dataset
+        self.batch_sizes = batch_sizes
+        _, world_size = get_dist_info()
+        self._buckets = [[] for _ in range(world_size)]
+        self.sampler = self.dataset.sampler
+
+    def __len__(self):
+        return len(self.dataset)
+
+    def __iter__(self):
+        for d in self.dataset:
+            # assert False, f"{d}"
+            rank, _ = get_dist_info()
+            bucket = self._buckets[rank]
+            bucket.append(d)
+            batch_size = self.batch_sizes[rank % len(self.batch_sizes)]
+            # print(batch_size)
+            if len(bucket) == batch_size:
+                yield collate(bucket, batch_size) # bucket[:]
+                del bucket[:]

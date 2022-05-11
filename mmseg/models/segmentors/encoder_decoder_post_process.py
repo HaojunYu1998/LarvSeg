@@ -3,12 +3,15 @@ import os
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
+from PIL import Image
+import numpy as np
 
 from mmseg.core import add_prefix
 from mmseg.ops import resize, resize_on_cpu
 from .. import builder
 from ..builder import SEGMENTORS
 from .base import BaseSegmentor
+from ..utils import dense_crf_post_process
 
 
 @SEGMENTORS.register_module()
@@ -267,7 +270,17 @@ class EncoderDecoderV2(BaseSegmentor):
                 seg_logit = self.whole_inference(img, img_meta, rescale)
             # output = seg_logit
             # print(output.shape)
-            output = F.softmax(seg_logit, dim=1)
+            # output = F.softmax(seg_logit, dim=1)
+        if self.test_cfg.get("use_dense_crf_postprocess", False):
+            # print("use_dense_crf")
+            device = seg_logit.device
+            seg_logit = dense_crf_post_process(
+                seg_logit[0],
+                image=np.array(Image.open(img_meta[0]["filename"])),
+            )[None].to(device)
+            
+        output = F.softmax(seg_logit, dim=1)
+
         flip = img_meta[0]['flip']
         if flip:
             flip_direction = img_meta[0]['flip_direction']

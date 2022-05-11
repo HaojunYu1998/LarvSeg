@@ -34,7 +34,7 @@ def init_weights(m):
 
 
 @HEADS.register_module()
-class MaskTransformerPropagationHead(BaseDecodeHead):
+class MaskTransformerStructureHead(BaseDecodeHead):
 
     def __init__(
         self,
@@ -144,6 +144,7 @@ class MaskTransformerPropagationHead(BaseDecodeHead):
                 in21k_id_name_dict = json.load(f)
                 # in21k_names = list(in21k_id_name_dict.values())
                 self.in21k_ids = list(in21k_id_name_dict.keys())
+        self.label_cos_sim = None
 
         self.proj_dec = nn.Linear(d_encoder, d_model)
 
@@ -176,6 +177,8 @@ class MaskTransformerPropagationHead(BaseDecodeHead):
         x = x.view(B, C, -1).permute(0, 2, 1)
 
         x = self.proj_dec(x)
+        feats = x.clone()
+        feats = feats.reshape(B, H, W, C).permute(0, 3, 1, 2)
         # x = torch.cat((x, cls_emb), 1)
         for blk in self.blocks:
             x = blk(x, cls_emb)
@@ -202,7 +205,7 @@ class MaskTransformerPropagationHead(BaseDecodeHead):
 
         masks = masks.view(B, H, W, N).permute(0, 3, 1, 2)
         embeds = embeds.view(B, H, W, C).permute(0, 3, 1, 2)
-        return masks, embeds
+        return masks, embeds, feats
 
     def forward_train(self, inputs, img_metas, gt_semantic_seg, train_cfg):
         # load cls_emb, and avoid unnecessary loading
@@ -212,7 +215,7 @@ class MaskTransformerPropagationHead(BaseDecodeHead):
             self.loaded_cls_emb_test = False
             self.loaded_cls_emb_train = True
 
-        masks, embeds = self.forward(inputs, img_metas)
+        masks, embeds, feats = self.forward(inputs, img_metas)
 
         img_labels = None
         if self.imagenet_on_gpu:
@@ -220,7 +223,7 @@ class MaskTransformerPropagationHead(BaseDecodeHead):
             img_ids = [name[:name.find("_")] for name in img_names]
             img_labels = [self.in21k_ids.index(img_id) for img_id in img_ids]
 
-        losses = self.losses(masks, embeds, gt_semantic_seg, img_labels)
+        losses = self.losses(masks, embeds, feats, gt_semantic_seg, img_labels)
         return losses
 
     def forward_test(self, inputs, img_metas, test_cfg):
@@ -230,7 +233,7 @@ class MaskTransformerPropagationHead(BaseDecodeHead):
             self.loaded_cls_emb_test = True
             self.loaded_cls_emb_train = False
         
-        masks, _ = self.forward(inputs, img_metas)
+        masks, _, _ = self.forward(inputs, img_metas)
 
         # img_labels = None
         # if self.imagenet_on_gpu:
@@ -281,7 +284,7 @@ class MaskTransformerPropagationHead(BaseDecodeHead):
         return masks
 
     @force_fp32(apply_to=('seg_mask', ))
-    def losses(self, seg_mask, seg_embed, seg_label, img_labels=None):
+    def losses(self, seg_mask, seg_embed, seg_feat, seg_label, img_labels=None):
         """Compute segmentation loss."""
         loss = dict()
         h = seg_label.shape[-2] // self.downsample_rate
@@ -294,6 +297,12 @@ class MaskTransformerPropagationHead(BaseDecodeHead):
         )
         seg_embed = resize(
             input=seg_embed,
+            size=(h, w),
+            mode='bilinear',
+            align_corners=self.align_corners
+        )
+        seg_feat = resize(
+            input=seg_feat,
             size=(h, w),
             mode='bilinear',
             align_corners=self.align_corners
@@ -320,9 +329,9 @@ class MaskTransformerPropagationHead(BaseDecodeHead):
             loss['loss_prior'] = torch.tensor(
                 0, dtype=seg_mask.dtype, device=seg_mask.device, requires_grad=True
             )
-            # from mmcv.runner import get_dist_info
-            # rank, _ = get_dist_info()
-            # print(rank, 1)
+            loss['loss_structure'] = torch.tensor(
+                0, dtype=seg_mask.dtype, device=seg_mask.device, requires_grad=True
+            )
         else:
             prior_inds = torch.cat(prior_bucket)
             assert prior_inds.numel() > 0
@@ -332,14 +341,91 @@ class MaskTransformerPropagationHead(BaseDecodeHead):
                 weight=None,
                 ignore_index=self.ignore_index
             ) * self.prior_loss_weight
-            # from mmcv.runner import get_dist_info
-            # rank, _ = get_dist_info()
-            # print(rank, 2)
-
+            loss['loss_structure'] = self.loss_structure(
+                seg_feat, seg_label
+            ) * self.structure_loss_weight
         acc_weight = 0.0 if self.imagenet_on_gpu else 2.0
         acc_weight = acc_weight if self.imagenet_in_batch else 1.0
         loss['acc_seg'] = accuracy(seg_mask, seg_label) * acc_weight
         return loss
+
+    def loss_structure(self, seg_feat, seg_label):
+        if self.imagenet_on_gpu:
+            return torch.tensor(
+                0, dtype=seg_feat.dtype, device=seg_feat.device, requires_grad=True
+            )
+        # if self.label_cos_sim is None:
+        #     cls_emb = self.cls_emb.to(seg_feat.device)
+        #     cls_emb = cls_emb / cls_emb.norm(dim=-1, keepdim=True)
+        #     self.label_cos_sim = cls_emb @ cls_emb.T
+        #     del cls_emb
+        B, C, H, W = seg_feat.size()
+        # seg_label = F.interpolate(seg_label.float(), size=(H, W)).long()
+        seg_feat = seg_feat.permute(0, 2, 3, 1).reshape(B * H * W, C)
+        seg_label = seg_label.reshape(B * H * W)
+        unique_label = torch.unique(seg_label)
+        pos_bucket = [
+            torch.nonzero(seg_label == l)[:, 0]
+            for l in unique_label
+            if l != self.ignore_index
+        ]
+        if len(pos_bucket) == 0:
+            return seg_feat[seg_label != self.ignore_index].sum()
+        pos_inds = self._sample_feat(pos_bucket)
+        sample_cls = torch.cat([
+            seg_label[[i]] for i in pos_inds], dim=0
+        ).to(seg_feat.device).long()
+        sample_feat = torch.cat([
+            seg_feat[i] for i in pos_inds], dim=0)
+        loss = self.similarity(sample_feat, sample_cls)
+        return loss
+
+    def similarity(self, feat, label):
+        """Compute the similarity loss
+        Args:
+            embedding (torch.Tensor): [B,C]
+            label (torch.Tensor): [B]
+        """
+        feat = feat / feat.norm(dim=-1, keepdim=True)
+        cos_sim = feat @ feat.T  # [B,B]
+        cls_emb = self.cls_emb.to(feat.device)
+        cls_emb = cls_emb / cls_emb.norm(dim=-1, keepdim=True)
+        # print(label)
+        label_sim = cls_emb[label] @ cls_emb[label].T
+        # print(cos_sim, label_sim)
+        valid_mask = torch.ones_like(cos_sim)
+        valid_mask[
+            torch.arange(len(valid_mask)).to(valid_mask.device),
+            torch.arange(len(valid_mask)).to(valid_mask.device),
+        ] = 0
+        cos_sim = cos_sim[valid_mask.bool()]
+        label_sim = label_sim[valid_mask.bool()]
+        return torch.pow(cos_sim - label_sim, 2).mean()
+    
+    def _sample_feat(self, buckets, total_sample_num=512):
+        """Sample points from each buckets
+        Args:
+            num_per_buckets (list): number of points in each class
+        """
+        num_per_buckets = [len(p) for p in buckets]
+        sample_per_bucket = [
+            total_sample_num // len(buckets)
+            for _ in range(len(num_per_buckets))
+        ]
+        
+        if len(sample_per_bucket) > 1:
+            sample_per_bucket[-1] = total_sample_num - sum(sample_per_bucket[:-1])
+        else:
+            sample_per_bucket[0] = total_sample_num
+        samples = [
+            p[
+                torch.from_numpy(
+                    np.random.choice(len(p), sample_per_bucket[i], replace=True)
+                ).to(p.device)
+            ]
+            for i, p in enumerate(buckets)
+        ]
+        return samples
 
     def _sample(self, seg_mask, seg_label, min_kept=10):
         """Sample pixels that have high loss or with low prediction confidence.
