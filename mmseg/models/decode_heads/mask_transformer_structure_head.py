@@ -58,6 +58,9 @@ class MaskTransformerStructureHead(BaseDecodeHead):
         pseudo_label_thresh=0.0,
         propagation_loss_weight=0.0,
         structure_loss_weight=0.0,
+        structure_loss_method="margin",
+        structure_margin=0.3,
+        structure_min_value=0.0,
         downsample_rate=8,
         prior_rate=0.1,
         imagenet_prior_rate=0.1,
@@ -90,6 +93,9 @@ class MaskTransformerStructureHead(BaseDecodeHead):
         self.scale = d_model**-0.5
         self.propagation_loss_weight = propagation_loss_weight
         self.structure_loss_weight = structure_loss_weight
+        self.structure_loss_method = structure_loss_method
+        self.structure_margin = structure_margin
+        self.structure_min_value = structure_min_value
         self.prior_loss_weight = 1.0
         self.downsample_rate = downsample_rate
         self.prior_rate = prior_rate
@@ -372,18 +378,26 @@ class MaskTransformerStructureHead(BaseDecodeHead):
         if len(pos_bucket) == 0:
             return seg_feat[seg_label != self.ignore_index].sum()
         pos_inds = self._sample_feat(pos_bucket)
-        sample_cls = torch.cat([
-            seg_label[[i]] for i in pos_inds], dim=0
-        ).to(seg_feat.device).long()
         sample_feat = torch.cat([
             seg_feat[i] for i in pos_inds], dim=0)
-        loss = self.similarity(sample_feat, sample_cls)
+        
+        if self.structure_loss_method == "contrastive":
+            sample_cls = torch.cat(
+                [torch.Tensor([i for _ in range(len(p))]) for i, p in enumerate(pos_inds)],
+                dim=0,
+            ).to(sample_feat.device)
+            loss = self.similarity2(sample_feat, sample_cls)
+        elif self.structure_loss_method == "margin":
+            sample_cls = torch.cat([
+                seg_label[[i]] for i in pos_inds], dim=0
+            ).to(seg_feat.device).long()
+            loss = self.similarity1(sample_feat, sample_cls)
         return loss
 
-    def similarity(self, feat, label):
+    def similarity1(self, feat, label):
         """Compute the similarity loss
         Args:
-            embedding (torch.Tensor): [B,C]
+            feat (torch.Tensor): [B,C]
             label (torch.Tensor): [B]
         """
         feat = feat / feat.norm(dim=-1, keepdim=True)
@@ -393,14 +407,55 @@ class MaskTransformerStructureHead(BaseDecodeHead):
         # print(label)
         label_sim = cls_emb[label] @ cls_emb[label].T
         # print(cos_sim, label_sim)
-        valid_mask = torch.ones_like(cos_sim)
-        valid_mask[
-            torch.arange(len(valid_mask)).to(valid_mask.device),
-            torch.arange(len(valid_mask)).to(valid_mask.device),
+        
+        
+        pos_mask = (label[:, None] == label[None, :]).type(feat.dtype)  # [B,B]
+        neg_mask = 1 - pos_mask
+        # remove self-to-self sim
+        pos_mask[
+            torch.arange(len(pos_mask)).to(pos_mask.device),
+            torch.arange(len(pos_mask)).to(pos_mask.device),
         ] = 0
-        cos_sim = cos_sim[valid_mask.bool()]
-        label_sim = label_sim[valid_mask.bool()]
-        return torch.pow(cos_sim - label_sim, 2).mean()
+        pos_mask = pos_mask.flatten().bool()
+        neg_mask = neg_mask.flatten().bool()
+        cos_sim = cos_sim.flatten()
+        label_sim = label_sim.flatten()
+        label_sim = label_sim[neg_mask] - self.structure_margin
+        label_sim = label_sim.clamp(min=self.structure_min_value)
+        pos_sim = cos_sim[pos_mask] - 1
+        neg_sim = cos_sim[neg_mask]
+        neg_mask = neg_sim >= label_sim
+        # neg_sim = torch.where(neg_sim >= label_sim, neg_sim, label_sim)
+        # neg_sim = neg_cos.masked_fill(neg_cos < label_sim, label_sim)
+        loss = torch.pow(pos_sim, 2).mean() + torch.pow(neg_sim[neg_mask], 2).mean()
+        return loss
+        # cos_sim = cos_sim[valid_mask.bool()]
+        # label_sim = label_sim[valid_mask.bool()]
+        # return torch.pow(cos_sim - label_sim, 2).mean()
+
+    def similarity2(self, feat, label, temperature=0.02):
+        """Compute the similarity loss
+        Args:
+            feat (torch.Tensor): [B,C]
+            label (torch.Tensor): [B]
+        """
+        feat = feat / feat.norm(dim=-1, keepdim=True)
+        cos_sim = feat @ feat.T  # [B,B]
+        exp_sim = torch.exp(cos_sim / temperature)
+        pos_mask = (label[:, None] == label[None, :]).type(exp_sim.dtype)  # [B,B]
+        neg_mask = 1 - pos_mask
+        # remove self-to-self sim
+        pos_mask[
+            torch.arange(len(pos_mask)).to(pos_mask.device),
+            torch.arange(len(pos_mask)).to(pos_mask.device),
+        ] = 0
+
+        neg_exp_sim_sum = (exp_sim * neg_mask).sum(dim=-1, keepdim=True)
+        prob = exp_sim / (exp_sim + neg_exp_sim_sum).clamp(min=1e-8)
+        # select positive pair
+        pos_prob = prob[pos_mask == 1]
+        loss = -torch.log(pos_prob + 1e-8).mean()
+        return loss
     
     def _sample_feat(self, buckets, total_sample_num=512):
         """Sample points from each buckets

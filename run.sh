@@ -29,12 +29,18 @@ export OMP_NUM_THREADS=1
 # configs/segmenter/segmenter-propagate_vit-b16_512x512_40k_bs_16_downsample_2_base_config_structure_cos_loss_local.py
 
 
+# python -m torch.distributed.launch --nproc_per_node=4 --master_port=233333 \
+# tools/train.py \
+# configs/segmenter/segmenter-propagate_vit-b16_512x512_40k_bs_16_downsample_2_base_config_structure_contrastive_loss_weight_1.0_coco-stuff_local.py \
+# --launcher pytorch 
+
 python -m torch.distributed.launch --nproc_per_node=4 --master_port=233333 \
 tools/train.py \
-configs/segmenter/segmenter-propagate_vit-b16_512x512_40k_bs_16_downsample_2_base_config_structure_cos_loss_weight_1.0_coco-stuff_local.py \
---launcher pytorch
+configs/segmenter/segmenter-propagate_vit-b16_512x512_40k_bs_16_downsample_2_base_config_structure_margin_0.3_min_0.0_loss_weight_1.0_coco-stuff_local.py \
+--launcher pytorch 
 
-sleep 10
+
+# sleep 10
 
 # python -m torch.distributed.launch --nproc_per_node=4 --master_port=233333 \
 # tools/train.py \
@@ -43,10 +49,10 @@ sleep 10
 
 # sleep 10
 
-python -m torch.distributed.launch --nproc_per_node=4 --master_port=233333 \
-tools/train.py \
-configs/segmenter/segmenter-propagate_vit-b16_512x512_40k_bs_16_downsample_2_base_config_structure_cos_loss_weight_1.0_local.py \
---launcher pytorch
+# python -m torch.distributed.launch --nproc_per_node=4 --master_port=233333 \
+# tools/train.py \
+# configs/segmenter/segmenter-propagate_vit-b16_512x512_40k_bs_16_downsample_2_base_config_structure_cos_loss_weight_1.0_local.py \
+# --launcher pytorch
 
 
 # python -m torch.distributed.launch \
