@@ -20,49 +20,22 @@ export OMP_NUM_THREADS=1
 
 python -m torch.distributed.launch --nproc_per_node=8 --master_port=233333 \
 tools/train.py \
-configs/segmenter/segmenter-propagate_vit-b16_512x512_40k_bs16_downsample_2_base_config_prompt_learning_shape_16_0_lr_1e-3_wd_1e-2_rr1.py \
---launcher pytorch \
---auto-resume
-
-sleep 10
-
-python -m torch.distributed.launch --nproc_per_node=8 --master_port=233334 \
-tools/train.py \
-configs/segmenter/segmenter-propagate_vit-b16_512x512_40k_bs16_downsample_2_base_config_prompt_learning_shape_16_0_lr_1e-4_wd_1e-2_rr1.py \
---launcher pytorch \
---auto-resume
-
-sleep 10
-
-python -m torch.distributed.launch --nproc_per_node=8 --master_port=233335 \
-tools/train.py \
-configs/segmenter/segmenter-propagate_vit-b16_512x512_40k_bs16_downsample_2_base_config_prompt_learning_shape_16_0_lr_1e-5_wd_1e-2_rr1.py \
+configs/segmenter/segmenter-propagate_vit-b16_512x512_40k_bs16_downsample_2_base_config_in21k_bases_500_fold0_rr1.py \
 --launcher pytorch
 
-sleep 10
+# python -m torch.distributed.launch --nproc_per_node=8 --master_port=233335 \
+# tools/train.py \
+# configs/segmenter/segmenter-propagate_vit-b16_512x512_10k_bs16_downsample_2_base_config_prompt_learning_sample32_shape_16_0_lr_1e-3_wd_0_rr1.py \
+# --launcher pytorch
 
-python -m torch.distributed.launch --nproc_per_node=8 --master_port=233336 \
-tools/train.py \
-configs/segmenter/segmenter-propagate_vit-b16_512x512_40k_bs16_downsample_2_base_config_prompt_learning_shape_16_0_lr_1e-3_wd_0_rr1.py \
---launcher pytorch
+# sleep 10
 
-sleep 10
+# python -m torch.distributed.launch --nproc_per_node=8 --master_port=233335 \
+# tools/train.py \
+# configs/segmenter/segmenter-propagate_vit-b16_512x512_10k_bs16_downsample_2_base_config_prompt_learning_sample32_shape_16_0_lr_1e-5_wd_0_rr1.py \
+# --launcher pytorch
 
-python -m torch.distributed.launch --nproc_per_node=8 --master_port=233337 \
-tools/train.py \
-configs/segmenter/segmenter-propagate_vit-b16_512x512_40k_bs16_downsample_2_base_config_prompt_learning_shape_16_0_lr_1e-4_wd_0_rr1.py \
---launcher pytorch
-
-sleep 10
-
-python -m torch.distributed.launch --nproc_per_node=8 --master_port=233338 \
-tools/train.py \
-configs/segmenter/segmenter-propagate_vit-b16_512x512_40k_bs16_downsample_2_base_config_prompt_learning_shape_16_0_lr_1e-4_wd_1e-1_rr1.py \
---launcher pytorch
-
-
-
-
+# sleep 10
 
 
 # python -m torch.distributed.launch \
