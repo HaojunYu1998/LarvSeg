@@ -2,7 +2,7 @@ _base_ = [
     # "./training_scheme.py",
     "../_base_/models/segmenter_vit-b16.py",
     # "../_base_/datasets/ade20kfull.py",
-    "../_base_/datasets/ade20k_rr1.py",
+    "../_base_/datasets/mix_batch_coco-stuff164k_imagenet21k_ade_filter_v2_multiscale_rr1.py",
     "../_base_/default_runtime.py",
     "../_base_/schedules/schedule_40k.py",
 ]
@@ -32,6 +32,7 @@ model = dict(
         # imagenet_pred_save_dir="work_dirs/segmenter-propagate_vit-b16_512x512_320k_bs16_prior_1.0_lambda_0.0_downsample_2_in21k_ade_filter_vild_v2_prior_0.05_loss_weight_0.05_mix_batch_coco-stuff164k_imagenet21k_local/in21k_mask/",
         # propagation_loss_mode="kl_div",
         grounding_inference=True,
+        # structure_loss_weight=0.5
         # ann_suffix=".tif",
         # ignore_index=65535
     ),

@@ -50,10 +50,11 @@ class MaskTransformerPropagationHead(BaseDecodeHead):
         cls_emb_path="",
         cls_emb_path_test="",
         cls_emb_concat=False,
-        imagenet_class_path="notebook/in21k_inter_ade_filter.json",
+        imagenet_class_path=None,
         imagenet_prior_loss_weight=1.0,
         imagenet_cam_thresh=0,
         imagenet_pseudo_label=False,
+        imagenet_sample_class_num=0,
         pseudo_label_thresh=0.0,
         propagation_loss_weight=1.0,
         structure_loss_weight=0.0,
@@ -94,6 +95,7 @@ class MaskTransformerPropagationHead(BaseDecodeHead):
         self.prior_rate = prior_rate
         self.imagenet_prior_rate = imagenet_prior_rate
         self.imagenet_pseudo_label = imagenet_pseudo_label
+        self.imagenet_sample_class_num = imagenet_sample_class_num
         self.imagenet_cam_thresh = imagenet_cam_thresh
         self.pseudo_label_thresh = pseudo_label_thresh
         self.cls_emb_path = cls_emb_path
@@ -134,14 +136,18 @@ class MaskTransformerPropagationHead(BaseDecodeHead):
 
         self.imagenet_on_gpu = "in21k" in self.cls_emb_path if self.training \
                           else "in21k" in self.cls_emb_path_test
+        self.imagenet_on_gpu_ = "in11k" in self.cls_emb_path if self.training \
+                          else "in11k" in self.cls_emb_path_test
+        self.imagenet_on_gpu = self.imagenet_on_gpu_ or self.imagenet_on_gpu
         # assert self.imagenet_on_gpu is True, f"{self.cls_emb_path_test}, {self.training}"
         # print(rank, self.imagenet)
         if self.imagenet_on_gpu:
             self.prior_loss_weight = imagenet_prior_loss_weight
-            with open(imagenet_class_path, "r") as f:
-                in21k_id_name_dict = json.load(f)
-                # in21k_names = list(in21k_id_name_dict.values())
-                self.in21k_ids = list(in21k_id_name_dict.keys())
+            if imagenet_class_path is not None:
+                with open(imagenet_class_path, "r") as f:
+                    in21k_id_name_dict = json.load(f)
+                    # in21k_names = list(in21k_id_name_dict.values())
+                    self.in21k_ids = list(in21k_id_name_dict.keys())
         self.label_cos_sim = None
 
         self.proj_dec = nn.Linear(d_encoder, d_model)
@@ -209,18 +215,35 @@ class MaskTransformerPropagationHead(BaseDecodeHead):
     def forward_train(self, inputs, img_metas, gt_semantic_seg, train_cfg):
         # load cls_emb, and avoid unnecessary loading
         if (not self.cls_emb_from_backbone) and (not self.loaded_cls_emb_train):
-            self.cls_emb = torch.load(self.cls_emb_path, map_location="cpu")            
+            cls_emb = torch.load(self.cls_emb_path, map_location="cpu")
+            if isinstance(cls_emb, dict):
+                self.in21k_ids_all = list(cls_emb.keys())
+                cls_emb = torch.stack(list(cls_emb.values()))
+                self.cls_emb_all = cls_emb.clone()
+            self.cls_emb = cls_emb
             self.cls_emb.requires_grad = False
             self.loaded_cls_emb_test = False
             self.loaded_cls_emb_train = True
 
-        masks, embeds, feats = self.forward(inputs, img_metas)
-
         img_labels = None
         if self.imagenet_on_gpu:
-            img_names = [meta['ori_filename'] for meta in img_metas]
+            img_names = [meta['ori_filename'].split("/")[-1] for meta in img_metas]
             img_ids = [name[:name.find("_")] for name in img_names]
+            if self.imagenet_sample_class_num > 0:
+                sampled_inds = np.random.choice(
+                    list(range(len(self.in21k_ids_all))), 
+                    size=self.imagenet_sample_class_num, 
+                    replace=False
+                )
+                self.in21k_ids = list(
+                    set(img_ids) | set(self.in21k_ids_all[i] for i in sampled_inds)
+                )
+                self.cls_emb = self.cls_emb_all[
+                    [self.in21k_ids_all.index(img_id) for img_id in self.in21k_ids]
+                ]
             img_labels = [self.in21k_ids.index(img_id) for img_id in img_ids]
+
+        masks, embeds, feats = self.forward(inputs, img_metas)
 
         losses = self.losses(masks, embeds, feats, gt_semantic_seg, img_labels)
         return losses
@@ -233,32 +256,6 @@ class MaskTransformerPropagationHead(BaseDecodeHead):
             self.loaded_cls_emb_train = False
         
         masks, _, _ = self.forward(inputs, img_metas)
-
-        # img_labels = None
-        # if self.imagenet_on_gpu:
-        #     img_names = [meta['ori_filename'] for meta in img_metas]
-        #     img_ids = [name[:name.find("_")] for name in img_names]
-        #     img_labels = [self.in21k_ids.index(img_id) for img_id in img_ids]
-        #     img_shapes = [meta['ori_shape'][:-1] for meta in img_metas]
-        
-        # os.makedirs(self.imagenet_pred_save_dir, exist_ok=True)
-        # if self.imagenet_pred_save_dir is not None:
-        #     pred = masks.softmax(dim=1)
-        #     pred = pred[0, img_labels[0]]
-        #     h, w = img_shapes[0]
-        #     pred = F.interpolate(
-        #         pred[None, None], size=(h //2, w //2), mode="bilinear", align_corners=False
-        #     )[0,0]
-        #     pred = (pred - pred.min()) / (pred.max() - pred.min())
-        #     pred = pred.cpu().numpy()
-        #     # torch.save(
-        #     #     pred.cpu().half(),
-        #     #     os.path.join(self.imagenet_pred_save_dir, img_names[0].replace(".jpg", ".pth")
-        #     # ))
-        #     Image.fromarray((pred * 255).astype(np.uint8)).save(
-        #         os.path.join(self.imagenet_pred_save_dir, img_names[0].replace(".jpg", ".png"))
-        #     )
-        #     masks = masks[:, [0]]
 
         if self.grounding_inference:
             if len(self.test_anno_dir) > 0:
@@ -274,8 +271,8 @@ class MaskTransformerPropagationHead(BaseDecodeHead):
                 gt = (gt - 1).astype(np.uint8)
                 ignore_index = 255
             else:
-                gt = gt.astype(np.uint16)
-                ignore_index = 65535
+                gt = gt.astype(np.int16)
+                ignore_index = -1
             unique_label = list(np.unique(gt))
             unique_label = [l for l in unique_label if l != ignore_index]
             B, N, H, W = masks.shape
@@ -345,6 +342,7 @@ class MaskTransformerPropagationHead(BaseDecodeHead):
             # )
         else:
             prior_inds = torch.cat(prior_bucket)
+            # assert False, f"{seg_mask.shape, seg_label.unique(), self.ignore_index}"
             loss['loss_prior'] = self.loss_decode(
                 seg_mask[prior_inds],
                 seg_label[prior_inds],
@@ -428,7 +426,7 @@ class MaskTransformerPropagationHead(BaseDecodeHead):
     #         total_sample_num // len(buckets)
     #         for _ in range(len(num_per_buckets))
     #     ]
-        
+
     #     if len(sample_per_bucket) > 1:
     #         sample_per_bucket[-1] = total_sample_num - sum(sample_per_bucket[:-1])
     #     else:

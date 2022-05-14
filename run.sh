@@ -25,7 +25,7 @@ export OMP_NUM_THREADS=1
 
 python -m torch.distributed.launch --nproc_per_node=8 --master_port=233333 \
 tools/train.py \
-configs/segmenter/segmenter-propagate_vit-b16_512x512_40k_bs_16_downsample_2_base_config_structure_contrastive_loss_weight_1.0_coco-stuff_rr1.py \
+configs/segmenter/segmenter-propagate_vit-b16_512x512_1280k_bs_16_downsample_2_base_config_structure_margin_0.2_min_0.0_loss_weight_0.5_in21k_depth8_inter_ade_full_merged_all_500_rr1.py \
 --launcher pytorch
 
 # python -m torch.distributed.launch --nproc_per_node=8 --master_port=233333 \
@@ -52,7 +52,24 @@ configs/segmenter/segmenter-propagate_vit-b16_512x512_40k_bs_16_downsample_2_bas
 # python -m torch.distributed.launch \
 # --nproc_per_node=8 --master_port=233333 \
 # tools/test.py \
-# configs/segmenter/segmenter-propagate_vit-b16_512x512_eval_on_ade_hyper.py \
-# work_dirs/segmenter-propagate_vit-b16_512x512_320k_bs16_downsample_2_base_config_ade_supervised/iter_192000.pth \
+# configs/segmenter/segmenter-propagate_vit-b16_512x512_40k_bs_16_downsample_2_base_config_structure_contrastive_loss_weight_1.0_in21k_inter_ade_full_merged_all_500_rr1.py \
+# work_dirs/segmenter-propagate_vit-b16_512x512_320k_bs16_downsample_2_base_config_in21k_ade_full_merged_vild_all_500_rr1/latest.pth \
 # --eval mIoU \
 # --launcher pytorch
+
+# python -m torch.distributed.launch --nproc_per_node=8 --master_port=233333 \
+# tools/train.py \
+# configs/segmenter/segmenter-propagate_vit-b16_512x512_40k_bs_16_downsample_2_base_config_structure_margin_0.3_min_0.1_loss_weight_1.0_coco-stuff_rr1.py \
+# --launcher pytorch \
+# --auto-resume
+
+# python -m torch.distributed.launch --nproc_per_node=8 --master_port=233333 \
+# tools/train.py \
+# configs/segmenter/segmenter-propagate_vit-b16_512x512_40k_bs_16_downsample_2_base_config_structure_margin_0.1_min_0.0_loss_weight_1.0_coco-stuff_rr1.py \
+# --launcher pytorch
+
+
+
+
+
+

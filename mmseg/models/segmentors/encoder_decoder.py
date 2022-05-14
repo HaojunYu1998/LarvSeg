@@ -276,22 +276,6 @@ class EncoderDecoder(BaseSegmentor):
                 output = output.flip(dims=(3, ))
             elif flip_direction == 'vertical':
                 output = output.flip(dims=(2, ))
-        # topk2_logit = output[0].topk(2, dim=0, sorted=True).values
-        # margin = topk2_logit[0] - topk2_logit[1]
-        # print(margin.max(), margin.min())
-        # entropy = -(output[0] * output[0].log()).sum(dim=0)
-        # print(entropy.shape, entropy.max(), entropy.min())
-        # mu = output[0].mean(dim=0, keepdim=True)
-        # demean_output = output[0] - mu
-        # mean_demean_output2 = torch.pow(demean_output, 2).mean(dim=0)
-        # kurtosis = torch.pow(demean_output, 4).mean(dim=0) / torch.pow(mean_demean_output2, 2)
-        # print(kurtosis.shape, kurtosis.max(), kurtosis.min())
-        # save_path = os.path.join(
-        #     "work_dirs/segmenter-propagate_vit-b16_512x512_160k_bs16_prior_1.0_lambda_0.0_downsample_2_in21k_ade_filter_prior_0.05_loss_weight_0.1_mix_batch_coco-stuff164k_imagenet21k_local/",
-        #     "inference_kurtosis",
-        #     img_meta[0]['ori_filename'].replace("jpg", "pth")
-        # )
-        # torch.save(kurtosis.half().cpu(), save_path)
         return output
 
     def simple_test(self, img, img_meta, rescale=True):

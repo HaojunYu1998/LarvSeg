@@ -1,6 +1,6 @@
 _base_ = [
     "../_base_/models/segmenter_vit-b16.py",
-    "../_base_/datasets/mix_batch_coco-stuff164k_imagenet21k_ade_full_merged_rr1.py",
+    "../_base_/datasets/mix_batch_coco-stuff164k_imagenet21k_resize_0.1_2.0_ade_full_merged_all_500_rr1.py",
     "../_base_/default_runtime.py",
     "../_base_/schedules/schedule_40k.py",
 ]

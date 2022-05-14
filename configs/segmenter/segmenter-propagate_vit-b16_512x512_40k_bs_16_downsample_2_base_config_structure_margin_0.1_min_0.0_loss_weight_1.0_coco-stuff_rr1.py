@@ -1,6 +1,6 @@
 _base_ = [
     "../_base_/models/segmenter_vit-b16.py",
-    "../_base_/datasets/mix_batch_coco-stuff164k_imagenet21k_ade_full_merged_rr1.py",
+    "../_base_/datasets/coco-stuff164k_rr1.py",
     "../_base_/default_runtime.py",
     "../_base_/schedules/schedule_40k.py",
 ]
@@ -16,23 +16,20 @@ model = dict(
     ),
     decode_head=dict(
         type="MaskTransformerStructureHead",
-        n_cls=655,
+        n_cls=171,
         downsample_rate=2,
-        cls_emb_path=[
-            "pretrain/cls_emb_coco_vild_v2.pth",
-            "pretrain/cls_emb_in21k_full_merged_vild.pth"
-        ],
-        cls_emb_path_test = "pretrain/cls_emb_ade_full_merged_vild.pth",
-        imagenet_class_path="notebook/in21k_inter_ade_full_merged_dict.json",
-        imagenet_prior_rate=0.05,
+        cls_emb_path="pretrain/cls_emb_coco_vild_v2.pth",
+        cls_emb_path_test = "pretrain/cls_emb_coco_vild_v2.pth",
+        # imagenet_class_path="notebook/in21k_inter_ade_filter_v2.json",
+        # imagenet_prior_rate=0.05,
         imagenet_pseudo_label=False,
         prior_rate=1.0,
-        imagenet_prior_loss_weight=0.05,
+        structure_loss_method="margin",
+        structure_margin=0.1,
+        structure_min_value=0.0,
+        # imagenet_prior_loss_weight=0.05,
         propagation_loss_weight=0.0,
-        grounding_inference=True,
-        ann_suffix=".tif",
-        test_anno_dir="/mnt/haojun2/dataset/ADE20K_2021_17_01/annotations_detectron2/validation_merged",
-        # ignore_index=65535
+        structure_loss_weight=1.0,
     ),
     test_cfg=dict(mode="slide", crop_size=(512, 512), stride=(512, 512)),
 )

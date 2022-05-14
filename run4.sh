@@ -17,11 +17,19 @@ touch /mnt/data0/suspend.txt
 
 export OMP_NUM_THREADS=1
 
-
-python -m torch.distributed.launch --nproc_per_node=8 --master_port=233333 \
-tools/train.py \
-configs/segmenter/segmenter-propagate_vit-b16_512x512_40k_bs16_downsample_2_base_config_in21k_bases_500_fold0_rr1.py \
+python -m torch.distributed.launch \
+--nproc_per_node=8 --master_port=233333 \
+tools/test.py \
+configs/segmenter/segmenter-propagate_vit-b16_512x512_eval_on_ade.py \
+work_dirs/segmenter-propagate_vit-b16_512x512_40k_bs_16_downsample_2_base_config_structure_contrastive_loss_weight_1.0_in21k_inter_ade_rr1/latest.pth \
+--eval mIoU \
 --launcher pytorch
+
+
+# python -m torch.distributed.launch --nproc_per_node=8 --master_port=233333 \
+# tools/train.py \
+# configs/segmenter/segmenter-propagate_vit-b16_512x512_40k_bs_16_downsample_2_base_config_structure_contrastive_loss_weight_1.0_in21k_inter_ade_rr1.py \
+# --launcher pytorch
 
 # python -m torch.distributed.launch --nproc_per_node=8 --master_port=233335 \
 # tools/train.py \

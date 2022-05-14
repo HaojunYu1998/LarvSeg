@@ -1,6 +1,6 @@
 _base_ = [
     "../_base_/models/segmenter_vit-b16.py",
-    "../_base_/datasets/mix_batch_coco-stuff164k_imagenet21k_ade_full_merged_rr1.py",
+    "../_base_/datasets/mix_batch_coco-stuff164k_imagenet21k_ade_full_merged_all_500_rr1.py",
     "../_base_/default_runtime.py",
     "../_base_/schedules/schedule_40k.py",
 ]
@@ -32,7 +32,8 @@ model = dict(
         grounding_inference=True,
         ann_suffix=".tif",
         test_anno_dir="/mnt/haojun2/dataset/ADE20K_2021_17_01/annotations_detectron2/validation_merged",
-        # ignore_index=65535
+        structure_loss_method="contrastive",
+        structure_loss_weight=1.0,
     ),
     test_cfg=dict(mode="slide", crop_size=(512, 512), stride=(512, 512)),
 )
