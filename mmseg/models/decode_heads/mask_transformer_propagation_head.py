@@ -70,6 +70,9 @@ class MaskTransformerPropagationHead(BaseDecodeHead):
         use_pairwise_affinity=False,
         pairwise_affinity_thresh=0.95,
         cam_thresh=0.9,
+        use_attention_module=True,
+        use_self_attention=False,
+        reduce_zero_label=True,
         **kwargs,
     ):
         # in_channels & channels are dummy arguments to satisfy signature of
@@ -112,12 +115,23 @@ class MaskTransformerPropagationHead(BaseDecodeHead):
         self.use_pairwise_affinity = use_pairwise_affinity
         self.pairwise_affinity_thresh = pairwise_affinity_thresh
         self.cam_thresh = cam_thresh
+        self.use_attention_module = use_attention_module
+        self.use_self_attention = use_self_attention
+        self.reduce_zero_label = reduce_zero_label
 
-        dpr = [x.item() for x in torch.linspace(0, drop_path_rate, n_layers)]
-        self.blocks = nn.ModuleList([
-            Block(d_model, n_heads, d_ff, dropout, dpr[i])
-            for i in range(n_layers)
-        ])
+        if self.use_attention_module:
+            dpr = [x.item() for x in torch.linspace(0, drop_path_rate, n_layers)]
+            if self.use_self_attention:
+                self.blocks = nn.ModuleList([
+                    Block2(d_model, n_heads, d_ff, dropout, dpr[i])
+                    for i in range(n_layers)
+                ])
+            else:
+                self.blocks = nn.ModuleList([
+                    Block(d_model, n_heads, d_ff, dropout, dpr[i])
+                    for i in range(n_layers)
+                ])
+            self.decoder_norm = nn.LayerNorm(d_model)
 
         self.cls_emb_from_backbone = cls_emb_from_backbone
         self.imagenet_in_batch = False
@@ -157,7 +171,7 @@ class MaskTransformerPropagationHead(BaseDecodeHead):
         # self.proj_classes = nn.Parameter(self.scale *
         #                                  torch.randn(d_model, d_model))
 
-        self.decoder_norm = nn.LayerNorm(d_model)
+        
         self.gamma = nn.Parameter(torch.ones([]))
         self.beta = nn.Parameter(torch.zeros([]))
         # self.mask_norm = nn.LayerNorm(n_cls)
@@ -180,12 +194,22 @@ class MaskTransformerPropagationHead(BaseDecodeHead):
         x = x.view(B, C, -1).permute(0, 2, 1)
 
         x = self.proj_dec(x)
-        # x = torch.cat((x, cls_emb), 1)
-        for blk in self.blocks:
-            x = blk(x, cls_emb)
-        x = self.decoder_norm(x)
-
-        patches, cls_seg_feat = x, cls_emb
+        if self.use_attention_module:
+            # x = torch.cat((x, cls_emb), 1)
+            if self.use_self_attention:
+                n_cls = cls_emb.shape[1]
+                x = torch.cat((x, cls_emb), 1)
+                for blk in self.blocks:
+                    x = blk(x)
+                x = self.decoder_norm(x)
+                patches, cls_seg_feat = x[:, :-n_cls], x[:, -n_cls:]
+            else:
+                for blk in self.blocks:
+                    x = blk(x, cls_emb)
+                x = self.decoder_norm(x)
+                patches, cls_seg_feat = x, cls_emb
+        else:
+            patches, cls_seg_feat = x, cls_emb
         patches = patches @ self.proj_patch
         # cls_seg_feat = cls_seg_feat @ self.proj_classes
 
@@ -255,7 +279,15 @@ class MaskTransformerPropagationHead(BaseDecodeHead):
             self.loaded_cls_emb_test = True
             self.loaded_cls_emb_train = False
         
-        masks, _, _ = self.forward(inputs, img_metas)
+        masks, _, feats = self.forward(inputs, img_metas)
+
+        # torch.save(
+        #     feats, 
+        #     os.path.join(
+        #         "/mnt/haojun2/OpenVocSeg/outputs/final_paper_SITSeg_ADE20K_pixel_embeddings_no_IN22K", 
+        #         img_metas[0]["ori_filename"].replace("jpg", "pth")
+        #     )
+        # )
 
         if self.grounding_inference:
             if len(self.test_anno_dir) > 0:
@@ -268,7 +300,10 @@ class MaskTransformerPropagationHead(BaseDecodeHead):
                     "images", "annotations").replace(".jpg", self.ann_suffix)
             gt = np.array(Image.open(gt_path))
             if self.ann_suffix == ".png":
-                gt = (gt - 1).astype(np.uint8)
+                if self.reduce_zero_label:
+                    gt = (gt - 1).astype(np.uint8)
+                else:
+                    gt = gt.astype(np.uint8)
                 ignore_index = 255
             else:
                 gt = gt.astype(np.int16)
@@ -711,6 +746,65 @@ class Block(nn.Module):
 
     def forward(self, x, cls_emb, mask=None, return_attention=False):
         y, attn = self.attn(self.norm1(x), cls_emb, cls_emb, mask)
+        if return_attention:
+            return attn
+        x = x + self.drop_path(y)
+        x = x + self.drop_path(self.mlp(self.norm2(x)))
+        return x
+
+class Attention2(nn.Module):
+
+    def __init__(self, dim, heads, dropout):
+        super().__init__()
+        self.heads = heads
+        head_dim = dim // heads
+        self.scale = head_dim**-0.5
+        self.attn = None
+
+        self.qkv = nn.Linear(dim, dim * 3)
+        self.attn_drop = nn.Dropout(dropout)
+        self.proj = nn.Linear(dim, dim)
+        self.proj_drop = nn.Dropout(dropout)
+
+    @property
+    def unwrapped(self):
+        return self
+
+    def forward(self, x, mask=None):
+        B, N, C = x.shape
+        qkv = (
+            self.qkv(x).reshape(B, N, 3, self.heads,
+                                C // self.heads).permute(2, 0, 3, 1, 4))
+        q, k, v = (
+            qkv[0],
+            qkv[1],
+            qkv[2],
+        )
+
+        attn = (q @ k.transpose(-2, -1)) * self.scale
+        attn = attn.softmax(dim=-1)
+        attn = self.attn_drop(attn)
+
+        x = (attn @ v).transpose(1, 2).reshape(B, N, C)
+        x = self.proj(x)
+        x = self.proj_drop(x)
+
+        return x, attn
+
+
+class Block2(nn.Module):
+
+    def __init__(self, dim, heads, mlp_dim, dropout, drop_path):
+        super().__init__()
+        self.norm1 = nn.LayerNorm(dim)
+        self.norm2 = nn.LayerNorm(dim)
+        self.attn = Attention2(dim, heads, dropout)
+        self.mlp = FeedForward(dim, mlp_dim, dropout)
+        self.drop_path = DropPath(
+            drop_path) if drop_path > 0.0 else nn.Identity()
+
+    def forward(self, x, mask=None, return_attention=False):
+        y, attn = self.attn(self.norm1(x), mask)
         if return_attention:
             return attn
         x = x + self.drop_path(y)

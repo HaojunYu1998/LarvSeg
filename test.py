@@ -30,18 +30,19 @@
 # vitb16 = torch.hub.load('facebookresearch/dino:main', 'dino_vitb16')
 # print(vitb16)
 
-from glob import glob
-import json
-import numpy as np
-import torch
-import random
-from tqdm import tqdm
-import mmcv
-from functools import partial
-import os
+# from glob import glob
+# import json
+# import numpy as np
+# import torch
+# import random
+# from tqdm import tqdm
+# import mmcv
+# from functools import partial
+# import os
 
-cam_list = glob("/mnt/haojun2/dataset/imagenet22k_azcopy/annotations_cam_new/*.png")
-print(len(cam_list))
-with open("cam_list.txt", "a") as f:
-    for c in cam_list:
-        print(c, file=f)
+# cam_list = glob("/mnt/haojun2/dataset/imagenet22k_azcopy/annotations_cam_new/*.png")
+# print(len(cam_list))
+# with open("cam_list.txt", "a") as f:
+#     for c in cam_list:
+#         print(c, file=f)
+

@@ -2,7 +2,8 @@ _base_ = [
     # "./training_scheme.py",
     "../_base_/models/segmenter_vit-b16.py",
     # "../_base_/datasets/ade20kfull.py",
-    "../_base_/datasets/ade20kfull_merged_multiscale_rr1.py",
+    # "../_base_/datasets/ade20kfull_merged_multiscale_rr1.py",
+    "../_base_/datasets/ade20kfull_merged_rr1.py",
     "../_base_/default_runtime.py",
     "../_base_/schedules/schedule_40k.py",
 ]

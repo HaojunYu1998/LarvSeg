@@ -172,7 +172,7 @@ class MaskTransformerStructureHead(BaseDecodeHead):
                                        torch.randn(d_model, d_model))
         # self.proj_classes = nn.Parameter(self.scale *
         #                                  torch.randn(d_model, d_model))
-
+        
         self.decoder_norm = nn.LayerNorm(d_model)
         self.gamma = nn.Parameter(torch.ones([]))
         self.beta = nn.Parameter(torch.zeros([]))
@@ -180,6 +180,7 @@ class MaskTransformerStructureHead(BaseDecodeHead):
 
         if self.structure_loss_method == "region":
             self.structure_criterion = nn.CrossEntropyLoss()
+        self.set_structure_queue = True
 
     def init_weights(self):
         # if self.call_init_weight:
@@ -239,7 +240,7 @@ class MaskTransformerStructureHead(BaseDecodeHead):
                 cls_emb = torch.stack(list(cls_emb.values()))
                 self.cls_emb_all = cls_emb.clone()
             self.structure_num_classes = len(cls_emb)
-            if self.structure_loss_method == "region":
+            if self.structure_loss_method == "region" and self.set_structure_queue:
                 for i in range(self.structure_num_classes):
                     self.register_buffer(
                         "queue"+str(i), torch.randn(self.d_encoder, self.structure_queue_len)
@@ -248,6 +249,7 @@ class MaskTransformerStructureHead(BaseDecodeHead):
                         "ptr"+str(i), torch.zeros(1, dtype=torch.long)
                     )
                     exec("self.queue"+str(i) + '=' + 'nn.functional.normalize(' + "self.queue"+str(i) + ',dim=0).cuda()')
+                self.set_structure_queue = False
             self.cls_emb = cls_emb
             self.cls_emb.requires_grad = False
             self.loaded_cls_emb_test = False
@@ -401,6 +403,7 @@ class MaskTransformerStructureHead(BaseDecodeHead):
             if not self.structure_per_image:
                 loss['loss_structure'] = self.loss_structure(
                     seg_feat[prior_inds],
+                    seg_mask[prior_inds],
                     seg_label[prior_inds],
                 ) * self.structure_loss_weight
             else:
@@ -417,6 +420,7 @@ class MaskTransformerStructureHead(BaseDecodeHead):
                     ]
                     loss_structure += self.loss_structure(
                         seg_feat[b][prior_inds_per_image],
+                        seg_mask[b][prior_inds_per_image],
                         seg_label[b][prior_inds_per_image],
                     )
                 loss['loss_structure'] = loss_structure / B * self.structure_loss_weight
@@ -426,24 +430,12 @@ class MaskTransformerStructureHead(BaseDecodeHead):
         loss['acc_seg'] = accuracy(seg_mask, seg_label) * acc_weight
         return loss
 
-    def loss_structure(self, seg_feat, seg_label):
+    def loss_structure(self, seg_feat, seg_mask, seg_label):
         """
         seg_feat: (N_prior, C)
+        seg_mask: (N_prior, N)
         seg_label: (N_prior, )
         """
-        # if self.imagenet_on_gpu:
-        #     return torch.tensor(
-        #         0, dtype=seg_feat.dtype, device=seg_feat.device, requires_grad=True
-        #     )
-        # # if self.label_cos_sim is None:
-        # #     cls_emb = self.cls_emb.to(seg_feat.device)
-        # #     cls_emb = cls_emb / cls_emb.norm(dim=-1, keepdim=True)
-        # #     self.label_cos_sim = cls_emb @ cls_emb.T
-        # #     del cls_emb
-        # B, C, H, W = seg_feat.size()
-        # # seg_label = F.interpolate(seg_label.float(), size=(H, W)).long()
-        # seg_feat = seg_feat.permute(0, 2, 3, 1).reshape(B * H * W, C)
-        # seg_label = seg_label.reshape(B * H * W)
         unique_label = torch.unique(seg_label)
         pos_bucket = [
             torch.nonzero(seg_label == l)[:, 0]
@@ -458,10 +450,10 @@ class MaskTransformerStructureHead(BaseDecodeHead):
             seg_feat[i] for i in pos_inds], dim=0)
 
         if self.structure_loss_method == "region":
-            region_feat = torch.stack([
-                seg_feat[seg_label==l].mean(dim=0)
-                for l in unique_label
-            ]) # (N_region, C)
+            region_feat, unique_label = self.construct_region(
+                seg_feat, seg_mask, seg_label
+            )
+            unique_label = unique_label[unique_label != self.ignore_index]
             loss = self.similarity3(region_feat, unique_label)
         elif self.structure_loss_method == "contrastive":
             sample_cls = torch.cat(
@@ -548,37 +540,71 @@ class MaskTransformerStructureHead(BaseDecodeHead):
             if self.imagenet_on_gpu and self.imagenet_sample_class_num > 0:
                 l = self.sampled_idx_to_ori_inds[int(l)]
             l = int(l)
-            k = eval("self.queue"+str(l)).clone().detach()
-            l_pos = q[None] @ k # (1, N_queue)
+            # k = eval("self.queue"+str(l)).clone().detach()
+            # l_pos = q[None] @ k # (1, N_queue)
+            l_pos = q.unsqueeze(1)*eval("self.queue"+str(l)).clone().detach()  #256, N1
             all_ind = [m for m in range(self.structure_num_classes)]
             tmp = all_ind.copy()
             tmp.remove(l)
-            l_neg = []
+            # l_neg = []
+            l_neg = 0
             for neg_l in tmp:
-                k = eval("self.queue"+str(neg_l)).clone().detach()
-                l_neg.append(q[None] @ k)
+                # k = eval("self.queue"+str(neg_l)).clone().detach()
+                # l_neg.append(q[None] @ k)
+                l_neg += q.unsqueeze(1)*eval("self.queue"+str(neg_l)).clone().detach()
             # (N_neg, N_queue)
-            l_neg = torch.cat(l_neg, dim=0)
+            # l_neg = torch.cat(l_neg, dim=0)
             contrast_loss += self._compute_contrast_loss(l_pos, l_neg)
 
         for q, l in zip(feat, label):
             if self.imagenet_on_gpu and self.imagenet_sample_class_num > 0:
-                l = self.sampled_idx_to_ori_inds[l]
+                l = self.sampled_idx_to_ori_inds[int(l)]
             l = int(l)
             self._dequeue_and_enqueue(q, l)
-        return contrast_loss / max(1, len(label))
+        return contrast_loss #/ max(1, len(label))
         # return contrast_loss
 
+    def construct_region(self, feat, mask, label):
+        unique_label = torch.unique(label)
+        unique_label = unique_label[unique_label != self.ignore_index]
+        if self.structure_hard_smapling:
+            pred = mask.softmax(dim=-1)
+            values, indices = pred.max(dim=-1)
+            values = values.flatten()
+            assert (values >= 0).all() and (values <= 1).all()
+            indices = indices.flatten()
+            region_feat = []
+            for l in unique_label:
+                easy_mask = (indices == l) & (label == l)
+                hard_mask = (indices != l) & (label == l)
+                # print(f"{int(easy_mask.sum())}, {int(hard_mask.sum())}")
+                feat_l = torch.cat(
+                    [(1 - values[easy_mask].unsqueeze(1)) * feat[easy_mask], feat[hard_mask]], dim=0
+                ).mean(dim=0)
+                region_feat.append(feat_l)
+            region_feat = torch.stack(region_feat, dim=0)
+        else:
+            region_feat = torch.stack([
+                label[label==l].mean(dim=0)
+                for l in unique_label
+            ]) # (N_region, C)
+        return region_feat, unique_label
+
     def _compute_contrast_loss(self, l_pos, l_neg):
-        """
-        l_pos: (1, N_queue)
-        l_neg: (N_neg, N_queue)
-        """
-        N_queue = l_pos.size(1)
-        logits = torch.cat((l_pos, l_neg), dim=0)
-        logits = logits.transpose(0, 1) # (N_queue, 1+N_neg)
+        # """
+        # l_pos: (1, N_queue)
+        # l_neg: (N_neg, N_queue)
+        # """
+        # N_queue = l_pos.size(1)
+        # logits = torch.cat((l_pos, l_neg), dim=0)
+        # logits = logits.transpose(0, 1) # (N_queue, 1+N_neg)
+        # logits /= self.structure_temperature
+        # labels = torch.zeros((N_queue, ),dtype=torch.long).cuda()
+        # return self.structure_criterion(logits, labels)
+        N = l_pos.size(0)
+        logits = torch.cat((l_pos, l_neg), dim=1)
         logits /= self.structure_temperature
-        labels = torch.zeros((N_queue, ),dtype=torch.long).cuda()
+        labels = torch.zeros((N,), dtype=torch.long).cuda()
         return self.structure_criterion(logits, labels)
 
     def _dequeue_and_enqueue(self, feat, label): #, bs):
@@ -586,6 +612,7 @@ class MaskTransformerStructureHead(BaseDecodeHead):
         eval("self.queue"+str(label))[:, ptr] = feat
         ptr = (ptr + 1) % self.structure_queue_len
         eval("self.ptr"+str(label))[0] = ptr
+        # print(ptr)
 
     def _sample_feat(self, buckets, total_sample_num=512):
         """Sample points from each buckets

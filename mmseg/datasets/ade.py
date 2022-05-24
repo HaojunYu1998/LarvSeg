@@ -594,3 +594,145 @@ class ADE20KFULLMergedDataset(CustomDataset):
         result_files = self.results2img(results, imgfile_prefix, to_label_id,
                                         indices)
         return result_files
+
+
+
+@DATASETS.register_module()
+class ADE20KHyperDataset(CustomDataset):
+    """ADE20K dataset.
+
+    In segmentation map annotation for ADE20K, 0 stands for background, which
+    is not included in 150 categories. ``reduce_zero_label`` is fixed to True.
+    The ``img_suffix`` is fixed to '.jpg' and ``seg_map_suffix`` is fixed to
+    '.png'.
+    """
+    CLASSES = (
+        'heavier-than-air_craft', 'platform', 'angiosperm', 'structural_member', 
+        'timepiece', 'table', 'lighting_fixture', 'kitchen_appliance', 'public_transport', 
+        'causal_agent', 'device', 'white_goods', 'plumbing_fixture', 'cushion', 'truck', 
+        'heater', 'shelter', 'substance', 'wheeled_vehicle', 'blind', 'gramineous_plant', 
+        'furniture', 'canopy', 'mechanism', 'emblem', 'machine', 'organism', 'difficulty', 
+        'woody_plant', 'way', 'product', 'water_sport', 'vessel', 'electronic_equipment', 
+        'receptacle', 'vessel', 'land', 'jar', 'source_of_illumination', 'framework', 'food', 
+        'connection', 'bin', 'floor_cover', 'cistern', 'light', 'natural_object', 
+        'natural_elevation', 'chair', 'bracket', 'structure', 'seat', 'protective_covering', 
+        'body_of_water', 'door', 'container', 'clothing', 'counter', 'paved_surface', 
+        'support', 'shelter', 'atmosphere', 'arcade', 'tree', 'piece_of_cloth', 'lamp', 
+        'room', 'game_equipment', 'covering', 'soil', 'bedroom_furniture', 'motor_vehicle', 
+        'belt', 'recess', 'earth', 'reflector', 'baby_bed', 'upper_surface', 'shop', 
+        'barrier', 'bedclothes', 'display', 'geographical_area', 'walk', 'plastic_art', 
+        'receiver', 'upright', 'building', 'painting', 'countertop', 'poster', 
+        'silver screen', 'bulletin board'
+    )
+
+    PALETTE = None
+
+    def __init__(self, **kwargs):
+        super(ADE20KHyperDataset, self).__init__(
+            img_suffix='.jpg',
+            seg_map_suffix='.png',
+            reduce_zero_label=False,
+            ignore_index=255,
+            **kwargs)
+
+
+
+@DATASETS.register_module()
+class ADE20KFULLHyperDataset(CustomDataset):
+    """ADE20KFULL dataset.
+
+    In segmentation map annotation for ADE20K, 0 stands for background, which
+    is not included in 847 categories. ``reduce_zero_label`` is fixed to True.
+    The ``img_suffix`` is fixed to '.jpg' and ``seg_map_suffix`` is fixed to
+    '.tif'.
+    """
+    CLASSES = (
+       'horizontal_surface', 'gun', 'workbench', 'lattice', 'tape_recorder', 'power_shovel', 'blower', 'piece', 'piece_of_cloth', 'vessel', 'package', 'area', 'plant_organ', 'window', 'ceramic_ware', 'earth', 'writing', 'counter', 'implement', 'wheel', 'film', 'hole', 'jewelry', 'signboard', 'wire', 'cushion', 'plane_figure', 'bin', 'pullover', 'floor_cover', 'receptacle', 'piano', 'rack', 'knit', 'lowland', 'headdress', 'natural_elevation', 'covering', 'vegetable', 'alarm', 'landing', 'clothing', 'door', 'cashbox', 'electric_lamp', 'home_appliance', 'truck', 'conveyance', 'steam_bath', 'cylinder', 'lifting_device', 'baked_goods', 'bar', 'dish', 'hole', 'obstruction', 'kitchen_appliance', 'spectacles', 'canine', 'compartment', 'chair', 'track_and_field', 'folding_chair', 'hand_tool', 'worker', 'sheet', 'precipitation', 'upper_surface', 'litter', 'box', 'connection', 'electrical_device', 'pan', 'hazard', 'protoctist', 'jar', 'soil', 'geographical_area', 'plastic_art', 'drinking_vessel', 'weapon', 'lock', 'acoustic_device', 'portable_computer', 'sports_equipment', 'keyboard_instrument', 'control', 'lighter-than-air_craft', 'electronic_instrument', 'rink', 'booth', 'candlestick', 'fodder', 'edge_tool', 'electronic_equipment', 'atmosphere', 'bed_linen', 'handcart', 'garment', 'case', 'towel', 'vehicle', 'paved_surface', 'sweet', 'root_vegetable', 'cloth', 'outbuilding', 'ditch', 'basketball_equipment', 'sofa', 'feline', 'column', 'memorial', 'lighting_fixture', 'body_of_water', 'playing_field', 'warship', 'branch', 'tractor', 'winder', 'platform', 'round_shape', 'canvas', 'curve', 'cooling_system', 'overhang', 'tool', 'neckwear', 'retort', 'place_of_business', 'fruit', 'overgarment', 'counter', 'office', 'shoe', 'park', 'organism', 'clock', 'situation', 'fare', 'reservoir', 'heater', 'footwear', 'timer', 'dish', 'utensil', 'mill', 'reflector', 'structural_member', 'fixture', 'bed', 'chest_of_drawers', 'restraint', 'difficulty', 'aquatic_vertebrate', 'protective_garment', 'elevated_railway', 'lamp', 'belt', 'small_boat', 'regulator', 'faucet', 'mound', 'arcade', 'place_of_worship', 'timepiece', 'gallery', 'container', 'control_panel', 'flavorer', 'character_printer', 'receiver', 'dispenser', 'causal_agent', 'worktable', 'ridge', 'framework', 'shaker', 'scale', 'cistern', 'substance', 'brush', '', 'elevator', 'boat', 'handwheel', 'canvas_tent', 'wheeled_vehicle', 'natural_object', 'camper', 'television_equipment', 'natural_depression', 'shelter', 'floor', 'optical_instrument', 'holder', 'bridge', 'tissue', 'housing', 'indicator', 'angiosperm', 'bedroom_furniture', 'slope', 'heavier-than-air_craft', 'food', 'booth', 'sports_implement', 'instrument', 'public_transport', 'room', 'electro-acoustic_transducer', 'plant', 'canopy', 'plumbing_fixture', 'basin', 'measuring_instrument', 'pump', 'ride', 'cup', 'tree', 'ball', 'upright', 'representation', 'cleaning_implement', 'furnace', 'seat', 'wrapping', 'blind', 'bit', 'instrumentality', 'shelter', 'shop', 'mixer', 'bowed_stringed_instrument', 'covering', 'display', 'optical_disk', 'self-propelled_vehicle', 'cricket_equipment', 'stadium', 'press', 'cloak', 'fire_iron', 'storeroom', 'vertebrate', 'ice_rink', 'bag', 'broadcasting', 'drive', 'table', 'conductor', 'gramineous_plant', 'ravine', 'carrier', 'toiletry', 'bowling_equipment', 'flag', 'contact_sport', 'directional_antenna', 'magnifier', 'tripod', 'screen', 'light', 'device', 'white_goods', 'recess', 'support', 'golf_equipment', 'belt', 'writing_implement', 'vascular_plant', 'radiotelephone', 'weight', 'bathtub', 'land', 'refrigerator', 'spar', 'sun', 'shell', 'source_of_illumination', 'floater', 'roof', 'box', 'tank', 'partition', 'yard', 'boxing_equipment', 'accessory', 'woody_plant', 'vessel', 'duck_down', 'inclined_plane', 'chair_of_state', 'mechanical_system', 'sawhorse', 'board', 'way', 'compound_lever', 'product', 'nutriment', 'water_sport', 'branch', 'protective_covering', 'trap', 'mechanical_device', 'building', 'rack', 'movable_barrier', 'system', 'mechanism', 'echinoderm', 'bracket', 'pot', 'emblem', 'mercantile_establishment', 'barrier', 'furniture', 'medical_instrument', 'enclosure', 'slot_machine', 'stringed_instrument', 'medium', 'stop', 'screen', 'tower', 'sculpture', 'duplicator', 'baggage', 'glove', 'garage', 'equine', 'bedclothes', 'serving_dish', 'electronic_device', 'stand', 'house', 'machinery', 'reproductive_structure', 'game_equipment', 'baby_bed', 'firearm', 'switch', 'line', 'machine', 'ice_mass', 'machine', 'office_furniture', 'nameplate', 'cooking_utensil', 'motor_vehicle', 'court', 'cartridge', 'cutting_implement', 'building_material', 'geological_formation', 'percussion_instrument', 'armor_plate', 'oven', 'fabric', 'bird', 'structure', 'walk', 'farm_building', 'fastener', 'paintin', 'work surfac', 'counterto', 'poste', 'silver scree', 'central reservation', 'bulletin boar', 'fluorescen', 'ladde', 'pulpi', 'gril', 'drawin', 'decoratio', 'tex', 'mattres', 'stra', 'skeleto', 'service statio', 'chimne', 'islan', 'baseboard', 'smok', 'pane', 'roundabou', 'canva', 'fireplug', 'plasti', 'calenda', 'soa', 'price ta', 'cove', 'gutte', 'handl', 'mousepa', 'diplom', 'toll plaz', 'pen containe', 'notepa', 'baseboard', 'clipboar', 'paper file', 'garlan', 'stair edg', 'ches', 'chopping boar', 'gril', 'snooker chal', 'rocking hors', 'post-i', 'bon', 'towel rin', 'card gam', 'toilet paper holde', 'transforme', 'spong', 'sewe', 'entry phon', 'viewpoin', 'rowing machin', 'plu', 'swimming pool ladde', 'notice boar', 'soa', 'scoure', 'paper weigh', 
+    )
+
+    PALETTE = None
+
+    def __init__(self, **kwargs):
+        super(ADE20KFULLHyperDataset, self).__init__(
+            img_suffix='.jpg',
+            seg_map_suffix='.tif',
+            ignore_index=-1,
+            reduce_zero_label=False,
+            int16=True,
+            **kwargs)
+
+    def results2img(self, results, imgfile_prefix, to_label_id, indices=None):
+        """Write the segmentation results to images.
+
+        Args:
+            results (list[list | tuple | ndarray]): Testing results of the
+                dataset.
+            imgfile_prefix (str): The filename prefix of the png files.
+                If the prefix is "somepath/xxx",
+                the png files will be named "somepath/xxx.png".
+            to_label_id (bool): whether convert output to label_id for
+                submission.
+            indices (list[int], optional): Indices of input results, if not
+                set, all the indices of the dataset will be used.
+                Default: None.
+
+        Returns:
+            list[str: str]: result txt files which contains corresponding
+            semantic segmentation images.
+        """
+        if indices is None:
+            indices = list(range(len(self)))
+
+        mmcv.mkdir_or_exist(imgfile_prefix)
+        result_files = []
+        for result, idx in zip(results, indices):
+
+            filename = self.img_infos[idx]['filename']
+            basename = osp.splitext(osp.basename(filename))[0]
+
+            tif_filename = osp.join(imgfile_prefix, f'{basename}.tif')
+
+            # The  index range of official requirement is from 0 to 150.
+            # But the index range of output is from 0 to 149.
+            # That is because we set reduce_zero_label=True.
+            result = result + 1
+
+            output = Image.fromarray(result.astype(np.uint16))
+            output.save(tif_filename)
+            result_files.append(tif_filename)
+
+        return result_files
+
+    def format_results(self,
+                       results,
+                       imgfile_prefix,
+                       to_label_id=True,
+                       indices=None):
+        """Format the results into dir (standard format for ade20k evaluation).
+
+        Args:
+            results (list): Testing results of the dataset.
+            imgfile_prefix (str | None): The prefix of images files. It
+                includes the file path and the prefix of filename, e.g.,
+                "a/b/prefix".
+            to_label_id (bool): whether convert output to label_id for
+                submission. Default: False
+            indices (list[int], optional): Indices of input results, if not
+                set, all the indices of the dataset will be used.
+                Default: None.
+
+        Returns:
+            tuple: (result_files, tmp_dir), result_files is a list containing
+               the image paths, tmp_dir is the temporal directory created
+                for saving json/png files when img_prefix is not specified.
+        """
+
+        if indices is None:
+            indices = list(range(len(self)))
+
+        assert isinstance(results, list), 'results must be a list.'
+        assert isinstance(indices, list), 'indices must be a list.'
+
+        result_files = self.results2img(results, imgfile_prefix, to_label_id,
+                                        indices)
+        return result_files
