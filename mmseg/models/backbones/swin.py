@@ -695,6 +695,7 @@ class SwinTransformer(BaseModule):
                 elif isinstance(m, LayerNorm):
                     constant_init(m.bias, 0)
                     constant_init(m.weight, 1.0)
+            print("random init backbone!")
         elif isinstance(self.pretrained, str):
             logger = get_root_logger()
             ckpt = _load_checkpoint(
@@ -709,6 +710,8 @@ class SwinTransformer(BaseModule):
             # strip prefix of state_dict
             if list(state_dict.keys())[0].startswith('module.'):
                 state_dict = {k[7:]: v for k, v in state_dict.items()}
+            elif list(state_dict.keys())[0].startswith('backbone.'):
+                state_dict = {k[len('backbone.'):]: v for k, v in state_dict.items()}
 
             # reshape absolute position embedding
             if state_dict.get('absolute_pos_embed') is not None:
@@ -746,7 +749,8 @@ class SwinTransformer(BaseModule):
                             nH2, L2).permute(1, 0).contiguous()
 
             # load state_dict
-            self.load_state_dict(state_dict, False)
+            self.load_state_dict(state_dict, True)
+            print("loaded backbone state_dict!")
 
     def forward(self, x):
         x = self.patch_embed(x)

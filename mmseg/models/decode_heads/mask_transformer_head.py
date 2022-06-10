@@ -86,7 +86,6 @@ class MaskTransformerHead(BaseDecodeHead):
         x = self._transform_inputs(x)
         B, C, H, W = x.size()
         x = x.view(B, C, -1).permute(0, 2, 1)
-
         x = self.proj_dec(x)
         x = torch.cat((x, cls_emb), 1)
         for blk in self.blocks:

@@ -2,7 +2,9 @@ _base_ = [
     # "./training_scheme.py",
     "../_base_/models/segmenter_vit-b16.py",
     # "../_base_/datasets/ade20kfull.py",
+    # "../_base_/datasets/ade20k_rr1.py",
     "../_base_/datasets/mix_batch_coco-stuff164k_imagenet21k_ade_filter_v2_sea.py",
+    # "../_base_/datasets/mix_batch_coco-stuff164k_imagenet21k_ade_full_sea.py",
     "../_base_/default_runtime.py",
     "../_base_/schedules/schedule_40k.py",
 ]
@@ -22,14 +24,10 @@ model = dict(
         # cls_emb_path="pretrain/cls_emb_ade_full_vild_v2.pth",
         # cls_emb_path_test="pretrain/cls_emb_ade_full_vild_v2.pth",
         n_cls=150,
-        # cls_emb_path="pretrain/cls_emb_ade_vild_v2.pth",
-        # cls_emb_path_test="pretrain/cls_emb_ade_vild_v2.pth",
-        cls_emb_path="pretrain/cls_emb_ade_PCA.pth",
-        cls_emb_path_test="pretrain/cls_emb_ade_PCA.pth",
-        imagenet_class_path="notebook/in21k_inter_ade_filter_v2.json",
-        # cls_emb_hyper_path_test="pretrain/cls_emb_ade_hyper_vild.pth",
-        # cls_emb_hyper_ensemble_weight=0.0,
-        # test_anno_dir="/data/ade20k_full/annotations_detectron2/validation_merged",
+        cls_emb_path="pretrain/cls_emb_ade_hyper_vild_v2.pth",
+        cls_emb_path_test="pretrain/cls_emb_ade_hyper_vild_v2.pth",
+        # imagenet_class_path="notebook/in21k_inter_ade_filter_v2.json",
+        # test_anno_dir="/mnt/haojun2/dataset/ADE20K_2021_17_01/annotations_detectron2/validation_merged",
         prior_rate=0.1,
         # contrastive_propagation=True,
         propagation_loss_weight=1.0,
@@ -39,13 +37,7 @@ model = dict(
         # ann_suffix=".tif",
         # ignore_index=65535
     ),
-    test_cfg=dict(
-        use_dense_crf_postprocess=False,
-        # mode="slide", 
-        mode="whole", 
-        # crop_size=(512, 512), 
-        # stride=(512, 512)
-    ),
+    test_cfg=dict(mode="slide", crop_size=(512, 512), stride=(512, 512)),
 )
 
 optimizer = dict(
@@ -75,5 +67,5 @@ lr_config = dict(
 
 # By default, models are trained on 8 GPUs with 1 images per GPU
 data = dict(
-    samples_per_gpu=4,
+    samples_per_gpu=2,
 )

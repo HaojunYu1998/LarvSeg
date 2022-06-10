@@ -163,22 +163,39 @@ class MaskTransformerPropagationHead(BaseDecodeHead):
         # if not self.cls_emb_from_backbone:
         #     trunc_normal_(self.cls_emb, std=0.02)
 
-    def forward(self, x, img_metas):
+    def forward(self, x, img_metas, img_labels=None):
         if self.cls_emb_from_backbone:
             x, cls_emb = x
         else:
             cls_emb = self.cls_emb.expand(x.size(0), -1, -1)
         x = self._transform_inputs(x)
-        cls_emb = cls_emb.to(x.device)
+        cls_emb = cls_emb.to(x.device).to(x.dtype)
 
         B, C, H, W = x.size()
         
         x = x.view(B, C, -1).permute(0, 2, 1)
 
         x = self.proj_dec(x)
+        feats = x.clone()
+        feats = feats.reshape(B, H, W, C).permute(0, 3, 1, 2)
         # x = torch.cat((x, cls_emb), 1)
         for blk in self.blocks:
-            x = blk(x, cls_emb)
+            if img_labels is not None:
+                if isinstance(img_labels[0], int):
+                    img_labels = [[x] for x in img_labels]
+                assert isinstance(img_labels[0], list)
+                grounding_cls_emb = [
+                    x[idx] for x, idx in zip(cls_emb, img_labels)
+                ]
+                print(grounding_cls_emb)
+                x_list = []
+                for b in range(len(x)):
+                    x_list.append(
+                        blk(x[[b]], grounding_cls_emb[[b]])
+                    )
+                x = torch.cat(x_list)
+            else:
+                x = blk(x, cls_emb)
         x = self.decoder_norm(x)
 
         patches, cls_seg_feat = x, cls_emb
@@ -202,7 +219,7 @@ class MaskTransformerPropagationHead(BaseDecodeHead):
 
         masks = masks.view(B, H, W, N).permute(0, 3, 1, 2)
         embeds = embeds.view(B, H, W, C).permute(0, 3, 1, 2)
-        return masks, embeds
+        return masks, embeds, feats
 
     def forward_train(self, inputs, img_metas, gt_semantic_seg, train_cfg):
         # load cls_emb, and avoid unnecessary loading
@@ -212,14 +229,16 @@ class MaskTransformerPropagationHead(BaseDecodeHead):
             self.loaded_cls_emb_test = False
             self.loaded_cls_emb_train = True
 
-        masks, embeds = self.forward(inputs, img_metas)
-
         img_labels = None
         if self.imagenet_on_gpu:
             img_names = [meta['ori_filename'] for meta in img_metas]
             img_ids = [name[:name.find("_")] for name in img_names]
             img_labels = [self.in21k_ids.index(img_id) for img_id in img_ids]
+        else:
+            img_labels = [gt.unique() for gt in gt_semantic_seg]
+            img_labels = [l[l != self.ignore_index].tolist() for l in img_labels]
 
+        masks, embeds, feats = self.forward(inputs, img_metas, img_labels)
         losses = self.losses(masks, embeds, gt_semantic_seg, img_labels)
         return losses
 
@@ -230,8 +249,14 @@ class MaskTransformerPropagationHead(BaseDecodeHead):
             self.loaded_cls_emb_test = True
             self.loaded_cls_emb_train = False
         
-        masks, _ = self.forward(inputs, img_metas)
-
+        masks, _, feats = self.forward(inputs, img_metas)
+        # print(feats.shape)
+        # save_path = os.path.join(
+        #     "/mnt/haojun/itpsea4data/OpenVocSeg/outputs/final_paper_SITSeg_ADE20K_pixel_embeddings",
+        #     img_metas[0]['ori_filename'].replace("jpg", "pth")
+        # )
+        # torch.save(feats, save_path)
+        # print(save_path)
         # img_labels = None
         # if self.imagenet_on_gpu:
         #     img_names = [meta['ori_filename'] for meta in img_metas]
@@ -266,10 +291,12 @@ class MaskTransformerPropagationHead(BaseDecodeHead):
             gt = np.array(Image.open(gt_path))
             if self.ann_suffix == ".png":
                 gt = (gt - 1).astype(np.uint8)
+                ignore_index = 255
             else:
                 gt = gt.astype(np.uint16)
+                ignore_index = 65535
             unique_label = list(np.unique(gt))
-            unique_label = [l for l in unique_label if l != self.ignore_index]
+            unique_label = [l for l in unique_label if l != ignore_index]
             B, N, H, W = masks.shape
             assert B == 1, f"batch {B} != 1 for inference"
             grounding_mask = torch.zeros(N).bool().to(masks.device)
