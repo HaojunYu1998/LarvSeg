@@ -3,11 +3,13 @@ from genericpath import exists
 from .builder import DATASETS
 from .custom import CustomDataset
 
-import os
+import random
 import os.path as osp
 from PIL import Image
 import numpy as np
 import mmcv
+from mmcv.utils import print_log
+from mmseg.utils import get_root_logger
 
 
 @DATASETS.register_module()
@@ -43,7 +45,84 @@ class ImageNet21K(CustomDataset):
     PALETTE = None
 
     def __init__(self, **kwargs):
-        super(ImageNet21K, self).__init__(img_suffix=".jpg", seg_map_suffix=".png", **kwargs)
+        img_suffix = ".jpg"
+        seg_map_suffix = ".png"
+        if "img_suffix" in kwargs:
+            img_suffix = kwargs["img_suffix"]
+            kwargs.pop("img_suffix")
+        if "seg_map_suffix" in kwargs:
+            seg_map_suffix = kwargs["seg_map_suffix"]
+            kwargs.pop("seg_map_suffix")
+        super(ImageNet21K, self).__init__(img_suffix=img_suffix, seg_map_suffix=seg_map_suffix, **kwargs)
+
+    def load_annotations(self, img_dir, img_suffix, ann_dir, seg_map_suffix, split):
+        """Load annotation from directory.
+
+        Args:
+            img_dir (str): Path to image directory
+            img_suffix (str): Suffix of images.
+            ann_dir (str|None): Path to annotation directory.
+            seg_map_suffix (str|None): Suffix of segmentation maps.
+            split (str|None): Split txt file. If split is specified, only file
+                with suffix in the splits will be loaded. Otherwise, all images
+                in img_dir/ann_dir will be loaded. Default: None
+
+        Returns:
+            list[dict]: All image info of dataset.
+        """
+
+        img_infos = []
+        if split is not None:
+            with open(split) as f:
+                for line in f:
+                    img_name = line.strip()
+                    if img_suffix == ".JPEG":
+                        img_name_ = img_name[:img_name.find("_")] + "/" + img_name
+                    else:
+                        img_name_ = img_name
+                    img_info = dict(filename=img_name_ + img_suffix)
+                    if ann_dir is not None:
+                        seg_map = img_name + seg_map_suffix
+                        img_info["ann"] = dict(seg_map=seg_map)
+                    # print(img_info)
+                    img_infos.append(img_info)
+        else:
+            for img in mmcv.scandir(img_dir, img_suffix, recursive=True):
+                img_info = dict(filename=img)
+                if ann_dir is not None:
+                    seg_map = img.replace(img_suffix, seg_map_suffix)
+                    img_info["ann"] = dict(seg_map=seg_map)
+                img_infos.append(img_info)
+            img_infos = sorted(img_infos, key=lambda x: x["filename"])
+
+        print_log(f"Loaded {len(img_infos)} images", logger=get_root_logger())
+        return img_infos
+
+    def prepare_train_img(self, idx):
+        """Get training data and annotations after pipeline.
+
+        Args:
+            idx (int): Index of data.
+
+        Returns:
+            dict: Training data and annotation after pipeline with new keys
+                introduced by pipeline.
+        """
+        
+        img_info = self.img_infos[idx]
+        ann_info = self.get_ann_info(idx)
+
+        while not osp.exists(osp.join(self.ann_dir, ann_info["seg_map"])):
+            idx_ = random.choice(
+                [i for i in range(len(self.img_infos))]
+            )
+            img_info = self.img_infos[idx_]
+            ann_info = self.get_ann_info(idx_)
+            # print(idx_, osp.join(self.ann_dir, ann_info["seg_map"]))
+        
+        results = dict(img_info=img_info, ann_info=ann_info)
+        self.pre_pipeline(results)
+        return self.pipeline(results)
 
     def results2img(self, results, imgfile_prefix, to_label_id, indices=None):
         """Write the segmentation results to images.

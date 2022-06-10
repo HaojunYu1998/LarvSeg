@@ -122,10 +122,10 @@ class MaskTransformerPromptLearningHead(BaseDecodeHead):
         cls_prompt_learner = build_prompt_learner(
             prompt_type, prompt_dim=prompt_dim, prompt_shape=prompt_shape
         )
+        # print(cls_prompt_learner)
         self.clip_adapter = ClipAdapter(
             clip_model_name, cls_prompt_learner
         )
-
         # Which dataset to use on this GPU?
         self.cls_emb_from_backbone = cls_emb_from_backbone
         self.imagenet_in_batch = False
@@ -165,8 +165,16 @@ class MaskTransformerPromptLearningHead(BaseDecodeHead):
         self.beta = nn.Parameter(torch.zeros([]))
         # self.mask_norm = nn.LayerNorm(n_cls)
 
+    def apply_without_clip_model(self, fn):
+        # reload apply function in nn.Module
+        for name, module in self.named_children():
+            if "clip" not in name:
+                module.apply(fn)
+        fn(self)
+        return self
+
     def init_weights(self):
-        self.apply(init_weights)
+        self.apply_without_clip_model(init_weights)
 
     # def get_class_name(self):
     #     if self.
@@ -186,6 +194,10 @@ class MaskTransformerPromptLearningHead(BaseDecodeHead):
             x, cls_emb = x
         else:
             cls_emb = self.clip_adapter.get_text_features(self.class_names)
+            # from mmcv.runner import get_dist_info
+            # rank, _ = get_dist_info()
+            # print(rank, cls_emb[0,:3], self.cls_emb[0,:3])
+            # torch.cuda.synchronize()
             cls_emb = cls_emb.expand(x.size(0), -1, -1)
         x = self._transform_inputs(x)
         cls_emb = cls_emb.to(x.device)
@@ -223,6 +235,12 @@ class MaskTransformerPromptLearningHead(BaseDecodeHead):
         return masks, embeds
 
     def forward_train(self, inputs, img_metas, gt_semantic_seg, train_cfg):
+
+        # if (not self.cls_emb_from_backbone) and (not self.loaded_cls_emb_train):
+        #     self.cls_emb = torch.load(self.cls_emb_path, map_location="cpu")            
+        #     self.cls_emb.requires_grad = False
+        #     self.loaded_cls_emb_test = False
+        #     self.loaded_cls_emb_train = True
         
         masks, embeds = self.forward(inputs, img_metas)
 

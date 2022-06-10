@@ -11,10 +11,10 @@ from azureml.core import Datastore
 # import config_itp_asia as config
 # import config_itp_asia_yhj as config
 # import config_itp_p40_yhj as config
-# import config_itp_rr1_yhj as config
+import config_itp_rr1_yhj2 as config
 # import config_itp_rr1_td as config
 # import config_itp_sc as config
-import config_itp_sc_yhj as config
+# import config_itp_sc_yhj as config
 # import config_itp_ocr_sc as config
 # import config_itp_wus2_td as config
 # import config_itp_scus_ex as config

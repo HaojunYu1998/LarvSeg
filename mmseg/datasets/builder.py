@@ -7,7 +7,7 @@ from functools import partial
 import operator
 import itertools
 from typing import Optional
-
+import os
 
 import numpy as np
 import torch
@@ -225,7 +225,6 @@ class DiffBatchSizeDataset(torch.utils.data.IterableDataset):
             bucket = self._buckets[rank]
             bucket.append(d)
             batch_size = self.batch_sizes[rank % len(self.batch_sizes)]
-            # print(batch_size)
             if len(bucket) == batch_size:
                 yield collate(bucket, batch_size) # bucket[:]
                 del bucket[:]
