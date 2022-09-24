@@ -19,11 +19,11 @@ model = dict(
         n_cls=655,
         downsample_rate=2,
         cls_emb_path=[
-            "pretrain/cls_emb_coco_vild_v2.pth",
-            "pretrain/cls_emb_in21k_full_merged_vild.pth"
+            "pretrain/cls_emb_coco_vild_v2.pth", # checked
+            "pretrain/cls_emb_in21k_full_merged_vild.pth" # generated
         ],
-        cls_emb_path_test = "pretrain/cls_emb_ade_full_merged_vild.pth",
-        imagenet_class_path="notebook/in21k_inter_ade_full_merged_dict.json",
+        cls_emb_path_test = "pretrain/cls_emb_ade_full_merged_vild.pth", # checked
+        imagenet_class_path="notebook/in21k_inter_ade_full_merged_dict.json", # checked
         imagenet_prior_rate=0.05,
         imagenet_pseudo_label=False,
         prior_rate=1.0,

@@ -596,7 +596,6 @@ class ADE20KFULLMergedDataset(CustomDataset):
         return result_files
 
 
-
 @DATASETS.register_module()
 class ADE20KHyperDataset(CustomDataset):
     """ADE20K dataset.
@@ -634,7 +633,6 @@ class ADE20KHyperDataset(CustomDataset):
             reduce_zero_label=False,
             ignore_index=255,
             **kwargs)
-
 
 
 @DATASETS.register_module()

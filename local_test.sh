@@ -53,12 +53,13 @@ echo "==============================="
 sudo nvidia-docker run \
     --rm --ipc=host ${FLAG} \
     -v "$PWD":/workspace \
-    -v ~/itpsea4data/dataset/ADEChallengeData2016:/mdata/ade/ADEChallengeData2016/ \
-    -v ~/itpsea4data/dataset/ADE20K_2021_17_01:/mdata/ade20k_full \
-    -v ~/itpsea4data/dataset/coco_stuff164k:/mdata/coco_stuff164k \
-    -v ~/itpsea4data/dataset/imagenet22k_azcopy:/mdata/imagenet21k \
-    -v ~/itpsea4data/dataset/VOCdevkit:/mdata/VOCdevkit \
+    -v ~/itpsea4data/dataset/ADEChallengeData2016:/mnt/haojun2/dataset/ADEChallengeData2016/ \
+    -v ~/itpsea4data/dataset/ADE20K_2021_17_01:/mnt/haojun2/dataset/ADE20K_2021_17_01 \
+    -v ~/itpsea4data/dataset/coco_stuff164k:/mnt/haojun2/dataset/coco_stuff164k \
+    -v ~/itpsea4data/dataset/imagenet22k_azcopy:/mnt/haojun2/dataset/imagenet22k_azcopy \
+    -v ~/itpsea4data/dataset/VOCdevkit:/mnt/haojun2/dataset/VOCdevkit \
     -v /mnt:/mnt \
+    -v ~/itpsea4data/dataset:/mnt/haojun2/dataset \
     -u $(id -u):$(id -g) \
     "${IMAGE}" \
     bash -c "$CMD"

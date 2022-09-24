@@ -172,7 +172,6 @@ class MaskTransformerPropagationHead(BaseDecodeHead):
         # self.proj_classes = nn.Parameter(self.scale *
         #                                  torch.randn(d_model, d_model))
 
-        
         self.gamma = nn.Parameter(torch.ones([]))
         self.beta = nn.Parameter(torch.zeros([]))
         # self.mask_norm = nn.LayerNorm(n_cls)
@@ -221,9 +220,7 @@ class MaskTransformerPropagationHead(BaseDecodeHead):
         cls_seg_feat = cls_seg_feat / cls_seg_feat.norm(dim=-1, keepdim=True)
 
         masks = patches @ cls_seg_feat.transpose(1, 2)
-        # logits = masks.clone()
         if self.training:
-            # masks = self.mask_norm(masks)
             masks = (
                 (masks - torch.mean(masks, dim=-1, keepdim=True))
                 / torch.sqrt(torch.var(masks, dim=-1, keepdim=True, unbiased=False) + 1e-5)
@@ -255,6 +252,7 @@ class MaskTransformerPropagationHead(BaseDecodeHead):
         if self.imagenet_on_gpu:
             img_names = [meta['ori_filename'].split("/")[-1] for meta in img_metas]
             img_ids = [name[:name.find("_")] for name in img_names]
+            # Sample some imagenet categories
             if self.imagenet_sample_class_num > 0:
                 sampled_inds = np.random.choice(
                     list(range(len(self.in21k_ids_all))), 
@@ -285,14 +283,6 @@ class MaskTransformerPropagationHead(BaseDecodeHead):
             self.loaded_cls_emb_train = False
         
         masks, _, feats = self.forward(inputs, img_metas)
-
-        # torch.save(
-        #     feats, 
-        #     os.path.join(
-        #         "/mnt/haojun2/OpenVocSeg/outputs/final_paper_SITSeg_ADE20K_pixel_embeddings_no_IN22K", 
-        #         img_metas[0]["ori_filename"].replace("jpg", "pth")
-        #     )
-        # )
 
         if self.grounding_inference:
             if len(self.test_anno_dir) > 0:
@@ -331,8 +321,6 @@ class MaskTransformerPropagationHead(BaseDecodeHead):
         loss = dict()
         h = seg_label.shape[-2] // self.downsample_rate
         w = seg_label.shape[-1] // self.downsample_rate
-        # print(h*2, w*2)
-        # print(h, w, self.downsample_rate)
         seg_mask = resize(
             input=seg_mask,
             size=(h, w),

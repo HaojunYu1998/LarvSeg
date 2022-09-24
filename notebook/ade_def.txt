@@ -1,0 +1,150 @@
+wall: an image of wall. wall is a continuous vertical brick or stone structure that encloses or divides an area of land.
+building: an image of building. building is a structure with a roof and walls, such as a house or factory.
+sky: an image of sky. sky is the region of the atmosphere and outer space seen from the earth.
+floor: an image of floor. floor is the lower surface of a room, on which one may walk.
+tree: an image of tree. tree is a woody perennial plant, typically having a single stem or trunk growing to a considerable height and bearing lateral branches at some distance from the ground.
+ceiling: an image of ceiling. ceiling is the upper interior surface of a room or other similar compartment.
+road: an image of road. road is a wide way leading from one place to another, especially one with a specially prepared surface which vehicles can use.
+bed : an image of bed . bed  is a piece of furniture for sleep or rest, typically a framework with a mattress.
+windowpane: an image of windowpane. windowpane is a pane of glass in a window.
+grass: an image of grass. grass is vegetation consisting of typically short plants with long, narrow leaves, growing wild or cultivated on lawns and pasture, and as a fodder crop.
+cabinet: an image of cabinet. cabinet is a cupboard with shelves or drawers for storing or displaying articles.
+sidewalk: an image of sidewalk. sidewalk is a paved path for pedestrians at the side of a road; a pavement.
+person: an image of person. person is a human being regarded as an individual.
+earth: an image of earth. earth is the planet on which we live; the world.
+door: an image of door. door is a hinged, sliding, or revolving barrier at the entrance to a building, room, or vehicle, or in the framework of a cupboard.
+table: an image of table. table is a piece of furniture with a flat top and one or more legs, providing a level surface for eating, writing, or working at.
+mountain: an image of mountain. mountain is a large natural elevation of the earth's surface rising abruptly from the surrounding level; a large steep hill.
+plant: an image of plant. plant is a living organism of the kind exemplified by trees, shrubs, herbs, grasses, ferns, and mosses, typically growing in a permanent site.
+curtain: an image of curtain. curtain is a piece of material suspended at the top to form a screen, typically movable sideways along a rail and found as one of a pair at a window.
+chair: an image of chair. chair is a separate seat for one person, typically with a back and four legs.
+car: an image of car. car is a four-wheeled road vehicle that is powered by an engine and is able to carry a small number of people.
+water: an image of water. water is a colourless, transparent, odourless liquid that forms the seas, lakes, rivers, and rain and is the basis of the fluids of living organisms.
+painting: an image of painting. painting is the action or skill of using paint, either in a picture or as decoration.
+sofa: an image of sofa. sofa is a long upholstered seat with a back and arms, for two or more people.
+shelf: an image of shelf. shelf is a flat length of wood or other rigid material, attached to a wall or forming part of a piece of furniture, that provides a surface for the storage or display of objects.
+house: an image of house. house is a building for human habitation, especially one that consists of a ground floor and one or more upper storeys.
+sea: an image of sea. sea is the expanse of salt water that covers most of the earth's surface and surrounds its land masses.
+mirror: an image of mirror. mirror is a surface, typically of glass coated with a metal amalgam, which reflects a clear image.
+rug: an image of rug. rug is a floor covering of thick woven material or animal skin, typically not extending over the entire floor.
+field: an image of field. field is an area of open land, especially one planted with crops or pasture, typically bounded by hedges or fences.
+armchair: an image of armchair. armchair is a large, comfortable chair with side supports for a person's arms.
+seat: an image of seat. seat is a thing made or used for sitting on, such as a chair or stool.
+fence: an image of fence. fence is a barrier, railing, or other upright structure, typically of wood or wire, enclosing an area of ground to prevent or control access or escape.
+desk: an image of desk. desk is a piece of furniture with a flat or sloping surface and typically with drawers, at which one can read, write, or do other work.
+rock: an image of rock. rock is the solid mineral material forming part of the surface of the earth and other similar planets, exposed on the surface or underlying the soil.
+wardrobe: an image of wardrobe. wardrobe is a large, tall cupboard or recess in which clothes may be hung or stored.
+lamp: an image of lamp. lamp is a device for giving light, either one consisting of an electric bulb together with its holder and shade or cover, or one burning gas or oil and consisting of a wick or mantle and a glass shade.
+bathtub: an image of bathtub. bathtub is a bath.
+railing: an image of railing. railing is a fence or barrier made of rails.
+cushion: an image of cushion. cushion is a bag of cloth stuffed with a mass of soft material, used as a comfortable support for sitting or leaning on.
+base: an image of base. base is the lowest part or edge of something, especially the part on which it rests or is supported.
+box: an image of box. box is a container with a flat base and sides, typically square or rectangular and having a lid.
+column: an image of column. column is an upright pillar, typically cylindrical, supporting an arch, entablature, or other structure or standing alone as a monument.
+signboard: an image of signboard. signboard is a board displaying the name or logo of a business or product.
+chest of drawers: an image of chest of drawers. chest of drawers is a piece of furniture used for storage, consisting of an upright frame into which drawers are fitted.
+counter: an image of counter. counter is a long flat-topped fitment across which business is conducted in a shop or bank or refreshments are served in a cafeteria.
+sand: an image of sand. sand is a loose granular substance, typically pale yellowish brown, resulting from the erosion of siliceous and other rocks and forming a major constituent of beaches, river beds, the seabed, and deserts.
+sink: an image of sink. sink is go down below the surface of something, especially of a liquid; become submerged.
+skyscraper: an image of skyscraper. skyscraper is a very tall building of many storeys.
+fireplace: an image of fireplace. fireplace is a place for a domestic fire, especially a grate or hearth at the base of a chimney.
+refrigerator: an image of refrigerator. refrigerator is an appliance or compartment which is artificially kept cool and used to store food and drink.
+grandstand: an image of grandstand. grandstand is the main stand, usually roofed, commanding the best view for spectators at racecourses or sports grounds.
+path: an image of path. path is a way or track laid down for walking or made by continual treading.
+stairs: an image of stairs. stairs are a set of steps inside a building which go from one floor to another.
+runway: an image of runway. runway is a strip of hard ground along which aircraft take off and land.
+case: an image of case. case is an instance of a particular situation; an example of something occurring.
+pool table: an image of pool table. pool table is a game equipment consisting of a heavy table on which pool is played.
+pillow: an image of pillow. pillow is a rectangular cloth bag stuffed with feathers or other soft materials, used to support the head when lying or sleeping.
+screen door: an image of screen door. screen door is the outer door of a pair, used for protection against insects, weather, etc.
+stairway: an image of stairway. stairway is a set of steps or stairs and its surrounding walls or structure.
+river: an image of river. river is a large natural stream of water flowing in a channel to the sea, a lake, or another river.
+bridge: an image of bridge. bridge is a structure carrying a road, path, railway, etc. across a river, road, or other obstacle.
+bookcase: an image of bookcase. bookcase is an open cabinet containing shelves on which to keep books.
+blind: an image of blind. blind is unable to see because of injury, disease, or a congenital condition.
+coffee table: an image of coffee table. coffee table is a small, low table.
+toilet: an image of toilet. toilet is a fixed receptacle into which a person may urinate or defecate, typically consisting of a large bowl connected to a system for flushing away the waste into a sewer or septic tank.
+flower: an image of flower. flower is the seed-bearing part of a plant, consisting of reproductive organs (stamens and carpels) that are typically surrounded by a brightly coloured corolla (petals) and a green calyx (sepals).
+book: an image of book. book is a written or printed work consisting of pages glued or sewn together along one side and bound in covers.
+hill: an image of hill. hill is a naturally raised area of land, not as high or craggy as a mountain.
+bench: an image of bench. bench is a long seat for several people, typically made of wood or stone.
+countertop: an image of countertop. countertop is a flat surface for working on, especially in a kitchen; a worktop.
+stove: an image of stove. stove is an apparatus for cooking or heating that operates by burning fuel or using electricity.
+palm: an image of palm. palm is an unbranched evergreen tree of tropical and warm regions, with a crown of very long feathered or fan-shaped leaves, and typically having old leaf scars forming a regular pattern on the trunk.
+kitchen island: an image of kitchen island. kitchen island is an unattached counter in a kitchen that permits access from all sides.
+computer: an image of computer. computer is an electronic device for storing and processing data, typically in binary form, according to instructions given to it in a variable program.
+swivel chair: an image of swivel chair. swivel chair is a chair with a seat able to be turned on its base to face in any direction.
+boat: an image of boat. boat is a small vessel for travelling over water, propelled by oars, sails, or an engine.
+bar: an image of bar. bar is a long rigid piece of wood, metal, or similar material, typically used as an obstruction, fastening, or weapon.
+arcade machine: an image of arcade machine. an arcade cabinet, also known as an arcade machine or a coin-op cabinet or coin-op machine, is the housing within which an arcade game's electronic hardware resides.
+hovel: an image of hovel. hovel is a small squalid or simply constructed dwelling.
+bus: an image of bus. bus is a large motor vehicle carrying passengers by road, typically one serving the public on a fixed route and for a fare.
+towel: an image of towel. towel is a piece of thick absorbent cloth or paper used for drying oneself or wiping things dry.
+light: an image of light. light is the natural agent that stimulates sight and makes things visible.
+truck: an image of truck. truck is a large, heavy road vehicle used for carrying goods, materials, or troops; a lorry.
+tower: an image of tower. tower is a tall, narrow building, either free-standing or forming part of a building such as a church or castle.
+chandelier: an image of chandelier. chandelier is a large, decorative hanging light with branches for several light bulbs or candles.
+awning: an image of awning. awning is a sheet of canvas or other material stretched on a frame and used to keep the sun or rain off a shop window, doorway, or ship's deck.
+streetlight: an image of streetlight. streetlight is a tall post with a light at the top, which stands by the side of a road to light it up, usually in a town.
+booth: an image of booth. booth is a small temporary tent or structure at a market, fair, or exhibition, used for selling goods, providing information, or staging shows.
+television receiver: an image of television receiver. television receiver is an electronic device that receives television signals and displays them on a screen.
+airplane: an image of airplane. airplane is a powered flying vehicle with fixed wings and a weight greater than that of the air it displaces; an aeroplane.
+dirt track: an image of dirt track. dirt track is a course made of rolled cinders for motorcycle racing or of earth for flat racing.
+apparel: an image of apparel. apparel is clothing.
+pole: an image of pole. pole is a long, slender, rounded piece of wood or metal, typically used with one end placed in the ground as a support for something.
+land: an image of land. land is the part of the earth's surface that is not covered by water.
+bannister: an image of bannister. bannister is a railing at the side of a staircase or balcony to prevent people from falling.
+escalator: an image of escalator. escalator is a moving staircase consisting of an endlessly circulating belt of steps driven by a motor, which conveys people between the floors of a public building.
+ottoman: an image of ottoman. ottoman is a low upholstered seat without a back or arms that typically serves also as a box, with the seat hinged to form a lid.
+bottle: an image of bottle. bottle is a glass or plastic container with a narrow neck, used for storing drinks or other liquids.
+buffet: an image of buffet. buffet is a meal consisting of several dishes from which guests serve themselves.
+poster: an image of poster. poster is a large printed picture used for decoration.
+stage: an image of stage. stage is a point, period, or step in a process or development.
+van: an image of van. van is a medium-sized motor vehicle, typically without side windows in the rear part, for transporting goods.
+ship: an image of ship. ship is a large boat for transporting people or goods by sea.
+fountain: an image of fountain. fountain is an ornamental structure in a pool or lake from which one or more jets of water are pumped into the air.
+conveyer belt: an image of conveyer belt. conveyer belt is a moving belt that transports objects (as in a factory).
+canopy: an image of canopy. canopy is an ornamental cloth covering hung or held up over something, especially a throne or bed.
+washer: an image of washer. washer is a person or device that washes something.
+plaything: an image of plaything. plaything is a toy.
+swimming pool: an image of swimming pool. swimming pool is an artificial pool for swimming in.
+stool: an image of stool. stool is a seat without a back or arms, typically resting on three or four legs or on a single pedestal.
+barrel: an image of barrel. barrel is a cylindrical container bulging out in the middle, traditionally made of wooden staves with metal hoops round them.
+basket: an image of basket. basket is a container used to hold or carry things, typically made from interwoven strips of cane or wire.
+waterfall: an image of waterfall. waterfall is a cascade of water falling from a height, formed when a river or stream flows over a precipice or steep incline.
+tent: an image of tent. tent is a portable shelter made of cloth, supported by one or more poles and stretched tight by cords or loops attached to pegs driven into the ground.
+bag: an image of bag. bag is a flexible container with an opening at the top, used for carrying things.
+minibike: an image of minibike. minibike is A small motorcycle with a low-power engine, designed for off-road use and sometimes having three wheels.
+cradle: an image of cradle. cradle is a baby's bed or cot, typically one mounted on rockers.
+oven: an image of oven. oven is an enclosed compartment, usually part of a cooker, for cooking and heating food.
+ball: an image of ball. ball is a solid or hollow spherical or egg-shaped object that is kicked, thrown, or hit in a game.
+food: an image of food. food is any nutritious substance that people or animals eat or drink or that plants absorb in order to maintain life and growth.
+step: an image of step. step is an act or movement of putting one leg in front of the other in walking or running.
+tank: an image of tank. tank is a large receptacle or storage chamber, especially for liquid or gas.
+trade name: an image of trade name. trade name is a name that has the status of a trademark.
+microwave: an image of microwave. microwave is an electromagnetic wave with a wavelength in the range 0.001–0.3 m, shorter than that of a normal radio wave but longer than those of infrared radiation. Microwaves are used in radar, in communications, and for heating in microwave ovens and in various industrial processes.
+pot: an image of pot. pot is a rounded or cylindrical container, typically of metal, used for cooking.
+animal: an image of animal. animal is a living organism that feeds on organic matter, typically having specialized sense organs and nervous system and able to respond rapidly to stimuli.
+bicycle: an image of bicycle. bicycle is a vehicle consisting of two wheels held in a frame one behind the other, propelled by pedals and steered with handlebars attached to the front wheel.
+lake: an image of lake. lake is a large area of water surrounded by land.
+dishwasher: an image of dishwasher. dishwasher is a machine for washing dishes automatically.
+screen: an image of screen. screen is a fixed or movable upright partition used to divide a room, give shelter from draughts, heat, or light, or to provide concealment or privacy.
+blanket: an image of blanket. blanket is a large piece of woollen or similar material used as a covering on a bed or elsewhere for warmth.
+sculpture: an image of sculpture. sculpture is the art of making three-dimensional representative or abstract forms, especially by carving stone or wood or by casting metal or plaster.
+hood: an image of hood. hood is a covering for the head and neck with an opening for the face, typically forming part of a coat or cloak.
+sconce: an image of sconce. sconce is a candle holder that is attached to a wall with an ornamental bracket.
+vase: an image of vase. vase is a decorative container without handles, typically made of glass or china and used as an ornament or for displaying cut flowers.
+traffic light: an image of traffic light. traffic light is a visual signal to control the flow of traffic at intersections.
+tray: an image of tray. tray is a flat, shallow container with a raised rim, typically used for carrying food and drink, or for holding small items or loose material.
+ashcan: an image of ashcan. ashcan is a dustbin.
+fan: an image of fan. fan is an apparatus with rotating blades that creates a current of air for cooling or ventilation.
+pier: an image of pier. pier is a platform on pillars projecting from the shore into the sea, typically incorporating entertainment arcades and places to eat.
+crt screen: an image of crt screen. cathode-ray tube is a vacuum tube containing one or more electron guns, the beams of which are manipulated to display images on a phosphorescent screen.
+plate: an image of plate. plate is a flat dish, typically circular and made of china, from which food is eaten or served.
+monitor: an image of monitor. monitor is a device used for observing, checking, or keeping a continuous record of something.
+bulletin board: an image of bulletin board. bulletin board is a website or web page where users can post comments about a particular issue or topic and reply to other users' postings.
+shower: an image of shower. shower is a brief and usually light fall of rain, hail, sleet, or snow.
+radiator: an image of radiator. radiator is a thing that radiates or emits light, heat, or sound.
+glass: an image of glass. glass is a hard, brittle substance, typically transparent or translucent, made by fusing sand with soda and lime and cooling rapidly. It is used to make windows, drinking containers, and other articles.
+clock: an image of clock. clock is a mechanical or electrical device for measuring time, indicating hours, minutes, and sometimes seconds by hands on a round dial or by displayed figures.
+flag: an image of flag. flag is a piece of cloth or similar material, typically oblong or square, attachable by one edge to a pole or rope and used as the symbol or emblem of a country or institution or as a decoration during public festivities.

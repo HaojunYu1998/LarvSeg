@@ -62,9 +62,11 @@ data = dict(
             dict(
                 type='ImageNet21K',
                 data_root=in21k_data_root,
-                img_dir='jpg_images_ade_full_inter_in21k',
+                # img_dir='jpg_images_ade_full_inter_in21k',
+                img_dir="fall11_whole",
                 ann_dir='annotations_cam_new',
                 split="in21k_inter_ade_full_merged.txt",
+                img_suffix=".JPEG",
                 pipeline=in21k_train_pipeline),
         ]
     ),

@@ -1,0 +1,466 @@
+wall
+an architectural partition with a height and length greater than its thickness; used to divide or enclose an area or to support another structure
+**********
+building, edifice
+a structure that has a roof and walls and stands more or less permanently in one place
+**********
+sky
+the atmosphere and outer space as viewed from the earth
+**********
+floor, flooring
+the inside lower horizontal surface (as of a room, hallway, tent, or other structure)
+**********
+tree
+a tall perennial woody plant having a main trunk and branches forming a distinct elevated crown; includes both gymnosperms and angiosperms
+**********
+ceiling
+the overhead upper surface of a covered space
+**********
+road, route
+an established line of travel or access
+an open way (generally public) for travel or transportation
+**********
+bed
+a piece of furniture that provides a place to sleep
+**********
+windowpane, window
+a pane of glass in a window
+a framework of wood or metal that contains a glass windowpane and is built into a wall or roof to admit light or air
+**********
+grass
+narrow-leaved green herbage: grown as lawns; used as pasture for grazing animals; cut and dried as hay
+**********
+cabinet
+a piece of furniture resembling a cupboard with doors and shelves and drawers; for storage or display
+**********
+sidewalk, pavement
+the paved surface of a thoroughfare
+walk consisting of a paved area for pedestrians; usually beside a street or roadway
+**********
+person, individual, someone, somebody, mortal, soul
+a human being
+**********
+earth, ground
+the solid part of the earth's surface
+**********
+door, double door
+two vertical doors that meet in the middle of the door frame when closed
+a swinging or sliding barrier that will close the entrance to a room or building or vehicle
+**********
+table
+a piece of furniture having a smooth flat top that is usually supported by one or more vertical legs
+**********
+mountain, mount
+a land mass that projects well above its surroundings; higher than a hill
+**********
+plant, flora, plant life
+all the plant life in a particular region or period
+(botany) a living organism lacking the power of locomotion
+**********
+curtain, drape, drapery, mantle, pall
+hanging cloth used as a blind (especially for a window)
+**********
+chair
+a seat for one person, with a support for the back
+**********
+car, auto, automobile, machine, motorcar
+a motor vehicle with four wheels; usually propelled by an internal combustion engine
+**********
+water
+binary compound that occurs at room temperature as a clear colorless odorless tasteless liquid
+**********
+painting, picture
+a visual representation (of an object or scene or person or abstraction) produced on a surface
+graphic art consisting of an artistic composition made by applying paints to a surface
+**********
+sofa, couch, lounge
+an upholstered seat for more than one person
+**********
+shelf
+a support that consists of a horizontal surface for holding objects
+**********
+house
+a dwelling that serves as living quarters for one or more families
+**********
+sea
+a division of an ocean or a large body of salt water partially enclosed by land
+**********
+mirror
+polished surface that forms images by reflecting light
+**********
+rug, carpet, carpeting
+floor covering consisting of a piece of thick heavy fabric (usually with nap or pile)
+**********
+field
+a piece of land cleared of trees and usually enclosed
+extensive tract of level open land
+**********
+armchair
+chair with a support on each side for arms
+**********
+seat
+a space reserved for sitting (as in a theater or on a train or airplane)
+**********
+fence, fencing
+a barrier that serves to enclose an area
+**********
+desk
+a piece of furniture with a writing surface and usually drawers or other compartments
+**********
+rock, stone
+a lump or mass of hard consolidated mineral matter
+**********
+wardrobe, closet, press
+a small room (or recess) or cabinet used for storage space
+a tall piece of furniture that provides storage space for clothes; has a door and rails or hooks for hanging clothes
+**********
+lamp
+an artificial source of visible illumination
+**********
+bathtub, bathing tub, bath, tub
+a relatively large open container that you fill with water and use to wash the body
+**********
+railing, rail
+a barrier consisting of a horizontal bar and supports
+**********
+cushion
+a soft bag filled with air or a mass of padding such as feathers or foam rubber etc.
+**********
+base, pedestal, stand
+a support or foundation
+**********
+box
+a (usually rectangular) container; may have a lid
+**********
+column, pillar
+(architecture) a tall vertical cylindrical structure standing upright and used to support a structure
+**********
+signboard, sign
+structure displaying a board on which advertisements can be posted
+**********
+chest of drawers, chest, bureau, dresser
+furniture with drawers for keeping clothes
+**********
+counter
+table consisting of a horizontal surface over which business is transacted
+**********
+sand
+a loose material consisting of grains of rock or coral
+**********
+sink
+plumbing fixture consisting of a water basin fixed to a wall or floor and having a drainpipe
+**********
+skyscraper
+a very tall building with many stories
+**********
+fireplace, hearth, open fireplace
+an open recess in a wall at the base of a chimney where a fire can be built
+**********
+refrigerator, icebox
+white goods in which food can be stored at low temperatures
+**********
+grandstand, covered stand
+a stand at a racecourse or stadium consisting of tiers with rows of individual seats that are under a protective roof
+**********
+path
+a way especially designed for a particular use
+**********
+stairs, steps
+a flight of stairs or a flight of steps
+**********
+runway
+a strip of level paved surface where planes can take off and land
+**********
+case, display case, showcase, vitrine
+a glass container used to store and display items in a shop or museum or home
+**********
+pool table, billiard table, snooker table
+game equipment consisting of a heavy table on which pool is played
+**********
+pillow
+a cushion to support the head of a sleeping person
+**********
+screen door, screen
+a door that consists of a frame holding metallic or plastic netting; used to allow ventilation and to keep insects from entering a building through the open door
+**********
+stairway, staircase
+a way of access (upward and downward) consisting of a set of steps
+**********
+river
+a large natural stream of water (larger than a creek)
+**********
+bridge, span
+a structure that allows people or vehicles to cross an obstacle such as a river or canal or railway etc.
+**********
+bookcase
+a piece of furniture with shelves for storing books
+**********
+blind, screen
+a protective covering that keeps things out or hinders sight
+**********
+coffee table, cocktail table
+low table where magazines can be placed and coffee or cocktails are served
+**********
+toilet, can, commode, crapper, pot, potty, stool, throne
+a plumbing fixture for defecation and urination
+**********
+flower
+a plant cultivated for its blooms or blossoms
+**********
+book
+a written work or composition that has been published (printed on pages bound together)
+**********
+hill
+a local and well-defined elevation of the land
+**********
+bench
+a long seat for more than one person
+**********
+countertop
+the top side of a counter in bathrooms
+**********
+stove, kitchen stove, range, kitchen range, cooking stove
+a kitchen appliance used for cooking food
+**********
+palm, palm tree
+any plant of the family Palmae having an unbranched trunk crowned by large pinnate or palmate leaves
+**********
+kitchen island
+an unattached counter in a kitchen that permits access from all sides
+**********
+computer, computing machine, computing device, data processor, electronic computer, information processing system
+a machine for performing calculations automatically
+**********
+swivel chair
+a chair that swivels on its base
+**********
+boat
+a small vessel for travel on water
+**********
+bar
+a room or establishment where alcoholic drinks are served over a counter
+**********
+arcade machine
+a housing within which an arcade game's electronic hardware resides
+**********
+hovel, hut, hutch, shack, shanty
+small crude shelter used as a dwelling
+**********
+bus, autobus, coach, charabanc, double-decker, jitney, motorbus, motorcoach, omnibus, passenger vehicle
+a vehicle carrying many passengers; used for public transport
+**********
+towel
+a rectangular piece of absorbent cloth (or paper) for drying or wiping
+**********
+light, light source
+(physics) electromagnetic radiation that can produce a visual sensation
+any device serving as a source of illumination
+**********
+truck, motortruck
+an automotive vehicle suitable for hauling
+**********
+tower
+a structure taller than its diameter; can stand alone or be attached to a larger building
+**********
+chandelier, pendant, pendent
+branched lighting fixture; often ornate; hangs from the ceiling
+**********
+awning, sunshade, sunblind
+a canopy made of canvas to shelter people or things from rain or sun
+**********
+streetlight, street lamp
+a lamp supported on a lamppost; for illuminating a street
+**********
+booth, cubicle, stall, kiosk
+a table (in a restaurant or bar) surrounded by two high-backed benches
+**********
+television receiver, television, television set, tv, tv set, idiot box, boob tube, telly, goggle box
+an electronic device that receives television signals and displays them on a screen
+**********
+airplane, aeroplane, plane
+an aircraft that has a fixed wing and is powered by propellers or jets
+**********
+dirt track
+a racetrack that is not paved
+**********
+apparel, wearing apparel, dress, clothes
+clothing in general
+a one-piece garment for a woman; has skirt and bodice
+**********
+pole
+a long (usually round) rod of wood or metal or plastic
+**********
+land, ground, soil
+the solid part of the earth's surface
+**********
+bannister, banister, balustrade, balusters, handrail
+a railing at the side of a staircase or balcony to prevent people from falling
+**********
+escalator, moving staircase, moving stairway
+a stairway whose steps move continuously on a circulating belt
+**********
+ottoman, pouf, pouffe, puff, hassock
+a low seat or a stool to rest the feet of a seated person
+thick cushion used as a seat
+**********
+bottle
+a glass or plastic vessel used for storing drinks or other liquids; typically cylindrical without handles and with a narrow neck that can be plugged or capped
+**********
+buffet, counter, sideboard
+a piece of furniture that stands at the side of a dining room; has shelves and drawers
+**********
+poster, posting, placard, notice, bill, card
+a sign posted in a public place as an advertisement
+**********
+stage
+any distinct time period in a sequence of events
+**********
+van
+any creative group active in the innovation and application of new concepts and techniques in a given field (especially in the arts)
+**********
+ship
+a vessel that carries passengers or freight
+**********
+fountain
+a structure from which an artificially produced jet of water arises
+**********
+conveyer belt, conveyor belt, conveyer, conveyor, transporter
+a moving belt that transports objects
+**********
+canopy
+the transparent covering of an aircraft cockpit
+**********
+washer, automatic washer, washing machine
+a home appliance for washing clothes and linens automatically
+**********
+plaything, toy
+an artifact designed to be played with
+**********
+swimming pool, swimming bath, natatorium
+pool that provides a facility for swimming
+**********
+stool
+a simple seat without a back or arms
+**********
+barrel, cask
+a cylindrical container that holds liquids
+**********
+basket, handbasket
+a container that is usually woven and has handles
+**********
+waterfall, falls
+a steep descent of the water of a river
+**********
+tent, collapsible shelter
+a portable shelter (usually of canvas stretched over supporting poles and fastened to the ground with ropes and pegs)
+**********
+bag
+a flexible container with a single opening
+**********
+minibike, motorbike
+small motorcycle with a low frame and small wheels and elevated handlebars
+**********
+cradle
+a baby bed with sides and rockers
+**********
+oven
+kitchen appliance used for baking or roasting
+**********
+ball
+round object that is hit or thrown or kicked in games
+**********
+food, solid food
+any solid substance (as opposed to liquid) that is used as a source of nourishment
+any substance that can be metabolized by an animal to give energy and build tissue
+**********
+step, stair
+raised flat surface in front of a door or fireplace
+one of the steps or stairs
+**********
+tank, storage tank
+a large (usually metallic) vessel for holding gases or liquids
+**********
+trade name, brand name, brand, marque
+a name given to a product or service
+**********
+microwave, microwave oven
+kitchen appliance that cooks food by passing an electromagnetic wave through it; heat results from the absorption of energy by the water molecules in the food
+**********
+pot, flowerpot
+a container in which plants are cultivated
+**********
+animal, animate being, beast, brute, creature, fauna
+all the animal life in a particular region or period
+a living organism characterized by voluntary movement
+**********
+bicycle, bike, wheel, cycle
+a wheeled vehicle that has two wheels and is moved by foot pedals
+**********
+lake
+a body of (usually fresh) water surrounded by land
+**********
+dishwasher, dish washer, dishwashing machine
+a machine for washing dishes
+**********
+screen, silver screen, projection screen
+a white or silvered surface where pictures can be projected for viewing
+**********
+blanket, cover
+a covering that serves to conceal or shelter something
+bedding that keeps a person warm in bed
+**********
+sculpture
+a three-dimensional work of plastic art
+**********
+hood, exhaust hood
+metal covering leading to a vent that exhausts smoke or fumes
+**********
+sconce
+a candle or flaming torch secured in a sconce
+a decorative wall bracket for holding candles or other sources of light
+**********
+vase
+an open jar of glass or porcelain used as an ornament or to hold flowers
+**********
+traffic light, traffic signal, stoplight
+a visual signal to control the flow of traffic at intersections
+**********
+tray
+an open receptacle for holding or displaying or serving articles or food
+**********
+ashcan, trash can, garbage can, wastebin, ash bin, ash-bin, ashbin, dustbin, trash barrel, trash bin
+a bin that holds rubbish until it is collected
+**********
+fan
+a device for creating a current of air by movement of a surface or surfaces
+**********
+pier, wharf, wharfage, dock
+a platform built out from the shore into the water and supported by piles; provides access to ships and boats
+**********
+crt screen
+the display that is electronically created on the surface of the large end of a cathode-ray tube
+**********
+plate
+dish on which food is served or from which food is eaten
+**********
+monitor, monitoring device
+display produced by a device that takes signals and displays them on a television screen or a computer monitor
+**********
+bulletin board, notice board
+a board that hangs on a wall; displays announcements
+**********
+shower
+a plumbing fixture that sprays water over you
+**********
+radiator
+heater consisting of a series of pipes for circulating steam or hot water to heat rooms or buildings
+**********
+glass, drinking glass
+a container for holding liquids while drinking
+**********
+clock
+a timepiece that shows the time of day
+**********
+flag
+emblem usually consisting of a rectangular piece of cloth of distinctive design
+**********
