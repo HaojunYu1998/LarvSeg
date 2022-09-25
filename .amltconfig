@@ -1,0 +1,1 @@
+{"project_name": "SVLSeg", "storage_account_name": "zeliuwestus2", "container_name": "v-miazhang", "blob_storage_account_name": "zeliuwestus2", "registry_name": "projects", "local_path": "/mnt/haojun/itpsea4data/mmseg", "default_output_dir": "/mnt/haojun/itpsea4data/mmseg/amlt", "project_uuid": "7336010810.42873-0d71c078-8991-40f3-a797-56594f53eb93", "version": "9.9.1"}

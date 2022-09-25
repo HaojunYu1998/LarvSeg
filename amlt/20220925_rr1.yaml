@@ -1,0 +1,29 @@
+description: SVLSeg
+target:
+  service: amlk8s
+  name: itplabrr1cl1
+
+environment:
+  image: hsfzxjy/mmseg:pytorch1.8.1-cuda10.2-cudnn7-devel
+
+storage:
+  output:
+    storage_account_name: zeliuwestus2
+    container_name: v-miazhang
+    mount_dir: /zeliuwestus2
+
+code:
+  local_dir: $CONFIG_DIR/../
+
+jobs:
+  - name: 202209225_baseline_160k_bs16_ade
+    sku: G8
+    sla_tier: basic
+    execution_mode: basic
+    priority: high
+    command:
+      - set -x; set -e
+      - pwd; ls; nvidia-smi
+      - sudo bash amlt/aml_setup.sh
+      - sudo bash local.sh
+        configs/segmenter/segmenter-propagate_vit-b16_160k_bs16_base_config_in21k_ade.py

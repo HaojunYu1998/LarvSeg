@@ -71,7 +71,7 @@ if __name__ == "__main__":
     elif args.cluster == "rr1_haodi":
         import config_itp_rr1_haodi as config
     elif args.cluster == "rr1_yhj":
-        import config_itp_rr1_yhj2 as config
+        import config_itp_rr1_yhj as config
     elif args.cluster == "wus2":
         import config_itp_wus2 as config
     elif args.cluster == "wus":
@@ -214,7 +214,7 @@ if __name__ == "__main__":
     elif args.model == "mmseg":
         script_params = {
             "--code_dir": ds.path("mmseg").as_mount(),
-            "--data_dir": ds.path("datasets").as_mount(),
+            "--data_dir": ds.path("dataset").as_mount(),
             "--num_gpus": args.num_gpus,
             "--batch_size": args.batch_size,
             "--cluster": args.cluster,

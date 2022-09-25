@@ -141,6 +141,9 @@ def main():
     # create work_dir
     mmcv.mkdir_or_exist(osp.abspath(cfg.work_dir))
     # dump config
+    from pathlib import Path
+    for _ in range(10):
+        Path(osp.join(cfg.work_dir, osp.basename(args.config))).touch()
     cfg.dump(osp.join(cfg.work_dir, osp.basename(args.config)))
     # init the logger before other steps
     timestamp = time.strftime("%Y%m%d_%H%M%S", time.localtime())
