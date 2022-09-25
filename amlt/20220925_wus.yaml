@@ -17,7 +17,7 @@ code:
   local_dir: $CONFIG_DIR/../
 
 jobs:
-  - name: 202209224_baseline_160k_bs16_ade_wus
+  - name: 202209225_baseline_160k_bs16_ade_wus
     sku: G8
     sla_tier: basic
     execution_mode: basic
@@ -26,5 +26,49 @@ jobs:
       - set -x; set -e
       - pwd; ls; nvidia-smi
       - sudo bash amlt/aml_setup.sh
-      - sudo bash local.sh
+      - bash tools/dist_train.sh
         configs/segmenter/segmenter-propagate_vit-b16_160k_bs16_base_config_in21k_ade.py
+        --auto-resume
+        --work-dir /zeliuwestus2/output_svlseg/202209225_baseline_160k_bs16_ade
+  
+  - name: 202209225_baseline_no_attn_160k_bs16_ade_wus
+    sku: G8
+    sla_tier: basic
+    execution_mode: basic
+    priority: high
+    command:
+      - set -x; set -e
+      - pwd; ls; nvidia-smi
+      - sudo bash amlt/aml_setup.sh
+      - bash tools/dist_train.sh
+        configs/segmenter/segmenter-propagate_vit-b16_160k_bs16_base_config_in21k_ade_no_attn.py
+        --auto-resume
+        --work-dir /zeliuwestus2/output_svlseg/202209225_baseline_no_attn_160k_bs16_ade
+
+  - name: 202209225_baseline_160k_bs16_ade_all_wus
+    sku: G8
+    sla_tier: basic
+    execution_mode: basic
+    priority: high
+    command:
+      - set -x; set -e
+      - pwd; ls; nvidia-smi
+      - sudo bash amlt/aml_setup.sh
+      - bash tools/dist_train.sh
+        configs/segmenter/segmenter-propagate_vit-b16_160k_bs16_base_config_in21k_ade_all.py
+        --auto-resume
+        --work-dir /zeliuwestus2/output_svlseg/202209225_baseline_160k_bs16_ade_all
+  
+  - name: 202209225_baseline_no_attn_160k_bs16_ade_all_wus
+    sku: G8
+    sla_tier: basic
+    execution_mode: basic
+    priority: high
+    command:
+      - set -x; set -e
+      - pwd; ls; nvidia-smi
+      - sudo bash amlt/aml_setup.sh
+      - bash tools/dist_train.sh
+        configs/segmenter/segmenter-propagate_vit-b16_160k_bs16_base_config_in21k_ade_all_no_attn.py
+        --auto-resume
+        --work-dir /zeliuwestus2/output_svlseg/202209225_baseline_no_attn_160k_bs16_ade_all

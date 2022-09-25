@@ -2,7 +2,8 @@ export OMP_NUM_THREADS=1
 export CUDA_VISIBLE_DEVICES=0,1,2,3
 
 sudo bash local.sh \
-configs/segmenter/segmenter-propagate_vit-b16_160k_bs16_base_config_in21k_ade_local.py
+configs/segmenter/segmenter-propagate_vit-b16_160k_bs16_base_config_in21k_ade_local.py \
+--auto-resume
 
 # sudo bash local_test.sh \
 # configs/segmenter/segmenter-propagate_vit-b16_512x512_40k_bs16_downsample_2_base_config_in21k_ade_full_merged_vild.py \
