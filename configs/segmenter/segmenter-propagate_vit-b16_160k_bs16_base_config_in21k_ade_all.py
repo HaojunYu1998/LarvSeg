@@ -16,7 +16,7 @@ model = dict(
     ),
     decode_head=dict(
         type="MaskTransformerPropagationHead",
-        n_cls=150,
+        n_cls=655,
         downsample_rate=2,
         cls_emb_path=[
             "pretrain/cls_emb_coco_vild_v2.pth", # checked
@@ -25,8 +25,13 @@ model = dict(
         cls_emb_path_test="pretrain/cls_emb_ade_full_merged_vild.pth", # checked
         imagenet_class_path="notebook/in21k_inter_ade_all.json", # checked
         imagenet_prior_rate=0.05,
+        imagenet_pseudo_label=False,
         prior_rate=1.0,
         imagenet_prior_loss_weight=0.05,
+        propagation_loss_weight=0.0,
+        grounding_inference=True,
+        ann_suffix=".tif",
+        test_anno_dir="/mnt/haojun2/dataset/ADE20K_2021_17_01/annotations_detectron2/validation_merged",
     ),
     test_cfg=dict(mode="slide", crop_size=(512, 512), stride=(512, 512)),
 )

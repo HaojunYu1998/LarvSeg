@@ -5,6 +5,7 @@ import os.path as osp
 import shutil
 import time
 import warnings
+import wandb
 
 import mmcv
 import torch
@@ -117,6 +118,11 @@ def main():
         init_dist(args.launcher, **cfg.dist_params)
 
     rank, _ = get_dist_info()
+
+    if not distributed or rank == 0:
+        # NOTE should change the key for other users
+        wandb.login(key='a2dea309dd6c2f6e539bbbdfdf820e8b1cdd0d13')
+
     # allows not to create
     if args.work_dir is not None and rank == 0:
         mmcv.mkdir_or_exist(osp.abspath(args.work_dir))

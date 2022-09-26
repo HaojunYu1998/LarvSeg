@@ -4,7 +4,9 @@ sudo apt-get install unzip -y
 sudo apt-get install htop -y
 sudo apt-get install tmux -y
 sudo apt-get install vim -y
-sudo /opt/conda/bin/pip install install git+https://github.com/lucasb-eyer/pydensecrf.git
+
+sudo /opt/conda/bin/pip install wandb
+sudo /opt/conda/bin/pip install git+https://github.com/lucasb-eyer/pydensecrf.git
 cd third_party/CLIP
 sudo /opt/conda/bin/pip install -e .
 cd ../detectron2
