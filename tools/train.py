@@ -5,7 +5,7 @@ import os
 import sys
 import os.path as osp
 import time
-import wandb
+# import wandb
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 
@@ -175,10 +175,10 @@ def main():
     meta["seed"] = args.seed
     meta["exp_name"] = osp.basename(args.config)
 
-    import torch.distributed as dist
-    if not distributed or dist.get_rank() == 0:
-        # NOTE should change the key for other users
-        wandb.login(key='a2dea309dd6c2f6e539bbbdfdf820e8b1cdd0d13')
+    # import torch.distributed as dist
+    # if not distributed or dist.get_rank() == 0:
+    #     # NOTE should change the key for other users
+    #     wandb.login(key='a2dea309dd6c2f6e539bbbdfdf820e8b1cdd0d13')
 
     model = build_segmentor(
         cfg.model, train_cfg=cfg.get("train_cfg"), test_cfg=cfg.get("test_cfg")

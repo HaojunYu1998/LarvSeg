@@ -1,25 +1,28 @@
 _base_ = [
-    "../../_base_/models/segmenter_vit-b16.py",
-    "../../_base_/datasets/mix_batch_coco-stuff164k_imagenet21k_ade_all.py",
-    "../../_base_/default_runtime.py",
-    "../../_base_/schedules/schedule_160k.py",
+    "../_base_/models/segmenter_r101.py",
+    "../_base_/datasets/mix_batch_coco-stuff164k_imagenet21k_ade_all.py",
+    "../_base_/default_runtime.py",
+    "../_base_/schedules/schedule_160k.py",
 ]
 
 model = dict(
-    backbone=dict(
-        drop_path_rate=0.1,
-        final_norm=True,
-    ),
     neck=dict(
         type="UseIndexSingleOutNeck",
         index=-1,
     ),
     decode_head=dict(
         type="MaskTransformerPropagationHead",
+        use_attention_module=False,
         n_cls=655,
+        d_encoder=2048,
         downsample_rate=2,
-        cls_emb_path="pretrain/cls_emb_ade_full_merged_vild.pth",
-        cls_emb_path_test="pretrain/cls_emb_ade_full_merged_vild.pth",
+        upsample_input=2,
+        cls_emb_path=[
+            "pretrain/cls_emb_coco_vild_v2.pth", # checked
+            "pretrain/cls_emb_in21k_ade_all_vild.pth" # checked
+        ],
+        cls_emb_path_test="pretrain/cls_emb_ade_full_merged_vild.pth", # checked
+        imagenet_class_path="notebook/in21k_inter_ade_all.json", # checked
         imagenet_prior_rate=0.05,
         imagenet_pseudo_label=False,
         prior_rate=1.0,
@@ -28,7 +31,6 @@ model = dict(
         grounding_inference=True,
         ann_suffix=".tif",
         test_anno_dir="/mnt/haojun2/dataset/ADE20K_2021_17_01/annotations_detectron2/validation_merged",
-        ignore_index=65535
     ),
     test_cfg=dict(mode="slide", crop_size=(512, 512), stride=(512, 512)),
 )
@@ -57,18 +59,5 @@ lr_config = dict(
     by_epoch=False,
 )
 
-# By default, models are trained on 8 GPUs with 2 images per GPU
-data = dict(samples_per_gpu=2)
-
-# log_config = dict( 
-#     interval=50, 
-#     hooks=[ 
-#         dict(type='TextLoggerHook'), 
-#         dict(type='WandbLoggerHook', 
-#             init_kwargs=dict(
-#                 id="202209225_baseline_160k_bs16_ade_all_eval_ade_full_gmiou", 
-#                 name="202209225_baseline_160k_bs16_ade_all_eval_ade_full_gmiou", 
-#                 entity='haojunyu',
-#                 project='SVLSeg',
-#         ))
-# ])
+# By default, models are trained on 4 GPUs with 4 images per GPU
+data = dict(samples_per_gpu=3)

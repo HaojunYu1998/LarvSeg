@@ -47,6 +47,7 @@ class MaskTransformerPropagationHead(BaseDecodeHead):
         d_ff,
         drop_path_rate,
         dropout,
+        upsample_input=1,
         cls_emb_from_backbone=False,
         cls_emb_path="",
         cls_emb_path_test="",
@@ -96,6 +97,7 @@ class MaskTransformerPropagationHead(BaseDecodeHead):
         self.structure_loss_weight = structure_loss_weight
         self.prior_loss_weight = 1.0
         self.downsample_rate = downsample_rate
+        self.upsample_input = upsample_input
         self.prior_rate = prior_rate
         self.imagenet_prior_rate = imagenet_prior_rate
         self.imagenet_pseudo_label = imagenet_pseudo_label
@@ -188,6 +190,10 @@ class MaskTransformerPropagationHead(BaseDecodeHead):
         else:
             cls_emb = self.cls_emb.expand(x.size(0), -1, -1)
         x = self._transform_inputs(x)
+        if self.upsample_input > 1:
+            x = F.interpolate(
+                x, scale_factor=self.upsample_input, mode="bilinear", align_corners=self.align_corners
+            )
         cls_emb = cls_emb.to(x.device).to(x.dtype)
 
         B, C, H, W = x.size()
@@ -231,7 +237,7 @@ class MaskTransformerPropagationHead(BaseDecodeHead):
         # logits = logits.view(B, H, W, N).permute(0, 3, 1, 2)
         # if self.use_pixel_embedding:
         embeds = patches.clone()
-        embeds = embeds.view(B, H, W, C).permute(0, 3, 1, 2)
+        embeds = embeds.view(B, H, W, -1).permute(0, 3, 1, 2)
         # patches = patches.view(B, H, W, C).permute(0, 3, 1, 2)
         return masks, embeds, feats
 
