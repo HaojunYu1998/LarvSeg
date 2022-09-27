@@ -275,7 +275,6 @@ class MaskTransformerPropagationHead(BaseDecodeHead):
         else:
             img_labels = [gt.unique() for gt in gt_semantic_seg]
             img_labels = [l[l != self.ignore_index].tolist() for l in img_labels]
-
         masks, embeds, feats = self.forward(inputs, img_metas)
 
         losses = self.losses(masks, embeds, feats, gt_semantic_seg, img_labels)

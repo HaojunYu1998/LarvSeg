@@ -1,0 +1,58 @@
+description: SVLSeg
+target:
+  service: amlk8s
+  name: v100-32gb-wus2
+  vc: vision-itp-ocr-res
+
+environment:
+  image: hsfzxjy/mmseg:pytorch1.8.1-cuda10.2-cudnn7-devel
+
+storage:
+  output:
+    storage_account_name: zeliuwestus2
+    container_name: v-miazhang
+    mount_dir: /zeliuwestus2
+
+code:
+  local_dir: $CONFIG_DIR/../
+
+jobs:
+  # - name: 202209227_baseline_no_attn_linear_160k_bs16_coco
+  #   sku: G8
+  #   sla_tier: basic
+  #   execution_mode: basic
+  #   priority: high
+  #   command:
+  #     - set -x; set -e
+  #     - pwd; ls; nvidia-smi
+  #     - sudo bash amlt/aml_setup.sh
+  #     - bash tools/dist_train.sh
+  #       configs/segmenter/segmenter-linear_vit-b16_160k_bs16_base_config_coco_no_attn.py
+  #       --auto-resume
+  #       --work-dir /zeliuwestus2/output_svlseg/202209227_baseline_no_attn_linear_160k_bs16_coco
+  # - name: 202209227_baseline_no_attn_160k_bs16_coco
+  #   sku: G8
+  #   sla_tier: basic
+  #   execution_mode: basic
+  #   priority: high
+  #   command:
+  #     - set -x; set -e
+  #     - pwd; ls; nvidia-smi
+  #     - sudo bash amlt/aml_setup.sh
+  #     - bash tools/dist_train.sh
+  #       configs/segmenter/segmenter-propagate_vit-b16_160k_bs16_base_config_coco_no_attn.py
+  #       --auto-resume
+  #       --work-dir /zeliuwestus2/output_svlseg/202209227_baseline_no_attn_160k_bs16_coco
+  - name: 202209227_baseline_no_attn_cosine_160k_bs16_coco
+    sku: G8
+    sla_tier: basic
+    execution_mode: basic
+    priority: high
+    command:
+      - set -x; set -e
+      - pwd; ls; nvidia-smi
+      - sudo bash amlt/aml_setup.sh
+      - bash tools/dist_train.sh
+        configs/segmenter/segmenter-cosine_vit-b16_160k_bs16_base_config_coco_no_attn.py
+        --auto-resume
+        --work-dir /zeliuwestus2/output_svlseg/202209227_baseline_no_attn_cosine_160k_bs16_coco
