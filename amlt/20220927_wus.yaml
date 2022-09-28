@@ -1,4 +1,4 @@
-description: SVLSeg
+description: CVPR2023
 target:
   service: amlk8s
   name: v100-32gb-wus2
@@ -25,7 +25,7 @@ jobs:
   #   command:
   #     - set -x; set -e
   #     - pwd; ls; nvidia-smi
-  #     - sudo bash amlt/aml_setup.sh
+  #     - sudo bash aml_setup.sh
   #     - bash tools/dist_train.sh
   #       configs/segmenter/segmenter-linear_vit-b16_160k_bs16_base_config_coco_no_attn.py
   #       --auto-resume
@@ -38,7 +38,7 @@ jobs:
   #   command:
   #     - set -x; set -e
   #     - pwd; ls; nvidia-smi
-  #     - sudo bash amlt/aml_setup.sh
+  #     - sudo bash aml_setup.sh
   #     - bash tools/dist_train.sh
   #       configs/segmenter/segmenter-propagate_vit-b16_160k_bs16_base_config_coco_no_attn.py
   #       --auto-resume
@@ -51,7 +51,7 @@ jobs:
     command:
       - set -x; set -e
       - pwd; ls; nvidia-smi
-      - sudo bash amlt/aml_setup.sh
+      - sudo bash aml_setup.sh
       - bash tools/dist_train.sh
         configs/segmenter/segmenter-cosine_vit-b16_160k_bs16_base_config_coco_no_attn.py
         --auto-resume
