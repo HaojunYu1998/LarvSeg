@@ -92,6 +92,7 @@ class CustomDataset(Dataset):
         palette=None,
         int16=False,
         gt_seg_map_loader_cfg=None,
+        oracle_inference=False
     ):
         self.pipeline = Compose(pipeline)
         self.img_dir = img_dir
@@ -104,6 +105,7 @@ class CustomDataset(Dataset):
         self.ignore_index = ignore_index
         self.reduce_zero_label = reduce_zero_label
         self.label_map = None
+        self.oracle_inference = oracle_inference
         self.CLASSES, self.PALETTE = self.get_classes_and_palette(classes, palette)
 
         self.gt_seg_map_loader = (
@@ -244,7 +246,7 @@ class CustomDataset(Dataset):
         results = dict(img_info=img_info, ann_info=ann_info)
         self.pre_pipeline(results)
         results_temp = self.pipeline(results)
-        if "gt_semantic_seg" in results_temp.keys():
+        if "gt_semantic_seg" in results_temp.keys() and not self.oracle_inference:
             results_temp.pop("gt_semantic_seg")
         return results_temp
 

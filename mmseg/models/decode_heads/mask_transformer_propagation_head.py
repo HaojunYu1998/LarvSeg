@@ -75,6 +75,9 @@ class MaskTransformerPropagationHead(BaseDecodeHead):
         use_attention_module=True,
         use_self_attention=False,
         reduce_zero_label=True,
+        oracle_inference=False,
+        num_oracle_points=10,
+        oracle_downsample_rate=8,
         **kwargs,
     ):
         # in_channels & channels are dummy arguments to satisfy signature of
@@ -121,6 +124,9 @@ class MaskTransformerPropagationHead(BaseDecodeHead):
         self.use_attention_module = use_attention_module
         self.use_self_attention = use_self_attention
         self.reduce_zero_label = reduce_zero_label
+        self.oracle_inference = oracle_inference
+        self.num_oracle_points = num_oracle_points
+        self.oracle_downsample_rate = oracle_downsample_rate
 
         if self.use_attention_module:
             dpr = [x.item() for x in torch.linspace(0, drop_path_rate, n_layers)]
@@ -234,11 +240,8 @@ class MaskTransformerPropagationHead(BaseDecodeHead):
         B, HW, N = masks.size()
 
         masks = masks.view(B, H, W, N).permute(0, 3, 1, 2)
-        # logits = logits.view(B, H, W, N).permute(0, 3, 1, 2)
-        # if self.use_pixel_embedding:
         embeds = patches.clone()
         embeds = embeds.view(B, H, W, -1).permute(0, 3, 1, 2)
-        # patches = patches.view(B, H, W, C).permute(0, 3, 1, 2)
         return masks, embeds, feats
 
     def forward_train(self, inputs, img_metas, gt_semantic_seg, train_cfg):
@@ -280,15 +283,14 @@ class MaskTransformerPropagationHead(BaseDecodeHead):
         losses = self.losses(masks, embeds, feats, gt_semantic_seg, img_labels)
         return losses
 
-    def forward_test(self, inputs, img_metas, test_cfg):
+    def forward_test(self, inputs, img_metas, gt_semantic_seg, test_cfg):
         if not self.loaded_cls_emb_test:
             self.cls_emb = torch.load(
                 self.cls_emb_path_test, map_location="cpu")
             self.loaded_cls_emb_test = True
             self.loaded_cls_emb_train = False
         
-        masks, _, feats = self.forward(inputs, img_metas)
-
+        masks, embeds, feats = self.forward(inputs, img_metas)
         if self.grounding_inference:
             if len(self.test_anno_dir) > 0:
                 gt_path = os.path.join(
@@ -298,6 +300,7 @@ class MaskTransformerPropagationHead(BaseDecodeHead):
             else:
                 gt_path = img_metas[0]["filename"].replace(
                     "images", "annotations").replace(".jpg", self.ann_suffix)
+            # NOTE: process gt for different datasets
             gt = np.array(Image.open(gt_path))
             if self.ann_suffix == ".png":
                 if self.reduce_zero_label:
@@ -308,16 +311,60 @@ class MaskTransformerPropagationHead(BaseDecodeHead):
             else:
                 gt = gt.astype(np.int16)
                 ignore_index = -1
-            unique_label = list(np.unique(gt))
-            unique_label = [l for l in unique_label if l != ignore_index]
+            
             B, N, H, W = masks.shape
             assert B == 1, f"batch {B} != 1 for inference"
             grounding_mask = torch.zeros(N).bool().to(masks.device)
+            unique_label = list(np.unique(gt))
+            unique_label = [l for l in unique_label if l != ignore_index]
             for l in unique_label:
                 grounding_mask[l] = True
+
+            if self.oracle_inference:
+                # self.ignore_index = ignore_index
+                masks = self.oracle_propagation(embeds, gt_semantic_seg)
+            
+            # 1, n_cls, 32, 32
             masks = masks.squeeze(0)
             masks[~grounding_mask] = -100.0
             masks = masks.unsqueeze(0)
+        return masks
+
+    def oracle_propagation(self, seg_embed, seg_label):
+        device = seg_embed.device
+        # seg_label = torch.tensor(seg_label, dtype=torch.int64, device=device)
+        B, C, H, W = seg_embed.shape
+        # h = seg_label.shape[-2] // self.oracle_downsample_rate
+        # w = seg_label.shape[-1] // self.oracle_downsample_rate
+        # seg_embed = resize(
+        #     input=seg_embed,
+        #     size=(h, w),
+        #     mode='bilinear',
+        #     align_corners=self.align_corners
+        # )
+        assert self.num_classes == 150
+        seg_label = resize(
+            input=seg_label.float(),
+            size=(H, W),
+            mode='nearest'
+        ).long()[0, 0]
+        seg_label = seg_label - 1
+        seg_label[seg_label == -1] = 255 # NOTE: hard code for convenience
+        # print(seg_label.unique())
+        seg_embed = seg_embed.permute(0, 2, 3, 1)
+        seg_label_per_image = seg_label.reshape(H * W)
+        seg_embed_per_image = seg_embed.reshape(H * W, C)
+        seg_embed_per_image = seg_embed_per_image / seg_embed_per_image.norm(dim=-1, keepdim=True)
+        unique_label = torch.unique(seg_label_per_image)
+        unique_label = unique_label[unique_label != 255]
+        masks = torch.zeros((B, self.num_classes, H, W), device=device)
+        for l in unique_label:
+            pos_inds = (seg_label_per_image == l).nonzero(as_tuple=False)[:, 0]
+            inds = torch.randperm(len(pos_inds))[:self.num_oracle_points]
+            prior_inds = pos_inds[inds]
+            cos_mat = seg_embed_per_image[prior_inds] @ seg_embed_per_image.T
+            score_mat = cos_mat.max(dim=0).values.reshape(H, W)
+            masks[0, l] = score_mat
         return masks
 
     @force_fp32(apply_to=('seg_mask', ))

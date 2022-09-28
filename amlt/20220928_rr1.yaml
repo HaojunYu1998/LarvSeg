@@ -16,33 +16,33 @@ code:
   local_dir: $CONFIG_DIR/../
 
 jobs:
-  - name: 202209227_baseline_no_attn_linear_160k_bs16_coco
-    sku: G8
-    sla_tier: basic
-    execution_mode: basic
-    priority: high
-    command:
-      - set -x; set -e
-      - pwd; ls; nvidia-smi
-      - sudo bash aml_setup.sh
-      - bash tools/dist_train.sh
-        configs/segmenter/segmenter-linear_vit-b16_160k_bs16_base_config_coco_no_attn.py
-        --auto-resume
-        --work-dir /zeliuwestus2/output_svlseg/202209227_baseline_no_attn_linear_160k_bs16_coco
-  - name: 202209227_baseline_no_attn_160k_bs16_coco
-    sku: G8
-    sla_tier: basic
-    execution_mode: basic
-    priority: high
-    command:
-      - set -x; set -e
-      - pwd; ls; nvidia-smi
-      - sudo bash aml_setup.sh
-      - bash tools/dist_train.sh
-        configs/segmenter/segmenter-propagate_vit-b16_160k_bs16_base_config_coco_no_attn.py
-        --auto-resume
-        --work-dir /zeliuwestus2/output_svlseg/202209227_baseline_no_attn_160k_bs16_coco
-  - name: 202209227_baseline_no_attn_cosine_160k_bs16_coco
+  # - name: 202209227_baseline_no_attn_linear_160k_bs16_coco
+  #   sku: G8
+  #   sla_tier: basic
+  #   execution_mode: basic
+  #   priority: high
+  #   command:
+  #     - set -x; set -e
+  #     - pwd; ls; nvidia-smi
+  #     - sudo bash aml_setup.sh
+  #     - bash tools/dist_train.sh
+  #       configs/segmenter/segmenter-linear_vit-b16_160k_bs16_base_config_coco_no_attn.py
+  #       --auto-resume
+  #       --work-dir /zeliuwestus2/output_svlseg/202209227_baseline_no_attn_linear_160k_bs16_coco
+  # - name: 202209227_baseline_no_attn_160k_bs16_coco
+  #   sku: G8
+  #   sla_tier: basic
+  #   execution_mode: basic
+  #   priority: high
+  #   command:
+  #     - set -x; set -e
+  #     - pwd; ls; nvidia-smi
+  #     - sudo bash aml_setup.sh
+  #     - bash tools/dist_train.sh
+  #       configs/segmenter/segmenter-propagate_vit-b16_160k_bs16_base_config_coco_no_attn.py
+  #       --auto-resume
+  #       --work-dir /zeliuwestus2/output_svlseg/202209227_baseline_no_attn_160k_bs16_coco
+  - name: 202209228_baseline_no_attn_cosine_160k_bs16_coco
     sku: G8
     sla_tier: basic
     execution_mode: basic
@@ -54,4 +54,4 @@ jobs:
       - bash tools/dist_train.sh
         configs/segmenter/segmenter-cosine_vit-b16_160k_bs16_base_config_coco_no_attn.py
         --auto-resume
-        --work-dir /zeliuwestus2/output_svlseg/202209227_baseline_no_attn_cosine_160k_bs16_coco
+        --work-dir /zeliuwestus2/output_svlseg/202209228_baseline_no_attn_cosine_160k_bs16_coco
