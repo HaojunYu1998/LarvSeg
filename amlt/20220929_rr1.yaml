@@ -16,6 +16,82 @@ code:
   local_dir: $CONFIG_DIR/../
 
 jobs:
+  - name: 202209229_baseline_no_attn_weak_160k_bs16_ade_all_prior0.01
+    sku: G8
+    sla_tier: basic
+    execution_mode: basic
+    priority: high
+    command:
+      - set -x; set -e
+      - pwd; ls; nvidia-smi
+      - sudo bash aml_setup.sh
+      - bash tools/dist_train.sh
+        configs/segmenter/segmenter-weak_vit-b16_160k_bs16_in21k_ade_all_no_attn_prior0.01.py
+        --auto-resume
+        --work-dir /zeliuwestus2/output_svlseg/202209229_baseline_no_attn_weak_160k_bs16_ade_all_prior0.01
+      - bash tools/dist_test.sh
+        configs/segmenter/evaluation/baseline_no_attn_eval_ade_tta.py
+        /zeliuwestus2/output_svlseg/202209229_baseline_no_attn_weak_160k_bs16_ade_all_prior0.01/iter_160000.pth
+        8
+        --eval mIoU
+        --aug-test
+      - bash tools/dist_test.sh
+        configs/segmenter/evaluation/baseline_no_attn_eval_ade_grounding_tta.py
+        /zeliuwestus2/output_svlseg/202209229_baseline_no_attn_weak_160k_bs16_ade_all_prior0.01/iter_160000.pth
+        8
+        --eval mIoU
+        --aug-test
+      - bash tools/dist_test.sh
+        configs/segmenter/evaluation/baseline_no_attn_eval_ade_full_tta.py
+        /zeliuwestus2/output_svlseg/202209229_baseline_no_attn_weak_160k_bs16_ade_all_prior0.01/iter_160000.pth
+        8
+        --eval mIoU
+        --aug-test
+      - bash tools/dist_test.sh
+        configs/segmenter/evaluation/baseline_no_attn_eval_ade_full_grounding_tta.py
+        /zeliuwestus2/output_svlseg/202209229_baseline_no_attn_weak_160k_bs16_ade_all_prior0.01/iter_160000.pth
+        8
+        --eval mIoU
+        --aug-test
+
+  - name: 202209229_baseline_no_attn_weak_160k_bs16_ade_all_prior0.05
+    sku: G8
+    sla_tier: basic
+    execution_mode: basic
+    priority: high
+    command:
+      - set -x; set -e
+      - pwd; ls; nvidia-smi
+      - sudo bash aml_setup.sh
+      - bash tools/dist_train.sh
+        configs/segmenter/segmenter-weak_vit-b16_160k_bs16_in21k_ade_all_no_attn_prior0.05.py
+        --auto-resume
+        --work-dir /zeliuwestus2/output_svlseg/202209229_baseline_no_attn_weak_160k_bs16_ade_all_prior0.05
+      - bash tools/dist_test.sh
+        configs/segmenter/evaluation/baseline_no_attn_eval_ade_tta.py
+        /zeliuwestus2/output_svlseg/202209229_baseline_no_attn_weak_160k_bs16_ade_all_prior0.05/iter_160000.pth
+        8
+        --eval mIoU
+        --aug-test
+      - bash tools/dist_test.sh
+        configs/segmenter/evaluation/baseline_no_attn_eval_ade_grounding_tta.py
+        /zeliuwestus2/output_svlseg/202209229_baseline_no_attn_weak_160k_bs16_ade_all_prior0.05/iter_160000.pth
+        8
+        --eval mIoU
+        --aug-test
+      - bash tools/dist_test.sh
+        configs/segmenter/evaluation/baseline_no_attn_eval_ade_full_tta.py
+        /zeliuwestus2/output_svlseg/202209229_baseline_no_attn_weak_160k_bs16_ade_all_prior0.05/iter_160000.pth
+        8
+        --eval mIoU
+        --aug-test
+      - bash tools/dist_test.sh
+        configs/segmenter/evaluation/baseline_no_attn_eval_ade_full_grounding_tta.py
+        /zeliuwestus2/output_svlseg/202209229_baseline_no_attn_weak_160k_bs16_ade_all_prior0.05/iter_160000.pth
+        8
+        --eval mIoU
+        --aug-test
+
   - name: 202209229_baseline_r101_no_attn_160k_bs16_ade_all
     sku: G8
     sla_tier: basic
@@ -29,6 +105,30 @@ jobs:
         configs/segmenter/segmenter-propagate_r101c_160k_bs16_base_config_in21k_ade_all_no_attn.py
         --auto-resume
         --work-dir /zeliuwestus2/output_svlseg/202209229_baseline_r101_no_attn_160k_bs16_ade_all
+      - bash tools/dist_test.sh
+        configs/segmenter/evaluation/baseline_no_attn_eval_ade_tta.py
+        /zeliuwestus2/output_svlseg/202209229_baseline_r101_no_attn_160k_bs16_ade_all/iter_160000.pth
+        8
+        --eval mIoU
+        --aug-test
+      - bash tools/dist_test.sh
+        configs/segmenter/evaluation/baseline_no_attn_eval_ade_grounding_tta.py
+        /zeliuwestus2/output_svlseg/202209229_baseline_r101_no_attn_160k_bs16_ade_all/iter_160000.pth
+        8
+        --eval mIoU
+        --aug-test
+      - bash tools/dist_test.sh
+        configs/segmenter/evaluation/baseline_no_attn_eval_ade_full_tta.py
+        /zeliuwestus2/output_svlseg/202209229_baseline_r101_no_attn_160k_bs16_ade_all/iter_160000.pth
+        8
+        --eval mIoU
+        --aug-test
+      - bash tools/dist_test.sh
+        configs/segmenter/evaluation/baseline_no_attn_eval_ade_full_grounding_tta.py
+        /zeliuwestus2/output_svlseg/202209229_baseline_r101_no_attn_160k_bs16_ade_all/iter_160000.pth
+        8
+        --eval mIoU
+        --aug-test
   # - name: 202209229_baseline_160k_bs16_ade_all_eval
   #   sku: G8
   #   sla_tier: basic

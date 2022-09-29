@@ -41,6 +41,7 @@ from .mlseg_encoder_head import MLSegEncoderHead
 from .mask_transformer_structure_head import MaskTransformerStructureHead
 from .mask_transformer_linear_head import MaskTransformerLinearHead
 from .mask_transformer_cos_head import MaskTransformerCosHead
+from .mask_transformer_weak_head import MaskTransformerWeakHead
 
 __all__ = [
     'FCNHead', 'PSPHead', 'ASPPHead', 'PSAHead', 'NLHead', 'GCHead', 'CCHead',

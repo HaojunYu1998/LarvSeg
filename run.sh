@@ -1,16 +1,14 @@
 export OMP_NUM_THREADS=1
 export CUDA_VISIBLE_DEVICES=0,1,2,3
 
-# sudo bash local.sh \
-# configs/segmenter/segmenter-cosine_vit-b16_160k_bs16_base_config_coco_no_attn.py \
-# --auto-resume
+bash tools/dist_train.sh \
+configs/segmenter/segmenter-weak_vit-b16_160k_bs16_in21k_ade_all_no_attn_prior0.01.py
 
-# sudo bash local_test.sh \
-bash tools/dist_test.sh \
-configs/segmenter/evaluation/baseline_no_attn_eval_ade_oracle.py \
-work_dirs/202209227_baseline_no_attn_160k_bs16_coco/iter_160000.pth \
-4 \
---eval mIoU
+# bash tools/dist_test.sh \
+# configs/segmenter/evaluation/baseline_no_attn_eval_ade_oracle.py \
+# work_dirs/202209227_baseline_no_attn_160k_bs16_coco/iter_160000.pth \
+# 4 \
+# --eval mIoU
 
 
 # sudo nvidia-docker run --ipc=host -it -v /mnt/haojun/itpsea4data:/itpsea4data --ipc=host hsfzxjy/mmseg:pytorch1.8.1-cuda10.2-cudnn7-devel /bin/bash
