@@ -8,9 +8,10 @@ export CUDA_VISIBLE_DEVICES=0,1,2,3
 # sudo bash local_test.sh \
 bash tools/dist_test.sh \
 configs/segmenter/evaluation/baseline_no_attn_eval_ade_oracle.py \
-work_dirs/202209225_baseline_no_attn_160k_bs16_ade_all/iter_160000.pth \
+work_dirs/202209227_baseline_no_attn_160k_bs16_coco/iter_160000.pth \
 4 \
 --eval mIoU
+
 
 # sudo nvidia-docker run --ipc=host -it -v /mnt/haojun/itpsea4data:/itpsea4data --ipc=host hsfzxjy/mmseg:pytorch1.8.1-cuda10.2-cudnn7-devel /bin/bash
 # pip install -U amlt --extra-index-url https://msrpypi.azurewebsites.net/stable/7e404de797f4e1eeca406c1739b00867 --extra-index-url https://azuremlsdktestpypi.azureedge.net/K8s-Compute/D58E86006C65

@@ -15,7 +15,7 @@ sudo /opt/conda/bin/pip install -e .
 cd ../..
 sudo mkdir -p /mnt/haojun2
 sudo ln -s /zeliuwestus2/dataset /mnt/haojun2/dataset
-ls /mnt/haojun2/dataset/
+# sudo ls /mnt/haojun2/dataset/
 
 # sudo ln -s /zeliuwestus2/dataset /mnt/haojun2/dataset
 # sudo ln -s /zeliuwestus2/dataset/ADEChallengeData2016 /mnt/haojun2/dataset/ADEChallengeData2016

@@ -29,10 +29,10 @@ model = dict(
         propagation_loss_weight=0.0,
         grounding_inference=True,
         oracle_inference=True,
-        num_oracle_points=10,
-        oracle_downsample_rate=16,
+        num_oracle_points=1,
+        oracle_downsample_rate=1,
     ),
-    test_cfg=dict(mode="slide", crop_size=(512, 512), stride=(512, 512)),
+    test_cfg=dict(mode="whole", crop_size=(512, 512), stride=(512, 512)),
 )
 
 optimizer = dict(

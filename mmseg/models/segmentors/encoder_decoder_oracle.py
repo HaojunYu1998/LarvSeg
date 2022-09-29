@@ -100,7 +100,9 @@ class EncoderDecoderOracle(BaseSegmentor):
     def _decode_head_forward_test(self, x, img_metas, gt_semantic_seg):
         """Run forward function and calculate loss for decode head in
         inference."""
-        seg_logits = self.decode_head.forward_test(x, img_metas, gt_semantic_seg, self.test_cfg)
+        seg_logits = self.decode_head.forward_test(
+            x, img_metas, test_cfg=self.test_cfg, gt_semantic_seg=gt_semantic_seg
+        )
         return seg_logits
 
     def _auxiliary_head_forward_train(self, x, img_metas, gt_semantic_seg):

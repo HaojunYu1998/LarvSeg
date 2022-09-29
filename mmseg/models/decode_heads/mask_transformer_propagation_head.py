@@ -283,7 +283,7 @@ class MaskTransformerPropagationHead(BaseDecodeHead):
         losses = self.losses(masks, embeds, feats, gt_semantic_seg, img_labels)
         return losses
 
-    def forward_test(self, inputs, img_metas, gt_semantic_seg, test_cfg):
+    def forward_test(self, inputs, img_metas, test_cfg, gt_semantic_seg=None):
         if not self.loaded_cls_emb_test:
             self.cls_emb = torch.load(
                 self.cls_emb_path_test, map_location="cpu")
@@ -322,6 +322,7 @@ class MaskTransformerPropagationHead(BaseDecodeHead):
 
             if self.oracle_inference:
                 # self.ignore_index = ignore_index
+                assert gt_semantic_seg is not None
                 masks = self.oracle_propagation(embeds, gt_semantic_seg)
             
             # 1, n_cls, 32, 32
@@ -334,36 +335,35 @@ class MaskTransformerPropagationHead(BaseDecodeHead):
         device = seg_embed.device
         # seg_label = torch.tensor(seg_label, dtype=torch.int64, device=device)
         B, C, H, W = seg_embed.shape
-        # h = seg_label.shape[-2] // self.oracle_downsample_rate
-        # w = seg_label.shape[-1] // self.oracle_downsample_rate
-        # seg_embed = resize(
-        #     input=seg_embed,
-        #     size=(h, w),
-        #     mode='bilinear',
-        #     align_corners=self.align_corners
-        # )
+        h = seg_label.shape[-2] // self.oracle_downsample_rate
+        w = seg_label.shape[-1] // self.oracle_downsample_rate
+        seg_embed = resize(
+            input=seg_embed,
+            size=(h, w),
+            mode='bilinear',
+            align_corners=self.align_corners
+        )
         assert self.num_classes == 150
         seg_label = resize(
             input=seg_label.float(),
-            size=(H, W),
+            size=(h, w),
             mode='nearest'
         ).long()[0, 0]
         seg_label = seg_label - 1
         seg_label[seg_label == -1] = 255 # NOTE: hard code for convenience
-        # print(seg_label.unique())
         seg_embed = seg_embed.permute(0, 2, 3, 1)
-        seg_label_per_image = seg_label.reshape(H * W)
-        seg_embed_per_image = seg_embed.reshape(H * W, C)
+        seg_label_per_image = seg_label.reshape(h * w)
+        seg_embed_per_image = seg_embed.reshape(h * w, C)
         seg_embed_per_image = seg_embed_per_image / seg_embed_per_image.norm(dim=-1, keepdim=True)
         unique_label = torch.unique(seg_label_per_image)
         unique_label = unique_label[unique_label != 255]
-        masks = torch.zeros((B, self.num_classes, H, W), device=device)
+        masks = torch.zeros((B, self.num_classes, h, w), device=device)
         for l in unique_label:
             pos_inds = (seg_label_per_image == l).nonzero(as_tuple=False)[:, 0]
             inds = torch.randperm(len(pos_inds))[:self.num_oracle_points]
             prior_inds = pos_inds[inds]
             cos_mat = seg_embed_per_image[prior_inds] @ seg_embed_per_image.T
-            score_mat = cos_mat.max(dim=0).values.reshape(H, W)
+            score_mat = cos_mat.max(dim=0).values.reshape(h, w)
             masks[0, l] = score_mat
         return masks
 
