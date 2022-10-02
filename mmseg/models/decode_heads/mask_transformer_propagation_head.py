@@ -59,6 +59,8 @@ class MaskTransformerPropagationHead(BaseDecodeHead):
         imagenet_sample_class_num=0,
         pseudo_label_thresh=0.0,
         propagation_loss_weight=1.0,
+        use_structure_loss=False,
+        soft_structure_loss=False,
         structure_loss_weight=0.0,
         downsample_rate=8,
         prior_rate=0.1,
@@ -97,6 +99,8 @@ class MaskTransformerPropagationHead(BaseDecodeHead):
         self.d_ff = d_ff
         self.scale = d_model**-0.5
         self.propagation_loss_weight = propagation_loss_weight
+        self.use_structure_loss = use_structure_loss
+        self.soft_structure_loss = soft_structure_loss
         self.structure_loss_weight = structure_loss_weight
         self.prior_loss_weight = 1.0
         self.downsample_rate = downsample_rate
@@ -418,9 +422,10 @@ class MaskTransformerPropagationHead(BaseDecodeHead):
                 loss['loss_emb'] = torch.tensor(
                     0, dtype=seg_mask.dtype, device=seg_mask.device, requires_grad=True
                 )
-            # loss['loss_structure'] = torch.tensor(
-            #     0, dtype=seg_mask.dtype, device=seg_mask.device, requires_grad=True
-            # )
+            if self.use_structure_loss:
+                loss['loss_structure'] = torch.tensor(
+                    0, dtype=seg_mask.dtype, device=seg_mask.device, requires_grad=True
+                )
         else:
             prior_inds = torch.cat(prior_bucket)
             # assert False, f"{seg_mask.shape, seg_label.unique(), self.ignore_index}"
@@ -435,92 +440,92 @@ class MaskTransformerPropagationHead(BaseDecodeHead):
                 loss['loss_emb'] = self.loss_pix_embed(
                     seg_embed=seg_embed, seg_label=seg_label, pos_bucket=pos_bucket
                 )
-            # loss['loss_structure'] = self.loss_structure(
-            #     seg_feat, seg_label
-            # ) * self.structure_loss_weight
+            if self.use_structure_loss:
+                loss['loss_structure'] = self.loss_structure(
+                    seg_feat, seg_label
+                ) * self.structure_loss_weight
 
         acc_weight = 0.0 if self.imagenet_on_gpu else 2.0
         acc_weight = acc_weight if self.imagenet_in_batch else 1.0
         loss['acc_seg'] = accuracy(seg_mask, seg_label) * acc_weight
         return loss
 
-    # def loss_structure(self, seg_feat, seg_label):
-    #     if self.imagenet_on_gpu:
-    #         return torch.tensor(
-    #             0, dtype=seg_feat.dtype, device=seg_feat.device, requires_grad=True
-    #         )
-    #     if self.label_cos_sim is None:
-    #         cls_emb = self.cls_emb.to(seg_feat.device)
-    #         cls_emb = cls_emb / cls_emb.norm(dim=-1, keepdim=True)
-    #         self.label_cos_sim = cls_emb @ cls_emb.T
-    #         del cls_emb
-    #     B, C, H, W = seg_feat.size()
-    #     # seg_label = F.interpolate(seg_label.float(), size=(H, W)).long()
-    #     seg_feat = seg_feat.permute(0, 2, 3, 1).reshape(B * H * W, C)
-    #     seg_label = seg_label.reshape(B * H * W)
-    #     unique_label = torch.unique(seg_label)
-    #     pos_bucket = [
-    #         torch.nonzero(seg_label == l)[:, 0]
-    #         for l in unique_label
-    #         if l != self.ignore_index
-    #     ]
-    #     if len(pos_bucket) == 0:
-    #         return seg_feat[seg_label != self.ignore_index].sum()
-    #     pos_inds = self._sample_feat(pos_bucket)
-    #     sample_cls = torch.cat([
-    #         seg_label[[i]] for i in pos_inds], dim=0).to(seg_feat.device)
-    #     sample_feat = torch.cat([
-    #         seg_feat[i] for i in pos_inds], dim=0)
-    #     loss = self.loss_similarity(sample_feat, sample_cls)
-    #     return loss
+    def loss_structure(self, seg_feat, seg_label):
+        if self.imagenet_on_gpu:
+            return torch.tensor(
+                0, dtype=seg_feat.dtype, device=seg_feat.device, requires_grad=True
+            )
+        if self.soft_structure_loss and self.label_cos_sim is None:
+            cls_emb = self.cls_emb.to(seg_feat.device)
+            cls_emb = cls_emb / cls_emb.norm(dim=-1, keepdim=True)
+            self.label_cos_sim = cls_emb @ cls_emb.T
+            del cls_emb
+        B, C, H, W = seg_feat.size()
+        # seg_label = F.interpolate(seg_label.float(), size=(H, W)).long()
+        seg_feat = seg_feat.permute(0, 2, 3, 1).reshape(B * H * W, C)
+        seg_label = seg_label.reshape(B * H * W)
+        unique_label = torch.unique(seg_label)
+        pos_bucket = [
+            torch.nonzero(seg_label == l)[:, 0]
+            for l in unique_label
+            if l != self.ignore_index
+        ]
+        if len(pos_bucket) == 0:
+            return seg_feat[seg_label != self.ignore_index].sum()
+        pos_inds = self._sample_feat(pos_bucket)
+        sample_cls = torch.cat([
+            seg_label[[i]] for i in pos_inds], dim=0).to(seg_feat.device)
+        sample_feat = torch.cat([
+            seg_feat[i] for i in pos_inds], dim=0)
+        loss = self.loss_similarity(sample_feat, sample_cls)
+        return loss
 
-    # def loss_similarity(self, feat, label):
-    #     """Compute the similarity loss
-    #     Args:
-    #         embedding (torch.Tensor): [B,C]
-    #         label (torch.Tensor): [B]
-    #     """
-    #     feat = feat / feat.norm(dim=-1, keepdim=True)
-    #     cos_sim = feat @ feat.T  # [B,B]
-    #     label_sim = torch.zeros_like(cos_sim)
-    #     for i in range(cos_sim.shape[0]):
-    #         for j in range(cos_sim.shape[1]):
-    #             label_sim[i, j] = self.label_cos_sim[
-    #                 label[i], label[j]
-    #             ]
-    #     valid_mask = torch.ones_like(cos_sim)
-    #     valid_mask[
-    #         torch.arange(len(valid_mask)).to(valid_mask.device),
-    #         torch.arange(len(valid_mask)).to(valid_mask.device),
-    #     ] = 0
-    #     cos_sim = cos_sim[valid_mask.bool()]
-    #     label_sim = label_sim[valid_mask.bool()]
-    #     return torch.pow(cos_sim - label_sim, 2)
+    def loss_similarity(self, feat, label):
+        """Compute the similarity loss
+        Args:
+            embedding (torch.Tensor): [#sample, C]
+            label (torch.Tensor): [#sample]
+        """
+        feat = feat / feat.norm(dim=-1, keepdim=True)
+        cos_sim = feat @ feat.T  # [B,B]
+        label_sim = (label[None, :] == label[:, None]).int().float()
+        if self.soft_structure_loss:
+            label_i = label.repeat_interleave(len(label)).long()
+            label_j = label.repeat(len(label)).long()
+            label_sim = self.label_cos_sim[label_i, label_j]
+            label_sim = label_sim.reshape(len(label), len(label))
+        valid_mask = torch.ones_like(cos_sim)
+        valid_mask[
+            torch.arange(len(valid_mask)).to(valid_mask.device),
+            torch.arange(len(valid_mask)).to(valid_mask.device),
+        ] = 0
+        cos_sim = cos_sim[valid_mask.bool()]
+        label_sim = label_sim[valid_mask.bool()]
+        return torch.pow(cos_sim - label_sim, 2)
     
-    # def _sample_feat(self, buckets, total_sample_num=512):
-    #     """Sample points from each buckets
-    #     Args:
-    #         num_per_buckets (list): number of points in each class
-    #     """
-    #     num_per_buckets = [len(p) for p in buckets]
-    #     sample_per_bucket = [
-    #         total_sample_num // len(buckets)
-    #         for _ in range(len(num_per_buckets))
-    #     ]
-
-    #     if len(sample_per_bucket) > 1:
-    #         sample_per_bucket[-1] = total_sample_num - sum(sample_per_bucket[:-1])
-    #     else:
-    #         sample_per_bucket[0] = total_sample_num
-    #     samples = [
-    #         p[
-    #             torch.from_numpy(
-    #                 np.random.choice(len(p), sample_per_bucket[i], replace=True)
-    #             ).to(p.device)
-    #         ]
-    #         for i, p in enumerate(buckets)
-    #     ]
-    #     return samples
+    def _sample_feat(self, buckets, total_sample_num=512):
+        """Sample points from each buckets
+        Args:
+            num_per_buckets (list): number of points in each class
+        """
+        num_per_buckets = [len(p) for p in buckets]
+        sample_per_bucket = [
+            total_sample_num // len(buckets)
+            for _ in range(len(num_per_buckets))
+        ]
+        if len(sample_per_bucket) > 1:
+            sample_per_bucket[-1] = total_sample_num - sum(sample_per_bucket[:-1])
+        else:
+            sample_per_bucket[0] = total_sample_num
+        samples = [
+            p[
+                torch.from_numpy(
+                    np.random.choice(len(p), sample_per_bucket[i], replace=True)
+                ).to(p.device)
+            ]
+            for i, p in enumerate(buckets)
+        ]
+        return samples
 
     # def loss_structure(self, seg_logit, seg_label, prior_bucket, eps=1e-6):
     #     """

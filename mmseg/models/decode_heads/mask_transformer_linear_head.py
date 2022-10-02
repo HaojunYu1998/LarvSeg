@@ -53,12 +53,17 @@ class MaskTransformerLinearHead(BaseDecodeHead):
         temperature=1.0,
         ann_suffix=".png",
         test_anno_dir="",
-        use_pixel_embedding=False,
         use_pairwise_affinity=False,
         pairwise_affinity_thresh=0.95,
         cam_thresh=0.9,
         use_self_attention=False,
         reduce_zero_label=True,
+        use_structure_loss=False,
+        soft_structure_loss=False,
+        structure_loss_weight=1.0,
+        oracle_inference=False,
+        num_oracle_points=10,
+        oracle_downsample_rate=1,
         **kwargs,
     ):
         # in_channels & channels are dummy arguments to satisfy signature of
@@ -84,13 +89,18 @@ class MaskTransformerLinearHead(BaseDecodeHead):
         self.temperature = temperature
         self.ann_suffix = ann_suffix
         self.test_anno_dir = test_anno_dir
-        self.use_pixel_embedding = use_pixel_embedding
         # Pairwise Affinity for ImageNet21K supervision
         self.use_pairwise_affinity = use_pairwise_affinity
         self.pairwise_affinity_thresh = pairwise_affinity_thresh
         self.cam_thresh = cam_thresh
         self.use_self_attention = use_self_attention
         self.reduce_zero_label = reduce_zero_label
+        self.use_structure_loss = use_structure_loss
+        self.soft_structure_loss = soft_structure_loss
+        self.structure_loss_weight = structure_loss_weight
+        self.oracle_inference = oracle_inference
+        self.num_oracle_points = num_oracle_points
+        self.oracle_downsample_rate = oracle_downsample_rate
 
         self.proj_dec = nn.Linear(d_encoder, d_model)
         self.proj_patch = nn.Parameter(self.scale *
@@ -99,6 +109,7 @@ class MaskTransformerLinearHead(BaseDecodeHead):
         self.beta = nn.Parameter(torch.zeros([]))
         # NOTE: linear classifier
         self.cls_emb = nn.Linear(d_model, self.num_classes)
+        self.label_cos_sim = None
 
     def init_weights(self):
         self.apply(init_weights)
@@ -137,8 +148,48 @@ class MaskTransformerLinearHead(BaseDecodeHead):
         losses = self.losses(masks, embeds, feats, gt_semantic_seg, img_labels)
         return losses
 
-    def forward_test(self, inputs, img_metas, test_cfg):
-        masks, _, feats = self.forward(inputs, img_metas)
+    def forward_test(self, inputs, img_metas, test_cfg, gt_semantic_seg=None):
+        masks, embeds, feats = self.forward(inputs, img_metas)
+        if self.oracle_inference:
+            # self.ignore_index = ignore_index
+            assert gt_semantic_seg is not None
+            masks = self.oracle_propagation(embeds, gt_semantic_seg)
+        return masks
+    
+    def oracle_propagation(self, seg_embed, seg_label):
+        device = seg_embed.device
+        # seg_label = torch.tensor(seg_label, dtype=torch.int64, device=device)
+        B, C, H, W = seg_embed.shape
+        h = seg_label.shape[-2] // self.oracle_downsample_rate
+        w = seg_label.shape[-1] // self.oracle_downsample_rate
+        seg_embed = resize(
+            input=seg_embed,
+            size=(h, w),
+            mode='bilinear',
+            align_corners=self.align_corners
+        )
+        assert self.num_classes == 150
+        seg_label = resize(
+            input=seg_label.float(),
+            size=(h, w),
+            mode='nearest'
+        ).long()[0, 0]
+        seg_label = seg_label - 1
+        seg_label[seg_label == -1] = 255 # NOTE: hard code for convenience (ADE-150)
+        seg_embed = seg_embed.permute(0, 2, 3, 1)
+        seg_label_per_image = seg_label.reshape(h * w)
+        seg_embed_per_image = seg_embed.reshape(h * w, C)
+        seg_embed_per_image = seg_embed_per_image / seg_embed_per_image.norm(dim=-1, keepdim=True)
+        unique_label = torch.unique(seg_label_per_image)
+        unique_label = unique_label[unique_label != 255]
+        masks = torch.zeros((B, self.num_classes, h, w), device=device)
+        for l in unique_label:
+            pos_inds = (seg_label_per_image == l).nonzero(as_tuple=False)[:, 0]
+            inds = torch.randperm(len(pos_inds))[:self.num_oracle_points]
+            prior_inds = pos_inds[inds]
+            cos_mat = seg_embed_per_image[prior_inds] @ seg_embed_per_image.T
+            score_mat = cos_mat.max(dim=0).values.reshape(h, w)
+            masks[0, l] = score_mat
         return masks
 
     @force_fp32(apply_to=('seg_mask', ))
@@ -181,8 +232,8 @@ class MaskTransformerLinearHead(BaseDecodeHead):
             loss['loss_prior'] = torch.tensor(
                 0, dtype=seg_mask.dtype, device=seg_mask.device, requires_grad=True
             )
-            if self.use_pixel_embedding:
-                loss['loss_emb'] = torch.tensor(
+            if self.use_structure_loss:
+                loss['loss_structure'] = torch.tensor(
                     0, dtype=seg_mask.dtype, device=seg_mask.device, requires_grad=True
                 )
         else:
@@ -193,6 +244,10 @@ class MaskTransformerLinearHead(BaseDecodeHead):
                 weight=None,
                 ignore_index=self.ignore_index
             ) * self.prior_loss_weight
+            if self.use_structure_loss:
+                loss['loss_structure'] = self.loss_structure(
+                    seg_feat, seg_label
+                ) * self.structure_loss_weight
 
         acc_weight = 1.0
         loss['acc_seg'] = accuracy(seg_mask, seg_label) * acc_weight
@@ -232,6 +287,73 @@ class MaskTransformerLinearHead(BaseDecodeHead):
             inds = seg_logit[p, int(l)].topk(k).indices
             prior_bucket.append(p[inds])
         return prior_bucket
+
+    def loss_structure(self, seg_feat, seg_label):
+        if self.soft_structure_loss and self.label_cos_sim is None:
+            cls_emb = self.cls_emb.to(seg_feat.device)
+            cls_emb = cls_emb / cls_emb.norm(dim=-1, keepdim=True)
+            self.label_cos_sim = cls_emb @ cls_emb.T
+            del cls_emb
+        B, C, H, W = seg_feat.size()
+        seg_feat = seg_feat.permute(0, 2, 3, 1).reshape(B * H * W, C)
+        seg_label = seg_label.reshape(B * H * W)
+        unique_label = torch.unique(seg_label)
+        pos_bucket = [
+            torch.nonzero(seg_label == l)[:, 0]
+            for l in unique_label
+            if l != self.ignore_index
+        ]
+        if len(pos_bucket) == 0:
+            return seg_feat[seg_label != self.ignore_index].sum()
+        pos_inds = self._sample_feat(pos_bucket)
+        sample_cls = torch.cat([
+            seg_label[[i]] for i in pos_inds], dim=0).to(seg_feat.device)
+        sample_feat = torch.cat([
+            seg_feat[i] for i in pos_inds], dim=0)
+        loss = self.loss_similarity(sample_feat, sample_cls)
+        return loss
+
+    def loss_similarity(self, feat, label):
+        """Compute the similarity loss
+        Args:
+            embedding (torch.Tensor): [512, C]
+            label (torch.Tensor): [512]
+        """
+        feat = feat / feat.norm(dim=-1, keepdim=True)
+        cos_sim = feat @ feat.T  # [B,B]
+        label_sim = (label[None, :] == label[:, None]).int().float()
+        valid_mask = torch.ones_like(cos_sim)
+        valid_mask[
+            torch.arange(len(valid_mask)).to(valid_mask.device),
+            torch.arange(len(valid_mask)).to(valid_mask.device),
+        ] = 0
+        cos_sim = cos_sim[valid_mask.bool()]
+        label_sim = label_sim[valid_mask.bool()]
+        return torch.pow(cos_sim - label_sim, 2)
+    
+    def _sample_feat(self, buckets, total_sample_num=512):
+        """Sample points from each buckets
+        Args:
+            num_per_buckets (list): number of points in each class
+        """
+        num_per_buckets = [len(p) for p in buckets]
+        sample_per_bucket = [
+            total_sample_num // len(buckets)
+            for _ in range(len(num_per_buckets))
+        ]
+        if len(sample_per_bucket) > 1:
+            sample_per_bucket[-1] = total_sample_num - sum(sample_per_bucket[:-1])
+        else:
+            sample_per_bucket[0] = total_sample_num
+        samples = [
+            p[
+                torch.from_numpy(
+                    np.random.choice(len(p), sample_per_bucket[i], replace=True)
+                ).to(p.device)
+            ]
+            for i, p in enumerate(buckets)
+        ]
+        return samples
 
     @staticmethod
     def _get_batch_hist_vector(target, nclass):

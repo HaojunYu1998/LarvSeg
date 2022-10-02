@@ -54,7 +54,6 @@ class MaskTransformerWeakHead(BaseDecodeHead):
         cls_emb_concat=False,
         imagenet_class_path=None,
         imagenet_prior_loss_weight=1.0,
-        imagenet_cam_thresh=0,
         imagenet_pseudo_label=False,
         imagenet_sample_class_num=0,
         pseudo_label_thresh=0.0,
@@ -71,7 +70,7 @@ class MaskTransformerWeakHead(BaseDecodeHead):
         use_pixel_embedding=False,
         use_pairwise_affinity=False,
         pairwise_affinity_thresh=0.95,
-        cam_thresh=0.9,
+        prior_thresh=0.9,
         use_attention_module=True,
         use_self_attention=False,
         reduce_zero_label=True,
@@ -105,7 +104,6 @@ class MaskTransformerWeakHead(BaseDecodeHead):
         self.imagenet_prior_rate = imagenet_prior_rate
         self.imagenet_pseudo_label = imagenet_pseudo_label
         self.imagenet_sample_class_num = imagenet_sample_class_num
-        self.imagenet_cam_thresh = imagenet_cam_thresh
         self.pseudo_label_thresh = pseudo_label_thresh
         self.cls_emb_path = cls_emb_path
         self.cls_emb_path_test = cls_emb_path_test if len(
@@ -120,7 +118,7 @@ class MaskTransformerWeakHead(BaseDecodeHead):
         # Pairwise Affinity for ImageNet21K supervision
         self.use_pairwise_affinity = use_pairwise_affinity
         self.pairwise_affinity_thresh = pairwise_affinity_thresh
-        self.cam_thresh = cam_thresh
+        self.prior_thresh = prior_thresh
         self.use_attention_module = use_attention_module
         self.use_self_attention = use_self_attention
         self.reduce_zero_label = reduce_zero_label
@@ -541,6 +539,13 @@ class MaskTransformerWeakHead(BaseDecodeHead):
         for b, weak in enumerate(weak_label):
             weak = weak[:, img_labels[b]]
             inds = weak.topk(K).indices
+            weak_score = float(seg_mask[b, inds, img_labels[b]].mean())
+            if self.use_pairwise_affinity and (weak_score > self.prior_thresh):
+                cos_sim = seg_embed[b] @ seg_embed[b, inds].T
+                cos_sim = cos_sim.mean(dim=-1) # (H*W,)
+                pa_inds = (cos_sim > self.pairwise_affinity_thresh).nonzero().flatten()
+                print(len(pa_inds) / seg_embed[b].shape[0])
+                inds = torch.unique(torch.cat([inds, pa_inds]))
             prior_bucket.append(inds + b * H * W)
         assert len(cam_label) == len(img_labels)
         seg_label = torch.cat([
