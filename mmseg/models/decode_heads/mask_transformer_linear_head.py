@@ -290,7 +290,7 @@ class MaskTransformerLinearHead(BaseDecodeHead):
 
     def loss_structure(self, seg_feat, seg_label):
         if self.soft_structure_loss and self.label_cos_sim is None:
-            cls_emb = self.cls_emb.to(seg_feat.device)
+            cls_emb = self.cls_emb.weight.to(seg_feat.device).detach().clone()
             cls_emb = cls_emb / cls_emb.norm(dim=-1, keepdim=True)
             self.label_cos_sim = cls_emb @ cls_emb.T
             del cls_emb
@@ -322,6 +322,11 @@ class MaskTransformerLinearHead(BaseDecodeHead):
         feat = feat / feat.norm(dim=-1, keepdim=True)
         cos_sim = feat @ feat.T  # [B,B]
         label_sim = (label[None, :] == label[:, None]).int().float()
+        if self.soft_structure_loss:
+            label_i = label.repeat_interleave(len(label)).long()
+            label_j = label.repeat(len(label)).long()
+            label_sim = self.label_cos_sim[label_i, label_j]
+            label_sim = label_sim.reshape(len(label), len(label))
         valid_mask = torch.ones_like(cos_sim)
         valid_mask[
             torch.arange(len(valid_mask)).to(valid_mask.device),

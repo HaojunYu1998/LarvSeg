@@ -16,43 +16,43 @@ code:
   local_dir: $CONFIG_DIR/../
 
 jobs:
-  - name: 20221001_baseline_no_attn_160k_bs16_coco_soft_structure_loss
-    sku: G8
-    sla_tier: basic
-    execution_mode: basic
-    priority: high
-    command:
-      - set -x; set -e
-      - pwd; ls; nvidia-smi
-      - sudo bash aml_setup.sh
-      - bash tools/dist_train.sh
-        configs/segmenter/segmenter-propagate_vit-b16_160k_bs16_base_config_coco_no_attn_soft_structure_loss.py
-        --auto-resume
-        --work-dir /zeliuwestus2/output_svlseg/20221001_baseline_no_attn_160k_bs16_coco_soft_structure_loss
-      - bash tools/dist_test.sh
-        configs/segmenter/evaluation/baseline_no_attn_eval_ade_tta.py
-        /zeliuwestus2/output_svlseg/20221001_baseline_no_attn_160k_bs16_coco_soft_structure_loss/iter_160000.pth
-        8
-        --eval mIoU
-        --aug-test
-      - bash tools/dist_test.sh
-        configs/segmenter/evaluation/baseline_no_attn_eval_ade_grounding_tta.py
-        /zeliuwestus2/output_svlseg/20221001_baseline_no_attn_160k_bs16_coco_soft_structure_loss/iter_160000.pth
-        8
-        --eval mIoU
-        --aug-test
-      - bash tools/dist_test.sh
-        configs/segmenter/evaluation/baseline_no_attn_eval_ade_full_tta.py
-        /zeliuwestus2/output_svlseg/20221001_baseline_no_attn_160k_bs16_coco_soft_structure_loss/iter_160000.pth
-        8
-        --eval mIoU
-        --aug-test
-      - bash tools/dist_test.sh
-        configs/segmenter/evaluation/baseline_no_attn_eval_ade_full_grounding_tta.py
-        /zeliuwestus2/output_svlseg/20221001_baseline_no_attn_160k_bs16_coco_soft_structure_loss/iter_160000.pth
-        8
-        --eval mIoU
-        --aug-test
+  # - name: 20221001_baseline_no_attn_160k_bs16_coco_soft_structure_loss
+  #   sku: G8
+  #   sla_tier: basic
+  #   execution_mode: basic
+  #   priority: high
+  #   command:
+  #     - set -x; set -e
+  #     - pwd; ls; nvidia-smi
+  #     - sudo bash aml_setup.sh
+  #     - bash tools/dist_train.sh
+  #       configs/segmenter/segmenter-propagate_vit-b16_160k_bs16_base_config_coco_no_attn_soft_structure_loss.py
+  #       --auto-resume
+  #       --work-dir /zeliuwestus2/output_svlseg/20221001_baseline_no_attn_160k_bs16_coco_soft_structure_loss
+  #     - bash tools/dist_test.sh
+  #       configs/segmenter/evaluation/baseline_no_attn_eval_ade_tta.py
+  #       /zeliuwestus2/output_svlseg/20221001_baseline_no_attn_160k_bs16_coco_soft_structure_loss/iter_160000.pth
+  #       8
+  #       --eval mIoU
+  #       --aug-test
+  #     - bash tools/dist_test.sh
+  #       configs/segmenter/evaluation/baseline_no_attn_eval_ade_grounding_tta.py
+  #       /zeliuwestus2/output_svlseg/20221001_baseline_no_attn_160k_bs16_coco_soft_structure_loss/iter_160000.pth
+  #       8
+  #       --eval mIoU
+  #       --aug-test
+  #     - bash tools/dist_test.sh
+  #       configs/segmenter/evaluation/baseline_no_attn_eval_ade_full_tta.py
+  #       /zeliuwestus2/output_svlseg/20221001_baseline_no_attn_160k_bs16_coco_soft_structure_loss/iter_160000.pth
+  #       8
+  #       --eval mIoU
+  #       --aug-test
+  #     - bash tools/dist_test.sh
+  #       configs/segmenter/evaluation/baseline_no_attn_eval_ade_full_grounding_tta.py
+  #       /zeliuwestus2/output_svlseg/20221001_baseline_no_attn_160k_bs16_coco_soft_structure_loss/iter_160000.pth
+  #       8
+  #       --eval mIoU
+  #       --aug-test
 
   - name: 20221001_baseline_no_attn_weak_160k_bs16_ade_all_prior0.05_propagate
     sku: G8
@@ -63,28 +63,28 @@ jobs:
       - set -x; set -e
       - pwd; ls; nvidia-smi
       - sudo bash aml_setup.sh
-      - bash tools/dist_train.sh
-        configs/segmenter/segmenter-weak_vit-b16_160k_bs16_in21k_ade_all_no_attn_prior0.05_propagte.py
-        --auto-resume
-        --work-dir /zeliuwestus2/output_svlseg/20221001_baseline_no_attn_weak_160k_bs16_ade_all_prior0.05_propagate
-      - bash tools/dist_test.sh
-        configs/segmenter/evaluation/baseline_no_attn_eval_ade_tta.py
-        /zeliuwestus2/output_svlseg/20221001_baseline_no_attn_weak_160k_bs16_ade_all_prior0.05_propagate/iter_160000.pth
-        8
-        --eval mIoU
-        --aug-test
-      - bash tools/dist_test.sh
-        configs/segmenter/evaluation/baseline_no_attn_eval_ade_grounding_tta.py
-        /zeliuwestus2/output_svlseg/20221001_baseline_no_attn_weak_160k_bs16_ade_all_prior0.05_propagate/iter_160000.pth
-        8
-        --eval mIoU
-        --aug-test
-      - bash tools/dist_test.sh
-        configs/segmenter/evaluation/baseline_no_attn_eval_ade_full_tta.py
-        /zeliuwestus2/output_svlseg/20221001_baseline_no_attn_weak_160k_bs16_ade_all_prior0.05_propagate/iter_160000.pth
-        8
-        --eval mIoU
-        --aug-test
+      # - bash tools/dist_train.sh
+      #   configs/segmenter/segmenter-weak_vit-b16_160k_bs16_in21k_ade_all_no_attn_prior0.05_propagte.py
+      #   --auto-resume
+      #   --work-dir /zeliuwestus2/output_svlseg/20221001_baseline_no_attn_weak_160k_bs16_ade_all_prior0.05_propagate
+      # - bash tools/dist_test.sh
+      #   configs/segmenter/evaluation/baseline_no_attn_eval_ade_tta.py
+      #   /zeliuwestus2/output_svlseg/20221001_baseline_no_attn_weak_160k_bs16_ade_all_prior0.05_propagate/iter_160000.pth
+      #   8
+      #   --eval mIoU
+      #   --aug-test
+      # - bash tools/dist_test.sh
+      #   configs/segmenter/evaluation/baseline_no_attn_eval_ade_grounding_tta.py
+      #   /zeliuwestus2/output_svlseg/20221001_baseline_no_attn_weak_160k_bs16_ade_all_prior0.05_propagate/iter_160000.pth
+      #   8
+      #   --eval mIoU
+      #   --aug-test
+      # - bash tools/dist_test.sh
+      #   configs/segmenter/evaluation/baseline_no_attn_eval_ade_full_tta.py
+      #   /zeliuwestus2/output_svlseg/20221001_baseline_no_attn_weak_160k_bs16_ade_all_prior0.05_propagate/iter_160000.pth
+      #   8
+      #   --eval mIoU
+      #   --aug-test
       - bash tools/dist_test.sh
         configs/segmenter/evaluation/baseline_no_attn_eval_ade_full_grounding_tta.py
         /zeliuwestus2/output_svlseg/20221001_baseline_no_attn_weak_160k_bs16_ade_all_prior0.05_propagate/iter_160000.pth

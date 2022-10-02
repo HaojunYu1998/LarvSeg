@@ -59,6 +59,7 @@ class MaskTransformerCosHead(BaseDecodeHead):
         use_self_attention=False,
         reduce_zero_label=True,
         use_structure_loss=False,
+        soft_structure_loss=False,
         structure_loss_weight=1.0,
         oracle_inference=False,
         num_oracle_points=10,
@@ -95,6 +96,7 @@ class MaskTransformerCosHead(BaseDecodeHead):
         self.use_self_attention = use_self_attention
         self.reduce_zero_label = reduce_zero_label
         self.use_structure_loss = use_structure_loss
+        self.soft_structure_loss = soft_structure_loss
         self.structure_loss_weight = structure_loss_weight
         self.oracle_inference = oracle_inference
         self.num_oracle_points = num_oracle_points
@@ -104,8 +106,9 @@ class MaskTransformerCosHead(BaseDecodeHead):
         self.proj_patch = nn.Parameter(self.scale * torch.randn(d_model, d_model))
         self.gamma = nn.Parameter(torch.ones([]))
         self.beta = nn.Parameter(torch.zeros([]))
-        # NOTE: linear classifier
+        # NOTE: cosine classifier
         self.cls_emb = nn.Parameter(self.scale * torch.randn(self.num_classes, d_model))
+        self.label_cos_sim = None
 
     def init_weights(self):
         self.apply(init_weights)
@@ -291,10 +294,11 @@ class MaskTransformerCosHead(BaseDecodeHead):
         return prior_bucket
 
     def loss_structure(self, seg_feat, seg_label):
-        # if self.imagenet_on_gpu:
-        #     return torch.tensor(
-        #         0, dtype=seg_feat.dtype, device=seg_feat.device, requires_grad=True
-        #     )
+        if self.soft_structure_loss and self.label_cos_sim is None:
+            cls_emb = self.cls_emb.to(seg_feat.device).detach().clone()
+            cls_emb = cls_emb / cls_emb.norm(dim=-1, keepdim=True)
+            self.label_cos_sim = cls_emb @ cls_emb.T
+            del cls_emb
         B, C, H, W = seg_feat.size()
         # seg_label = F.interpolate(seg_label.float(), size=(H, W)).long()
         seg_feat = seg_feat.permute(0, 2, 3, 1).reshape(B * H * W, C)
@@ -324,6 +328,11 @@ class MaskTransformerCosHead(BaseDecodeHead):
         feat = feat / feat.norm(dim=-1, keepdim=True)
         cos_sim = feat @ feat.T  # [B,B]
         label_sim = (label[None, :] == label[:, None]).int().float()
+        if self.soft_structure_loss:
+            label_i = label.repeat_interleave(len(label)).long()
+            label_j = label.repeat(len(label)).long()
+            label_sim = self.label_cos_sim[label_i, label_j]
+            label_sim = label_sim.reshape(len(label), len(label))
         valid_mask = torch.ones_like(cos_sim)
         valid_mask[
             torch.arange(len(valid_mask)).to(valid_mask.device),
