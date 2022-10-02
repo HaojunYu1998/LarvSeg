@@ -1,6 +1,7 @@
 _base_ = [
     "../../_base_/models/segmenter_r101.py",
-    "../../_base_/datasets/mix_batch_coco-stuff164k_imagenet21k_ade_filter_v2_multiscale_rr1.py",
+    # "../../_base_/datasets/mix_batch_coco-stuff164k_imagenet21k_ade_filter_v2_multiscale_rr1.py",
+    "../../_base_/datasets/ade20k_multiscale.py",
     "../../_base_/default_runtime.py",
     "../../_base_/schedules/schedule_160k.py",
 ]
