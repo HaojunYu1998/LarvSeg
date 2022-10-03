@@ -9,6 +9,7 @@ from .resnest import ResNeSt
 from .resnet import ResNet, ResNetV1c, ResNetV1d
 from .resnext import ResNeXt
 from .swin import SwinTransformer
+from .swinv2 import SwinTransformerV2
 from .unet import UNet
 from .vit import VisionTransformer
 from .vit_ssn import VisionTransformerSSN
@@ -19,5 +20,6 @@ __all__ = [
     'ResNet', 'ResNetV1c', 'ResNetV1d', 'ResNeXt', 'HRNet', 'FastSCNN',
     'ResNeSt', 'MobileNetV2', 'UNet', 'CGNet', 'MobileNetV3',
     'VisionTransformer', 'SwinTransformer', 'MixVisionTransformer',
-    'VisionTransformerSSN', 'VisionTransformerCLIP'
+    'VisionTransformerSSN', 'VisionTransformerCLIP',
+    'SwinTransformerV2'
 ]

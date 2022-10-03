@@ -1,0 +1,74 @@
+description: CVPR2023
+target:
+  service: amlk8s
+  name: itplabrr1cl1
+
+environment:
+  image: hsfzxjy/mmseg:pytorch1.8.1-cuda10.2-cudnn7-devel
+
+storage:
+  output:
+    storage_account_name: zeliuwestus2
+    container_name: v-miazhang
+    mount_dir: /zeliuwestus2
+
+code:
+  local_dir: $CONFIG_DIR/../
+
+jobs:
+
+  - name: 20221003_large_voc_swinv2b16_cosine_80k_bs16_ade847_temp0.05
+    sku: G8
+    sla_tier: basic
+    execution_mode: basic
+    priority: high
+    command:
+      - set -x; set -e
+      - pwd; ls; nvidia-smi
+      - sudo bash aml_setup.sh
+      - bash tools/dist_train.sh
+        configs/large_voc/large_voc_swinv2b16_cosine_80k_bs16_ade847_temp0.05.py
+        --auto-resume
+        --work-dir /zeliuwestus2/output_svlseg/20221003_large_voc_swinv2b16_cosine_80k_bs16_ade847_temp0.05
+
+  - name: 20221003_large_voc_swinv2b16_cosine_80k_bs16_cocostuff_ade847_temp0.05_structure_thre0.0
+    sku: G8
+    sla_tier: basic
+    execution_mode: basic
+    priority: high
+    command:
+      - set -x; set -e
+      - pwd; ls; nvidia-smi
+      - sudo bash aml_setup.sh
+      - bash tools/dist_train.sh
+        configs/large_voc/large_voc_swinv2b16_cosine_80k_bs16_cocostuff_ade847_temp0.05_structure_thre0.0.py
+        --auto-resume
+        --work-dir /zeliuwestus2/output_svlseg/20221003_large_voc_swinv2b16_cosine_80k_bs16_cocostuff_ade847_temp0.05_structure_thre0.0
+
+  # - name: 20221003_large_voc_swinv2b16_cosine_80k_bs16_cocostuff_ade847_temp0.05_structure_thre0.2
+  #   sku: G8
+  #   sla_tier: basic
+  #   execution_mode: basic
+  #   priority: high
+  #   command:
+  #     - set -x; set -e
+  #     - pwd; ls; nvidia-smi
+  #     - sudo bash aml_setup.sh
+  #     - bash tools/dist_train.sh
+  #       configs/large_voc/large_voc_swinv2b16_cosine_80k_bs16_cocostuff_ade847_temp0.05_structure_thre0.2.py
+  #       --auto-resume
+  #       --work-dir /zeliuwestus2/output_svlseg/20221003_large_voc_swinv2b16_cosine_80k_bs16_cocostuff_ade847_temp0.05_structure_thre0.2
+
+  - name: 20221003_large_voc_swinv2b16_cosine_80k_bs16_cocostuff_ade847_temp0.05
+    sku: G8
+    sla_tier: basic
+    execution_mode: basic
+    priority: high
+    command:
+      - set -x; set -e
+      - pwd; ls; nvidia-smi
+      - sudo bash aml_setup.sh
+      - bash tools/dist_train.sh
+        configs/large_voc/large_voc_swinv2b16_cosine_80k_bs16_cocostuff_ade847_temp0.05.py
+        --auto-resume
+        --work-dir /zeliuwestus2/output_svlseg/20221003_large_voc_swinv2b16_cosine_80k_bs16_cocostuff_ade847_temp0.05

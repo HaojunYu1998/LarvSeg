@@ -49,6 +49,8 @@ class MaskTransformerLargeVocHead(BaseDecodeHead):
         dropout,
         downsample_rate=8,
         temperature=1.0,
+        learnable_temperature=False,
+        upsample_input=1,
         # datasets
         all_cls_path="",
         mix_batch_datasets=["coco", "ade847"],
@@ -86,8 +88,13 @@ class MaskTransformerLargeVocHead(BaseDecodeHead):
         self.prior_loss_weight = 1.0
         self.downsample_rate = downsample_rate
         self.temperature = temperature
+        self.learnable_temperature = learnable_temperature
+        self.upsample_input = upsample_input
         # process datasets, valid for only one dataset
-        self.all_cls = json.load(open(all_cls_path))
+        if os.path.exists(all_cls_path):
+            self.all_cls = json.load(open(all_cls_path))
+        else:
+            self.all_cls = None
         self.mix_batch_datasets = mix_batch_datasets
         self.test_dataset = test_dataset
         self.ignore_indices = ignore_indices
@@ -111,10 +118,17 @@ class MaskTransformerLargeVocHead(BaseDecodeHead):
         self.gamma = nn.Parameter(torch.ones([]))
         self.beta = nn.Parameter(torch.zeros([]))
         # NOTE: cosine classifier
-        self.cls_emb = nn.Parameter(
-            # all categories for training
-            self.scale * torch.randn(len(self.all_cls), d_model)
-        )
+        if self.all_cls is not None:
+            self.cls_emb = nn.Parameter(
+                # all categories for training
+                self.scale * torch.randn(len(self.all_cls), d_model)
+            )
+        else:
+            self.cls_emb = nn.Parameter(
+                self.scale * torch.randn(self.num_classes, d_model)
+            )
+        if self.learnable_temperature:
+            self.logit_scale = nn.Parameter(torch.ones([]) * np.log(1 / 0.07)).exp()
 
     def init_weights(self):
         self.apply(init_weights)
@@ -137,10 +151,18 @@ class MaskTransformerLargeVocHead(BaseDecodeHead):
         elif self.dataset_on_gpu == "ade847":
             from mmseg.datasets.ade import ADE20KFULLDataset
             cls_name = ADE20KFULLDataset.CLASSES
-        self.cls_index = [self.all_cls.index(name) for name in cls_name]
+
+        if self.all_cls is not None:
+            self.cls_index = [self.all_cls.index(name) for name in cls_name]
+        else:
+            self.cls_index = list(range(len(cls_name)))
 
     def forward(self, x, img_metas, img_labels=None):
         x = self._transform_inputs(x)
+        if self.upsample_input > 1:
+            x = F.interpolate(
+                x, scale_factor=self.upsample_input, mode="bilinear", align_corners=self.align_corners
+            )
         cls_emb = self.cls_emb[self.cls_index]
         cls_emb = cls_emb.expand(x.size(0), -1, -1)
         B, C, H, W = x.size()
@@ -155,7 +177,10 @@ class MaskTransformerLargeVocHead(BaseDecodeHead):
         # B, N, C
         cls_seg_feat = cls_seg_feat / cls_seg_feat.norm(dim=-1, keepdim=True)
 
-        masks = patches @ cls_seg_feat.transpose(1, 2)
+        if self.learnable_temperature:
+            masks = self.logit_scale * patches @ cls_seg_feat.transpose(1, 2)
+        else:
+            masks = patches @ cls_seg_feat.transpose(1, 2) / self.temperature
         if self.training:
             masks = (
                 (masks - torch.mean(masks, dim=-1, keepdim=True))

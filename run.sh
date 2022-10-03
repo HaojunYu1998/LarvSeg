@@ -3,7 +3,15 @@ export CUDA_VISIBLE_DEVICES=0,1,2,3
 export CUDA_LAUNCH_BLOCKING=1
 
 bash tools/dist_train.sh \
-configs/segmenter/large_voc_cosine_vit-b16_80k_bs16_cocostuff_ade847.py
+configs/large_voc/large_voc_swinv2b16_cosine_80k_bs16_ade847_temp0.05.py
+
+# configs/large_voc/large_voc_swinv2b16_cosine_80k_bs16_ade847_temp0.05.py
+# configs/large_voc/large_voc_swinv2b16_cosine_80k_bs16_cocostuff_ade847_temp0.05_structure_thre0.0.py
+# configs/large_voc/large_voc_swinv2b16_cosine_80k_bs16_cocostuff_ade847_temp0.05_structure_thre0.2.py
+# configs/large_voc/large_voc_swinv2b16_cosine_80k_bs16_cocostuff_ade847_temp0.05.py
+
+bash tools/dist_train.sh \
+configs/large_voc/large_voc_swinv2b16_cosine_80k_bs16_cocostuff_ade847_temp0.05.py
 
 # bash tools/dist_test.sh \
 # configs/segmenter/segmenter-cosine_vit-b16_80k_bs16_base_config_ade847.py \

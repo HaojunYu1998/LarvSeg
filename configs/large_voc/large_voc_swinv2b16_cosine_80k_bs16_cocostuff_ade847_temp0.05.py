@@ -1,5 +1,5 @@
 _base_ = [
-    "../_base_/models/segmenter_vit-b16.py",
+    "../_base_/models/large_voc_swinv2b16.py",
     "../_base_/datasets/mix_batch_cocostuff_adefull.py",
     "../_base_/default_runtime.py",
     "../_base_/schedules/schedule_80k.py",
@@ -18,7 +18,7 @@ model = dict(
         type="MaskTransformerLargeVocHead",
         n_cls=847,
         downsample_rate=2,
-        temperature=1.0,
+        temperature=0.05,
         # datasets
         all_cls_path="notebook/ade847ucoco.json",
         mix_batch_datasets=["coco171", "ade847"],
@@ -32,7 +32,7 @@ model = dict(
         weakly_min_kept=1,
         weakly_max_kept=100,
         # contrastive loss
-        use_structure_loss=True,
+        use_structure_loss=False,
         structure_loss_weight=1.0,
         structure_loss_thresh=0.0,
         # oracle experiment
