@@ -1,6 +1,6 @@
 # dataset settings
 dataset_type = 'ADE20KFULLMergedDataset'
-data_root = '/data/ade20k_full'
+data_root = '/mnt/haojun2/dataset/ADE20K_2021_17_01'
 img_norm_cfg = dict(
     mean=[123.675, 116.28, 103.53], std=[58.395, 57.12, 57.375], to_rgb=True)
 crop_size = (512, 512)

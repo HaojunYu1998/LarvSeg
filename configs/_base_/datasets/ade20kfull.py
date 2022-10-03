@@ -1,6 +1,7 @@
 # dataset settings
 dataset_type = 'ADE20KFULLDataset'
 data_root = '/mnt/haojun2/dataset/ade20k_full'
+data_root_test = '/mnt/haojun2/dataset/ADE20K_2021_17_01'
 img_norm_cfg = dict(
     mean=[123.675, 116.28, 103.53], std=[58.395, 57.12, 57.375], to_rgb=True)
 crop_size = (512, 512)
@@ -21,7 +22,7 @@ test_pipeline = [
     dict(
         type='MultiScaleFlipAug',
         img_scale=(2048, 512),
-        # img_ratios=[0.5, 0.75, 1.0, 1.25, 1.5, 1.75],
+        # img_ratios=[0.1], #[0.5, 0.75, 1.0, 1.25, 1.5, 1.75],
         flip=False,
         transforms=[
             dict(type='Resize', keep_ratio=True),
@@ -37,18 +38,18 @@ data = dict(
     train=dict(
         type=dataset_type,
         data_root=data_root,
-        img_dir='images_detectron2/training',
-        ann_dir='annotations_detectron2/training',
+        img_dir='train/image',
+        ann_dir='train/label',
         pipeline=train_pipeline),
     val=dict(
         type=dataset_type,
-        data_root=data_root,
+        data_root=data_root_test,
         img_dir='images_detectron2/validation',
         ann_dir='annotations_detectron2/validation',
         pipeline=test_pipeline),
     test=dict(
         type=dataset_type,
-        data_root=data_root,
+        data_root=data_root_test,
         img_dir='images_detectron2/validation',
         ann_dir='annotations_detectron2/validation',
         pipeline=test_pipeline))

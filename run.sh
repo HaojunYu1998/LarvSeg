@@ -1,15 +1,15 @@
 export OMP_NUM_THREADS=1
 export CUDA_VISIBLE_DEVICES=0,1,2,3
+export CUDA_LAUNCH_BLOCKING=1
 
-# bash tools/dist_train.sh \
-# configs/segmenter/segmenter-cosine_vit-b16_160k_bs16_base_config_coco_no_attn_soft_structure_loss.py
+bash tools/dist_train.sh \
+configs/segmenter/large_voc_cosine_vit-b16_80k_bs16_cocostuff_ade847.py
 
-
-bash tools/dist_test.sh \
-configs/segmenter/evaluation/baseline_r101c_no_attn_eval_ade_full_tta.py \
-work_dirs/202209229_baseline_r101_no_attn_160k_bs16_ade_all/iter_160000.pth \
-4 \
---eval mIoU
+# bash tools/dist_test.sh \
+# configs/segmenter/segmenter-cosine_vit-b16_80k_bs16_base_config_ade847.py \
+# work_dirs/segmenter-cosine_vit-b16_80k_bs16_base_config_ade847/iter_80000.pth \
+# 4 \
+# --eval mIoU
 
 # bash tools/dist_test.sh \
 # configs/segmenter/evaluation/baseline_r101c_no_attn_eval_ade_grounding_tta.py \

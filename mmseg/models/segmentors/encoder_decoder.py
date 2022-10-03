@@ -250,7 +250,6 @@ class EncoderDecoder(BaseSegmentor):
         Returns:
             Tensor: The output segmentation map.
         """
-
         assert self.test_cfg.mode in ['slide', 'whole']
         ori_shape = img_meta[0]['ori_shape']
         assert all(_['ori_shape'] == ori_shape for _ in img_meta)
@@ -265,9 +264,8 @@ class EncoderDecoder(BaseSegmentor):
                 seg_logit = self.slide_inference(img, img_meta, rescale)
             else:
                 seg_logit = self.whole_inference(img, img_meta, rescale)
-            # output = seg_logit
-            # print(output.shape)
             output = F.softmax(seg_logit, dim=1)
+            # output = seg_logit
         flip = img_meta[0]['flip']
         if flip:
             flip_direction = img_meta[0]['flip_direction']

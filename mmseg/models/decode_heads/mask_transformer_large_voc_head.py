@@ -34,11 +34,11 @@ def init_weights(m):
 
 
 @HEADS.register_module()
-class MaskTransformerCosHead(BaseDecodeHead):
+class MaskTransformerLargeVocHead(BaseDecodeHead):
 
     def __init__(
         self,
-        n_cls,
+        n_cls, # for evaluation
         patch_size,
         d_encoder,
         n_layers,
@@ -47,20 +47,24 @@ class MaskTransformerCosHead(BaseDecodeHead):
         d_ff,
         drop_path_rate,
         dropout,
-        upsample_input=1,
         downsample_rate=8,
-        prior_rate=0.1,
         temperature=1.0,
-        ann_suffix=".png",
-        test_anno_dir="",
-        use_pairwise_affinity=False,
-        pairwise_affinity_thresh=0.95,
-        cam_thresh=0.9,
-        use_self_attention=False,
-        reduce_zero_label=True,
+        # datasets
+        all_cls_path="",
+        mix_batch_datasets=["coco", "ade847"],
+        test_dataset="ade847",
+        ignore_indices=[255, -1],
+        test_ignore_index=-1,
+        # weakly supervised
+        weakly_supervised_datasets=["ade847"],
+        weakly_prior_thresh=0.8,
+        weakly_min_kept=1,
+        weakly_max_kept=100,
+        # contrastive loss
         use_structure_loss=False,
-        soft_structure_loss=False,
         structure_loss_weight=1.0,
+        structure_loss_thresh=0.2,
+        # oracle experiment
         oracle_inference=False,
         num_oracle_points=10,
         oracle_downsample_rate=1,
@@ -76,28 +80,28 @@ class MaskTransformerCosHead(BaseDecodeHead):
         )
         del self.conv_seg
         self.d_encoder = d_encoder
-        self.patch_size = patch_size
-        self.n_layers = n_layers
         self.n_cls = n_cls
         self.d_model = d_model
-        self.d_ff = d_ff
         self.scale = d_model**-0.5
         self.prior_loss_weight = 1.0
         self.downsample_rate = downsample_rate
-        self.upsample_input = upsample_input
-        self.prior_rate = prior_rate
         self.temperature = temperature
-        self.ann_suffix = ann_suffix
-        self.test_anno_dir = test_anno_dir
-        # Pairwise Affinity for ImageNet21K supervision
-        self.use_pairwise_affinity = use_pairwise_affinity
-        self.pairwise_affinity_thresh = pairwise_affinity_thresh
-        self.cam_thresh = cam_thresh
-        self.use_self_attention = use_self_attention
-        self.reduce_zero_label = reduce_zero_label
+        # process datasets, valid for only one dataset
+        self.all_cls = json.load(open(all_cls_path))
+        self.mix_batch_datasets = mix_batch_datasets
+        self.test_dataset = test_dataset
+        self.ignore_indices = ignore_indices
+        self.test_ignore_index = test_ignore_index
+        # weakly supervised
+        self.weakly_supervised_datasets = weakly_supervised_datasets
+        self.weakly_prior_thresh = weakly_prior_thresh
+        self.weakly_min_kept = weakly_min_kept
+        self.weakly_max_kept = weakly_max_kept
+        # contrastive loss
         self.use_structure_loss = use_structure_loss
-        self.soft_structure_loss = soft_structure_loss
         self.structure_loss_weight = structure_loss_weight
+        self.structure_loss_thresh = structure_loss_thresh
+        # oracle experiment
         self.oracle_inference = oracle_inference
         self.num_oracle_points = num_oracle_points
         self.oracle_downsample_rate = oracle_downsample_rate
@@ -107,20 +111,38 @@ class MaskTransformerCosHead(BaseDecodeHead):
         self.gamma = nn.Parameter(torch.ones([]))
         self.beta = nn.Parameter(torch.zeros([]))
         # NOTE: cosine classifier
-        self.cls_emb = nn.Parameter(self.scale * torch.randn(self.num_classes, d_model))
-        self.label_cos_sim = None
+        self.cls_emb = nn.Parameter(
+            # all categories for training
+            self.scale * torch.randn(len(self.all_cls), d_model)
+        )
 
     def init_weights(self):
         self.apply(init_weights)
 
+    def _update(self, training):
+        rank, _ = get_dist_info()
+        if training:
+            self.dataset_on_gpu = self.mix_batch_datasets[rank % len(self.mix_batch_datasets)]
+            self.ignore_index = self.ignore_indices[rank % len(self.mix_batch_datasets)]
+        else:
+            self.dataset_on_gpu = self.test_dataset
+            self.ignore_index = self.test_ignore_index
+        
+        if self.dataset_on_gpu == "coco171":
+            from mmseg.datasets.coco_stuff import COCOStuffDataset
+            cls_name = COCOStuffDataset.CLASSES
+        elif self.dataset_on_gpu == "ade150":
+            from mmseg.datasets.ade import ADE20KDataset
+            cls_name = ADE20KDataset.CLASSES
+        elif self.dataset_on_gpu == "ade847":
+            from mmseg.datasets.ade import ADE20KFULLDataset
+            cls_name = ADE20KFULLDataset.CLASSES
+        self.cls_index = [self.all_cls.index(name) for name in cls_name]
+
     def forward(self, x, img_metas, img_labels=None):
         x = self._transform_inputs(x)
-        cls_emb = self.cls_emb.expand(x.size(0), -1, -1)
-        # NOTE: upsampling for RN101
-        if self.upsample_input > 1:
-            x = F.interpolate(
-                x, scale_factor=self.upsample_input, mode="bilinear", align_corners=self.align_corners
-            )
+        cls_emb = self.cls_emb[self.cls_index]
+        cls_emb = cls_emb.expand(x.size(0), -1, -1)
         B, C, H, W = x.size()
         feats = x.clone()
         x = x.view(B, C, -1).permute(0, 2, 1)
@@ -147,16 +169,16 @@ class MaskTransformerCosHead(BaseDecodeHead):
         return masks, embeds, feats
 
     def forward_train(self, inputs, img_metas, gt_semantic_seg, train_cfg):
+        self._update(training=True)
         img_labels = None
         masks, embeds, feats = self.forward(inputs, img_metas)
-        # assert False, f"{type(gt_semantic_seg), gt_semantic_seg.unique()}"
         losses = self.losses(masks, embeds, feats, gt_semantic_seg, img_labels)
         return losses
 
     def forward_test(self, inputs, img_metas, test_cfg, gt_semantic_seg=None):
+        self._update(training=False)
         masks, embeds, feats = self.forward(inputs, img_metas)
         if self.oracle_inference:
-            # self.ignore_index = ignore_index
             assert gt_semantic_seg is not None
             masks = self.oracle_propagation(embeds, gt_semantic_seg)
         return masks
@@ -228,12 +250,15 @@ class MaskTransformerCosHead(BaseDecodeHead):
         ).long()
 
         B, N, H, W = seg_mask.shape
-        prior_bucket = self._sample(seg_mask, seg_label)
+        if self.dataset_on_gpu in self.weakly_supervised_datasets:
+            prior_mask, prior_label = self._weak_sample(seg_mask, seg_label)
+        else:
+            prior_mask, prior_label = self._sample(seg_mask, seg_label)
 
         seg_label = seg_label.reshape(B * H * W)
         seg_mask = seg_mask.permute(0, 2, 3, 1).reshape(B * H * W, N)
 
-        if len(prior_bucket) == 0:
+        if prior_mask is None:
             loss['loss_prior'] = torch.tensor(
                 0, dtype=seg_mask.dtype, device=seg_mask.device, requires_grad=True
             )
@@ -242,10 +267,10 @@ class MaskTransformerCosHead(BaseDecodeHead):
                     0, dtype=seg_mask.dtype, device=seg_mask.device, requires_grad=True
                 )
         else:
-            prior_inds = torch.cat(prior_bucket)
+            assert prior_label is not None
             loss['loss_prior'] = self.loss_decode(
-                seg_mask[prior_inds],
-                seg_label[prior_inds],
+                prior_mask, 
+                prior_label,
                 weight=None,
                 ignore_index=self.ignore_index
             ) * self.prior_loss_weight
@@ -258,7 +283,7 @@ class MaskTransformerCosHead(BaseDecodeHead):
         loss['acc_seg'] = accuracy(seg_mask, seg_label) * acc_weight
         return loss
     
-    def _sample(self, seg_logit, seg_label, min_kept=10):
+    def _sample(self, seg_mask, seg_label, min_kept=1):
         """Sample pixels that have high loss or with low prediction confidence.
 
         Args:
@@ -269,7 +294,7 @@ class MaskTransformerCosHead(BaseDecodeHead):
             pos_bucket
             prior_bucket
         """
-        B, N, H, W = seg_logit.size()
+        B, N, H, W = seg_mask.size()
         seg_label = seg_label.reshape(B * H * W)
         unique_label = torch.unique(seg_label)
         unique_label = unique_label[unique_label != self.ignore_index]
@@ -280,27 +305,58 @@ class MaskTransformerCosHead(BaseDecodeHead):
             )
         if len(pos_bucket) == 0:
             return []
-        seg_logit = seg_logit.permute(0, 2, 3, 1).reshape(B * H * W, N)
+        seg_mask = seg_mask.permute(0, 2, 3, 1).reshape(B * H * W, N)
         num_per_bucket = []
         for p in pos_bucket:
-            k = int(self.prior_rate * len(p))
+            k = len(p)
             if k < min_kept:
                 k = min(min_kept, len(p))
             num_per_bucket.append(k)
         prior_bucket = []
         for k, p, l in zip(num_per_bucket, pos_bucket, unique_label):
-            inds = seg_logit[p, int(l)].topk(k).indices
+            inds = seg_mask[p, int(l)].topk(k).indices
             prior_bucket.append(p[inds])
-        return prior_bucket
+        # don't know what happened to cause this
+        if len(prior_bucket) <= 0:
+            return None, None
+        prior_inds = torch.cat(prior_bucket)
+        seg_label = seg_label.reshape(B * H * W)
+        # seg_mask = seg_mask.permute(0, 2, 3, 1).reshape(B * H * W, N)
+        prior_mask = seg_mask[prior_inds]
+        prior_label = seg_label[prior_inds]
+        return prior_mask, prior_label
+
+    def _weak_sample(self, seg_mask, seg_label):
+        """
+        for each image, smaple each category separately
+        i.e. a pixel could be assigned to more than one categories
+        """
+        B, N, H, W = seg_mask.size()
+        prior_mask, prior_label = [], []
+        for mask, label in zip(seg_mask, seg_label):
+            mask = mask.reshape(N, H * W).permute(1, 0)
+            label = label.reshape(H * W)
+            unique_label = torch.unique(label)
+            unique_label = unique_label[unique_label != self.ignore_index]
+            for l in unique_label:
+                inds = (mask[:, l] > self.weakly_prior_thresh).nonzero(as_tuple=False).flatten()
+                if inds.numel() < self.weakly_min_kept:
+                    inds = mask[:, l].topk(self.weakly_min_kept).indices
+                elif inds.numel() > self.weakly_max_kept:
+                    inds = mask[:, l].topk(self.weakly_max_kept).indices
+                prior_mask.append(mask[inds])
+                prior_label.append(label[inds])
+        prior_mask = torch.cat(prior_mask, dim=0)
+        prior_label = torch.cat(prior_label, dim=0)
+        # assert False, f"{prior_mask.shape}"
+        return prior_mask, prior_label
 
     def loss_structure(self, seg_feat, seg_label):
-        if self.soft_structure_loss and self.label_cos_sim is None:
-            cls_emb = self.cls_emb.to(seg_feat.device).detach().clone()
-            cls_emb = cls_emb / cls_emb.norm(dim=-1, keepdim=True)
-            self.label_cos_sim = cls_emb @ cls_emb.T
-            del cls_emb
+        if self.dataset_on_gpu in self.weakly_supervised_datasets:
+            return torch.tensor(
+                0, dtype=seg_feat.dtype, device=seg_feat.device, requires_grad=True
+            )
         B, C, H, W = seg_feat.size()
-        # seg_label = F.interpolate(seg_label.float(), size=(H, W)).long()
         seg_feat = seg_feat.permute(0, 2, 3, 1).reshape(B * H * W, C)
         seg_label = seg_label.reshape(B * H * W)
         unique_label = torch.unique(seg_label)
@@ -328,11 +384,6 @@ class MaskTransformerCosHead(BaseDecodeHead):
         feat = feat / feat.norm(dim=-1, keepdim=True)
         cos_sim = feat @ feat.T  # [B,B]
         label_sim = (label[None, :] == label[:, None]).int().float()
-        if self.soft_structure_loss:
-            label_i = label.repeat_interleave(len(label)).long()
-            label_j = label.repeat(len(label)).long()
-            label_sim = self.label_cos_sim[label_i, label_j]
-            label_sim = label_sim.reshape(len(label), len(label))
         valid_mask = torch.ones_like(cos_sim)
         valid_mask[
             torch.arange(len(valid_mask)).to(valid_mask.device),
@@ -340,6 +391,12 @@ class MaskTransformerCosHead(BaseDecodeHead):
         ] = 0
         cos_sim = cos_sim[valid_mask.bool()]
         label_sim = label_sim[valid_mask.bool()]
+        # for negative samples, don't add loss if they are lower than the thresh
+        _mask = (
+            (cos_sim > self.structure_loss_thresh) | (label_sim == 1)
+        )
+        cos_sim = cos_sim[_mask]
+        label_sim = label_sim[_mask]
         return torch.pow(cos_sim - label_sim, 2)
     
     def _sample_feat(self, buckets, total_sample_num=512):
@@ -376,189 +433,3 @@ class MaskTransformerCosHead(BaseDecodeHead):
                 target[i].data.float(), bins=nclass, min=0, max=nclass - 1)
             tvect[i] = hist
         return tvect
-
-
-class FeedForward(nn.Module):
-
-    def __init__(self, dim, hidden_dim, dropout, out_dim=None):
-        super().__init__()
-        self.fc1 = nn.Linear(dim, hidden_dim)
-        self.act = nn.GELU()
-        if out_dim is None:
-            out_dim = dim
-        self.fc2 = nn.Linear(hidden_dim, out_dim)
-        self.drop = nn.Dropout(dropout)
-
-    @property
-    def unwrapped(self):
-        return self
-
-    def forward(self, x):
-        x = self.fc1(x)
-        x = self.act(x)
-        x = self.drop(x)
-        x = self.fc2(x)
-        x = self.drop(x)
-        return x
-
-
-class Attention(nn.Module):
-
-    def __init__(self, dim, heads, dropout):
-        super().__init__()
-        self.heads = heads
-        head_dim = dim // heads
-        self.scale = head_dim**-0.5
-        self.attn = None
-
-        self.q_linear = nn.Linear(dim, dim)
-        self.k_linear = nn.Linear(dim, dim)
-        self.v_linear = nn.Linear(dim, dim)
-        self.attn_drop = nn.Dropout(dropout)
-        self.proj = nn.Linear(dim, dim)
-        self.proj_drop = nn.Dropout(dropout)
-
-    @property
-    def unwrapped(self):
-        return self
-
-    def forward(self, q, k, v, mask=None):
-        B, _, C = q.shape
-        # B, head, N, C // head
-        q = self.q_linear(q).reshape(B, -1, self.heads,
-                                     C // self.heads).permute(0, 2, 1, 3)
-        k = self.k_linear(k).reshape(B, -1, self.heads,
-                                     C // self.heads).permute(0, 2, 1, 3)
-        v = self.v_linear(v).reshape(B, -1, self.heads,
-                                     C // self.heads).permute(0, 2, 1, 3)
-
-        attn = (q @ k.transpose(-2, -1)) * self.scale
-        attn = attn.softmax(dim=-1)
-        attn = self.attn_drop(attn)
-
-        x = (attn @ v).transpose(1, 2).reshape(B, -1, C)
-        x = self.proj(x)
-        x = self.proj_drop(x)
-
-        return x, attn
-
-
-class Block(nn.Module):
-
-    def __init__(self, dim, heads, mlp_dim, dropout, drop_path):
-        super().__init__()
-        self.norm1 = nn.LayerNorm(dim)
-        self.norm2 = nn.LayerNorm(dim)
-        self.attn = Attention(dim, heads, dropout)
-        self.mlp = FeedForward(dim, mlp_dim, dropout)
-        self.drop_path = DropPath(
-            drop_path) if drop_path > 0.0 else nn.Identity()
-
-    def forward(self, x, cls_emb, mask=None, return_attention=False):
-        y, attn = self.attn(self.norm1(x), cls_emb, cls_emb, mask)
-        if return_attention:
-            return attn
-        x = x + self.drop_path(y)
-        x = x + self.drop_path(self.mlp(self.norm2(x)))
-        return x
-
-class Attention2(nn.Module):
-
-    def __init__(self, dim, heads, dropout):
-        super().__init__()
-        self.heads = heads
-        head_dim = dim // heads
-        self.scale = head_dim**-0.5
-        self.attn = None
-
-        self.qkv = nn.Linear(dim, dim * 3)
-        self.attn_drop = nn.Dropout(dropout)
-        self.proj = nn.Linear(dim, dim)
-        self.proj_drop = nn.Dropout(dropout)
-
-    @property
-    def unwrapped(self):
-        return self
-
-    def forward(self, x, mask=None):
-        B, N, C = x.shape
-        qkv = (
-            self.qkv(x).reshape(B, N, 3, self.heads,
-                                C // self.heads).permute(2, 0, 3, 1, 4))
-        q, k, v = (
-            qkv[0],
-            qkv[1],
-            qkv[2],
-        )
-
-        attn = (q @ k.transpose(-2, -1)) * self.scale
-        attn = attn.softmax(dim=-1)
-        attn = self.attn_drop(attn)
-
-        x = (attn @ v).transpose(1, 2).reshape(B, N, C)
-        x = self.proj(x)
-        x = self.proj_drop(x)
-
-        return x, attn
-
-
-class Block2(nn.Module):
-
-    def __init__(self, dim, heads, mlp_dim, dropout, drop_path):
-        super().__init__()
-        self.norm1 = nn.LayerNorm(dim)
-        self.norm2 = nn.LayerNorm(dim)
-        self.attn = Attention2(dim, heads, dropout)
-        self.mlp = FeedForward(dim, mlp_dim, dropout)
-        self.drop_path = DropPath(
-            drop_path) if drop_path > 0.0 else nn.Identity()
-
-    def forward(self, x, mask=None, return_attention=False):
-        y, attn = self.attn(self.norm1(x), mask)
-        if return_attention:
-            return attn
-        x = x + self.drop_path(y)
-        x = x + self.drop_path(self.mlp(self.norm2(x)))
-        return x
-
-
-class DecoderLinear(nn.Module):
-
-    def __init__(self, n_cls, patch_size, d_encoder):
-        super().__init__()
-
-        self.d_encoder = d_encoder
-        self.patch_size = patch_size
-        self.n_cls = n_cls
-
-        self.head = nn.Linear(self.d_encoder, n_cls)
-        self.apply(init_weights)
-
-    @torch.jit.ignore
-    def no_weight_decay(self):
-        return set()
-
-    def forward(self, x, im_size):
-        H, W = im_size
-        GS = H // self.patch_size
-        x = self.head(x)
-        B, HW, C = x.size()
-        x = x.view(B, GS, HW // GS, C).permute(0, 3, 1, 2)
-        # x = rearrange(x, "b (h w) c -> b c h w", h=GS)
-
-        return x
-
-
-class LayerScale(nn.Module):
-    """Reproduced LayerNorm
-    https://github.com/pytorch/pytorch/blob/e2eb97dd7682d2810071ce78b76543acc1584a9c/torch/onnx/symbolic_opset9.py#L1311
-    """
-
-    def __init__(self, dim, eps=1e-5):
-        super().__init__()
-        self.gamma = nn.Parameter(torch.ones(dim))
-        self.beta = nn.Parameter(torch.zeros(dim))
-        self.eps = eps
-
-    def forward(self, x):
-        return self.gamma * x + self.beta

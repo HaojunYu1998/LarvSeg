@@ -544,7 +544,7 @@ class MaskTransformerWeakHead(BaseDecodeHead):
                 cos_sim = seg_embed[b] @ seg_embed[b, inds].T
                 cos_sim = cos_sim.mean(dim=-1) # (H*W,)
                 pa_inds = (cos_sim > self.pairwise_affinity_thresh).nonzero().flatten()
-                print(len(pa_inds) / seg_embed[b].shape[0])
+                # print(len(pa_inds) / seg_embed[b].shape[0])
                 inds = torch.unique(torch.cat([inds, pa_inds]))
             prior_bucket.append(inds + b * H * W)
         assert len(cam_label) == len(img_labels)

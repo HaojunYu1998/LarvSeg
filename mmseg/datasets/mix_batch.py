@@ -24,7 +24,7 @@ from mmseg.utils import get_root_logger
 from .builder import DATASETS
 from .pipelines import Compose, LoadAnnotations
 from .coco_stuff import COCOStuffDataset
-from .ade import ADE20KDataset
+from .ade import ADE20KDataset, ADE20KFULLDataset
 from .imagenet import ImageNet21K
 
 
@@ -38,16 +38,17 @@ class MixBatchDataset(Dataset):
                 return COCOStuffDataset(**args)
             elif type == "ADE20KDataset":
                 return ADE20KDataset(**args)
+            elif type == "ADE20KFULLDataset":
+                return ADE20KFULLDataset(**args)
             elif type == "ImageNet21K":
                 return ImageNet21K(**args)
-            assert False
+            assert False, f"{type} is not supported"
 
         self.rank, world_size = get_dist_info()
         assert len(dataset_list) <= world_size
 
         args = dataset_list[self.rank % len(dataset_list)]
         self.dataset = build_dataset(args)
-        # self.dataset_type = args["type"]
 
         self.pipeline = self.dataset.pipeline
         self.img_dir = self.dataset.img_dir
