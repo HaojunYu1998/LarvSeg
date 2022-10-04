@@ -146,7 +146,6 @@ class EncoderDecoder(BaseSegmentor):
             x = self.extract_feat(img)
         else:
             x = (self.extract_feat(img[0]), img[1])
-
         losses = dict()
 
         loss_decode = self._decode_head_forward_train(x, img_metas,

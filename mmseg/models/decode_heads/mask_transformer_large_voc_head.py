@@ -128,7 +128,7 @@ class MaskTransformerLargeVocHead(BaseDecodeHead):
                 self.scale * torch.randn(self.num_classes, d_model)
             )
         if self.learnable_temperature:
-            self.logit_scale = nn.Parameter(torch.ones([]) * np.log(1 / 0.07)).exp()
+            self.logit_scale = nn.Parameter((torch.ones([]) * np.log(1 / 0.07)).exp())
 
     def init_weights(self):
         self.apply(init_weights)
@@ -416,7 +416,7 @@ class MaskTransformerLargeVocHead(BaseDecodeHead):
         ] = 0
         cos_sim = cos_sim[valid_mask.bool()]
         label_sim = label_sim[valid_mask.bool()]
-        # for negative samples, don't add loss if they are lower than the thresh
+        # NOTE: for negative samples, don't add loss if they are lower than the thresh
         _mask = (
             (cos_sim > self.structure_loss_thresh) | (label_sim == 1)
         )

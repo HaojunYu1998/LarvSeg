@@ -1,8 +1,8 @@
 _base_ = [
-    "../_base_/models/large_voc_swinv2b16.py",
-    "../_base_/datasets/mix_batch_cocostuff_adefull.py",
-    "../_base_/default_runtime.py",
-    "../_base_/schedules/schedule_80k.py",
+    "../../_base_/models/large_voc_swinv2b16.py",
+    "../../_base_/datasets/mix_batch_cocostuff_adefull.py",
+    "../../_base_/default_runtime.py",
+    "../../_base_/schedules/schedule_80k.py",
 ]
 
 model = dict(
@@ -20,17 +20,17 @@ model = dict(
         downsample_rate=2,
         temperature=0.05,
         # datasets
-        all_cls_path="",
-        mix_batch_datasets=["ade847"],
+        all_cls_path="notebook/ade847ucoco.json",
+        mix_batch_datasets=["coco171", "ade847"],
         test_dataset="ade847",
         # 65535 is -1 for int16, but during training the label will be cast to int32
-        ignore_indices=[-1],
+        ignore_indices=[255, -1],
         test_ignore_index=-1,
         # weakly supervised
-        weakly_supervised_datasets=[],
+        weakly_supervised_datasets=["ade847"],
         weakly_prior_thresh=0.9,
-        weakly_min_kept=1,
-        weakly_max_kept=100,
+        weakly_min_kept=10,
+        weakly_max_kept=1000,
         # contrastive loss
         use_structure_loss=False,
         structure_loss_weight=1.0,
