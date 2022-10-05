@@ -220,20 +220,21 @@ class MaskTransformerLargeVocHead(BaseDecodeHead):
             mode='bilinear',
             align_corners=self.align_corners
         )
-        assert self.num_classes == 150
+        # assert self.num_classes == 150
         seg_label = resize(
             input=seg_label.float(),
             size=(h, w),
             mode='nearest'
         ).long()[0, 0]
-        seg_label = seg_label - 1
-        seg_label[seg_label == -1] = 255 # NOTE: hard code for convenience (ADE-150)
+        if self.dataset_on_gpu == "ade150":
+            seg_label = seg_label - 1
+            seg_label[seg_label == -1] = self.ignore_index
         seg_embed = seg_embed.permute(0, 2, 3, 1)
         seg_label_per_image = seg_label.reshape(h * w)
         seg_embed_per_image = seg_embed.reshape(h * w, C)
         seg_embed_per_image = seg_embed_per_image / seg_embed_per_image.norm(dim=-1, keepdim=True)
         unique_label = torch.unique(seg_label_per_image)
-        unique_label = unique_label[unique_label != 255]
+        unique_label = unique_label[unique_label != self.ignore_index]
         masks = torch.zeros((B, self.num_classes, h, w), device=device)
         for l in unique_label:
             pos_inds = (seg_label_per_image == l).nonzero(as_tuple=False)[:, 0]

@@ -2,24 +2,15 @@ export OMP_NUM_THREADS=1
 export CUDA_VISIBLE_DEVICES=0,1,2,3
 # export CUDA_LAUNCH_BLOCKING=1
 
-# bash tools/dist_train.sh \
-# configs/large_voc/large_voc_swinv2b16_cosine_80k_bs16_cocostuff_ade847_temp0.05.py
-
 bash tools/dist_train.sh \
-configs/large_voc/swinv2/large_voc_swinv2b16_cosine_80k_bs16_cocostuff_ade847_structure_weight1.0_thre0.0.py
-
-
-# configs/large_voc/large_voc_swinv2b16_cosine_80k_bs16_cocostuff_ade847_temp0.05_max200.py
-# configs/large_voc/large_voc_swinv2b16_cosine_80k_bs16_cocostuff_ade847_temp0.05_max500.py
-# configs/large_voc/large_voc_swinv2b16_cosine_80k_bs16_cocostuff_ade847_temp0.05_max1000.py
+configs/large_voc/vit/large_voc_vitb16_cosine_80k_bs16_cocostuff_ade847_temp0.05_max100_min10.py
 
 
 # bash tools/dist_test.sh \
-# configs/segmenter/segmenter-cosine_vit-b16_80k_bs16_base_config_ade847.py \
-# work_dirs/segmenter-cosine_vit-b16_80k_bs16_base_config_ade847/iter_80000.pth \
+# configs/large_voc/vit/large_voc_vitb16_cosine_80k_bs16_cocostuff_ade847_temp0.05.py \
+# work_dirs/20221004_large_voc_vitb16_cosine_80k_bs16_cocostuff_ade847_temp0.05_sing/iter_80000.pth \
 # 4 \
-# --eval mIoU
-
+# --eval mIoU > weak.txt
 
 # sudo nvidia-docker run --ipc=host -it -v /mnt/haojun/itpsea4data:/itpsea4data --ipc=host hsfzxjy/mmseg:pytorch1.8.1-cuda10.2-cudnn7-devel /bin/bash
 # sudo nvidia-docker run --ipc=host -it -v /mnt/haojun/itpsea4data:/itpsea4data --ipc=host zeliu98/pytorch:superbench-nvcr21.05-fixfusedlamb-itp-mmcv-msrest /bin/bash

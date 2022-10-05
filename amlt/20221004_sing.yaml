@@ -18,59 +18,59 @@ code:
 
 jobs:
 
-  - name: 20221004_large_voc_swinv2b16_cosine_80k_bs16_cocostuff_ade847_structure_weight1.0_thre0.0
-    sku: G8
-    sla_tier: basic
-    execution_mode: basic
-    priority: high
-    command:
-      - set -x; set -e
-      - pwd; ls; nvidia-smi
-      - sudo bash aml_setup_sing.sh
-      - /opt/conda/bin/python -m torch.distributed.launch
-        --nproc_per_node=8
-        --master_port=$$MASTER_PORT
-        tools/train.py
-        configs/large_voc/swinv2/large_voc_swinv2b16_cosine_80k_bs16_cocostuff_ade847_structure_weight1.0_thre0.0.py
-        --launcher pytorch
-        --auto-resume
-        --work-dir /zeliuwestus2/output_svlseg/20221004_large_voc_swinv2b16_cosine_80k_bs16_cocostuff_ade847_structure_weight1.0_thre0.0
+  # - name: 20221004_large_voc_swinv2b16_cosine_80k_bs16_cocostuff_ade847_structure_weight1.0_thre0.0
+  #   sku: G8
+  #   sla_tier: basic
+  #   execution_mode: basic
+  #   priority: high
+  #   command:
+  #     - set -x; set -e
+  #     - pwd; ls; nvidia-smi
+  #     - sudo bash aml_setup_sing.sh
+  #     - /opt/conda/bin/python -m torch.distributed.launch
+  #       --nproc_per_node=8
+  #       --master_port=$$MASTER_PORT
+  #       tools/train.py
+  #       configs/large_voc/swinv2/large_voc_swinv2b16_cosine_80k_bs16_cocostuff_ade847_structure_weight1.0_thre0.0.py
+  #       --launcher pytorch
+  #       --auto-resume
+  #       --work-dir /zeliuwestus2/output_svlseg/20221004_large_voc_swinv2b16_cosine_80k_bs16_cocostuff_ade847_structure_weight1.0_thre0.0
 
-  - name: 20221004_large_voc_swinv2b16_cosine_80k_bs16_cocostuff_ade847_structure_weight1.0_thre0.2
-    sku: G8
-    sla_tier: basic
-    execution_mode: basic
-    priority: high
-    command:
-      - set -x; set -e
-      - pwd; ls; nvidia-smi
-      - sudo bash aml_setup_sing.sh
-      - /opt/conda/bin/python -m torch.distributed.launch
-        --nproc_per_node=8
-        --master_port=$$MASTER_PORT
-        tools/train.py
-        configs/large_voc/swinv2/large_voc_swinv2b16_cosine_80k_bs16_cocostuff_ade847_structure_weight1.0_thre0.2.py
-        --launcher pytorch
-        --auto-resume
-        --work-dir /zeliuwestus2/output_svlseg/20221004_large_voc_swinv2b16_cosine_80k_bs16_cocostuff_ade847_structure_weight1.0_thre0.2
+  # - name: 20221004_large_voc_swinv2b16_cosine_80k_bs16_cocostuff_ade847_structure_weight1.0_thre0.2
+  #   sku: G8
+  #   sla_tier: basic
+  #   execution_mode: basic
+  #   priority: high
+  #   command:
+  #     - set -x; set -e
+  #     - pwd; ls; nvidia-smi
+  #     - sudo bash aml_setup_sing.sh
+  #     - /opt/conda/bin/python -m torch.distributed.launch
+  #       --nproc_per_node=8
+  #       --master_port=$$MASTER_PORT
+  #       tools/train.py
+  #       configs/large_voc/swinv2/large_voc_swinv2b16_cosine_80k_bs16_cocostuff_ade847_structure_weight1.0_thre0.2.py
+  #       --launcher pytorch
+  #       --auto-resume
+  #       --work-dir /zeliuwestus2/output_svlseg/20221004_large_voc_swinv2b16_cosine_80k_bs16_cocostuff_ade847_structure_weight1.0_thre0.2
 
-  - name: 20221004_large_voc_swinv2b16_cosine_80k_bs16_cocostuff_ade847_structure_weight1.0_thre0.4
-    sku: G8
-    sla_tier: basic
-    execution_mode: basic
-    priority: high
-    command:
-      - set -x; set -e
-      - pwd; ls; nvidia-smi
-      - sudo bash aml_setup_sing.sh
-      - /opt/conda/bin/python -m torch.distributed.launch
-        --nproc_per_node=8
-        --master_port=$$MASTER_PORT
-        tools/train.py
-        configs/large_voc/swinv2/large_voc_swinv2b16_cosine_80k_bs16_cocostuff_ade847_structure_weight1.0_thre0.4.py
-        --launcher pytorch
-        --auto-resume
-        --work-dir /zeliuwestus2/output_svlseg/20221004_large_voc_swinv2b16_cosine_80k_bs16_cocostuff_ade847_structure_weight1.0_thre0.4
+  # - name: 20221004_large_voc_swinv2b16_cosine_80k_bs16_cocostuff_ade847_structure_weight1.0_thre0.4
+  #   sku: G8
+  #   sla_tier: basic
+  #   execution_mode: basic
+  #   priority: high
+  #   command:
+  #     - set -x; set -e
+  #     - pwd; ls; nvidia-smi
+  #     - sudo bash aml_setup_sing.sh
+  #     - /opt/conda/bin/python -m torch.distributed.launch
+  #       --nproc_per_node=8
+  #       --master_port=$$MASTER_PORT
+  #       tools/train.py
+  #       configs/large_voc/swinv2/large_voc_swinv2b16_cosine_80k_bs16_cocostuff_ade847_structure_weight1.0_thre0.4.py
+  #       --launcher pytorch
+  #       --auto-resume
+  #       --work-dir /zeliuwestus2/output_svlseg/20221004_large_voc_swinv2b16_cosine_80k_bs16_cocostuff_ade847_structure_weight1.0_thre0.4
 
   - name: 20221004_large_voc_swinv2b16_cosine_80k_bs16_cocostuff_ade847_structure_weight5.0_thre0.0
     sku: G8
@@ -90,95 +90,95 @@ jobs:
         --auto-resume
         --work-dir /zeliuwestus2/output_svlseg/20221004_large_voc_swinv2b16_cosine_80k_bs16_cocostuff_ade847_structure_weight5.0_thre0.0
 
-  - name: 20221004_large_voc_swinv2b16_cosine_80k_bs16_cocostuff_ade847_structure_weight5.0_thre0.2
-    sku: G8
-    sla_tier: basic
-    execution_mode: basic
-    priority: high
-    command:
-      - set -x; set -e
-      - pwd; ls; nvidia-smi
-      - sudo bash aml_setup_sing.sh
-      - /opt/conda/bin/python -m torch.distributed.launch
-        --nproc_per_node=8
-        --master_port=$$MASTER_PORT
-        tools/train.py
-        configs/large_voc/swinv2/large_voc_swinv2b16_cosine_80k_bs16_cocostuff_ade847_structure_weight5.0_thre0.2.py
-        --launcher pytorch
-        --auto-resume
-        --work-dir /zeliuwestus2/output_svlseg/20221004_large_voc_swinv2b16_cosine_80k_bs16_cocostuff_ade847_structure_weight5.0_thre0.2
+  # - name: 20221004_large_voc_swinv2b16_cosine_80k_bs16_cocostuff_ade847_structure_weight5.0_thre0.2
+  #   sku: G8
+  #   sla_tier: basic
+  #   execution_mode: basic
+  #   priority: high
+  #   command:
+  #     - set -x; set -e
+  #     - pwd; ls; nvidia-smi
+  #     - sudo bash aml_setup_sing.sh
+  #     - /opt/conda/bin/python -m torch.distributed.launch
+  #       --nproc_per_node=8
+  #       --master_port=$$MASTER_PORT
+  #       tools/train.py
+  #       configs/large_voc/swinv2/large_voc_swinv2b16_cosine_80k_bs16_cocostuff_ade847_structure_weight5.0_thre0.2.py
+  #       --launcher pytorch
+  #       --auto-resume
+  #       --work-dir /zeliuwestus2/output_svlseg/20221004_large_voc_swinv2b16_cosine_80k_bs16_cocostuff_ade847_structure_weight5.0_thre0.2
 
-  - name: 20221004_large_voc_swinv2b16_cosine_80k_bs16_cocostuff_ade847_structure_weight5.0_thre0.4
-    sku: G8
-    sla_tier: basic
-    execution_mode: basic
-    priority: high
-    command:
-      - set -x; set -e
-      - pwd; ls; nvidia-smi
-      - sudo bash aml_setup_sing.sh
-      - /opt/conda/bin/python -m torch.distributed.launch
-        --nproc_per_node=8
-        --master_port=$$MASTER_PORT
-        tools/train.py
-        configs/large_voc/swinv2/large_voc_swinv2b16_cosine_80k_bs16_cocostuff_ade847_structure_weight5.0_thre0.4.py
-        --launcher pytorch
-        --auto-resume
-        --work-dir /zeliuwestus2/output_svlseg/20221004_large_voc_swinv2b16_cosine_80k_bs16_cocostuff_ade847_structure_weight5.0_thre0.4
+  # - name: 20221004_large_voc_swinv2b16_cosine_80k_bs16_cocostuff_ade847_structure_weight5.0_thre0.4
+  #   sku: G8
+  #   sla_tier: basic
+  #   execution_mode: basic
+  #   priority: high
+  #   command:
+  #     - set -x; set -e
+  #     - pwd; ls; nvidia-smi
+  #     - sudo bash aml_setup_sing.sh
+  #     - /opt/conda/bin/python -m torch.distributed.launch
+  #       --nproc_per_node=8
+  #       --master_port=$$MASTER_PORT
+  #       tools/train.py
+  #       configs/large_voc/swinv2/large_voc_swinv2b16_cosine_80k_bs16_cocostuff_ade847_structure_weight5.0_thre0.4.py
+  #       --launcher pytorch
+  #       --auto-resume
+  #       --work-dir /zeliuwestus2/output_svlseg/20221004_large_voc_swinv2b16_cosine_80k_bs16_cocostuff_ade847_structure_weight5.0_thre0.4
 
-  - name: 20221004_large_voc_swinv2b16_cosine_80k_bs16_cocostuff_ade847_structure_weight10.0_thre0.0
-    sku: G8
-    sla_tier: basic
-    execution_mode: basic
-    priority: high
-    command:
-      - set -x; set -e
-      - pwd; ls; nvidia-smi
-      - sudo bash aml_setup_sing.sh
-      - /opt/conda/bin/python -m torch.distributed.launch
-        --nproc_per_node=8
-        --master_port=$$MASTER_PORT
-        tools/train.py
-        configs/large_voc/swinv2/large_voc_swinv2b16_cosine_80k_bs16_cocostuff_ade847_structure_weight10.0_thre0.0.py
-        --launcher pytorch
-        --auto-resume
-        --work-dir /zeliuwestus2/output_svlseg/20221004_large_voc_swinv2b16_cosine_80k_bs16_cocostuff_ade847_structure_weight10.0_thre0.0
+  # - name: 20221004_large_voc_swinv2b16_cosine_80k_bs16_cocostuff_ade847_structure_weight10.0_thre0.0
+  #   sku: G8
+  #   sla_tier: basic
+  #   execution_mode: basic
+  #   priority: high
+  #   command:
+  #     - set -x; set -e
+  #     - pwd; ls; nvidia-smi
+  #     - sudo bash aml_setup_sing.sh
+  #     - /opt/conda/bin/python -m torch.distributed.launch
+  #       --nproc_per_node=8
+  #       --master_port=$$MASTER_PORT
+  #       tools/train.py
+  #       configs/large_voc/swinv2/large_voc_swinv2b16_cosine_80k_bs16_cocostuff_ade847_structure_weight10.0_thre0.0.py
+  #       --launcher pytorch
+  #       --auto-resume
+  #       --work-dir /zeliuwestus2/output_svlseg/20221004_large_voc_swinv2b16_cosine_80k_bs16_cocostuff_ade847_structure_weight10.0_thre0.0
 
-  - name: 20221004_large_voc_swinv2b16_cosine_80k_bs16_cocostuff_ade847_structure_weight10.0_thre0.2
-    sku: G8
-    sla_tier: basic
-    execution_mode: basic
-    priority: high
-    command:
-      - set -x; set -e
-      - pwd; ls; nvidia-smi
-      - sudo bash aml_setup_sing.sh
-      - /opt/conda/bin/python -m torch.distributed.launch
-        --nproc_per_node=8
-        --master_port=$$MASTER_PORT
-        tools/train.py
-        configs/large_voc/swinv2/large_voc_swinv2b16_cosine_80k_bs16_cocostuff_ade847_structure_weight10.0_thre0.2.py
-        --launcher pytorch
-        --auto-resume
-        --work-dir /zeliuwestus2/output_svlseg/20221004_large_voc_swinv2b16_cosine_80k_bs16_cocostuff_ade847_structure_weight10.0_thre0.2
+  # - name: 20221004_large_voc_swinv2b16_cosine_80k_bs16_cocostuff_ade847_structure_weight10.0_thre0.2
+  #   sku: G8
+  #   sla_tier: basic
+  #   execution_mode: basic
+  #   priority: high
+  #   command:
+  #     - set -x; set -e
+  #     - pwd; ls; nvidia-smi
+  #     - sudo bash aml_setup_sing.sh
+  #     - /opt/conda/bin/python -m torch.distributed.launch
+  #       --nproc_per_node=8
+  #       --master_port=$$MASTER_PORT
+  #       tools/train.py
+  #       configs/large_voc/swinv2/large_voc_swinv2b16_cosine_80k_bs16_cocostuff_ade847_structure_weight10.0_thre0.2.py
+  #       --launcher pytorch
+  #       --auto-resume
+  #       --work-dir /zeliuwestus2/output_svlseg/20221004_large_voc_swinv2b16_cosine_80k_bs16_cocostuff_ade847_structure_weight10.0_thre0.2
 
-  - name: 20221004_large_voc_swinv2b16_cosine_80k_bs16_cocostuff_ade847_structure_weight10.0_thre0.4
-    sku: G8
-    sla_tier: basic
-    execution_mode: basic
-    priority: high
-    command:
-      - set -x; set -e
-      - pwd; ls; nvidia-smi
-      - sudo bash aml_setup_sing.sh
-      - /opt/conda/bin/python -m torch.distributed.launch
-        --nproc_per_node=8
-        --master_port=$$MASTER_PORT
-        tools/train.py
-        configs/large_voc/swinv2/large_voc_swinv2b16_cosine_80k_bs16_cocostuff_ade847_structure_weight10.0_thre0.4.py
-        --launcher pytorch
-        --auto-resume
-        --work-dir /zeliuwestus2/output_svlseg/20221004_large_voc_swinv2b16_cosine_80k_bs16_cocostuff_ade847_structure_weight10.0_thre0.4
+  # - name: 20221004_large_voc_swinv2b16_cosine_80k_bs16_cocostuff_ade847_structure_weight10.0_thre0.4
+  #   sku: G8
+  #   sla_tier: basic
+  #   execution_mode: basic
+  #   priority: high
+  #   command:
+  #     - set -x; set -e
+  #     - pwd; ls; nvidia-smi
+  #     - sudo bash aml_setup_sing.sh
+  #     - /opt/conda/bin/python -m torch.distributed.launch
+  #       --nproc_per_node=8
+  #       --master_port=$$MASTER_PORT
+  #       tools/train.py
+  #       configs/large_voc/swinv2/large_voc_swinv2b16_cosine_80k_bs16_cocostuff_ade847_structure_weight10.0_thre0.4.py
+  #       --launcher pytorch
+  #       --auto-resume
+  #       --work-dir /zeliuwestus2/output_svlseg/20221004_large_voc_swinv2b16_cosine_80k_bs16_cocostuff_ade847_structure_weight10.0_thre0.4
 
   # - name: 20221004_large_voc_swinv2b16_cosine_80k_bs16_cocostuff_ade847_temp0.01
   #   sku: G8

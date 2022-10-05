@@ -1,8 +1,8 @@
 description: CVPR2023
 target:
   service: sing
-  # name: msroctovc
-  name: msrresrchvc
+  name: msroctovc
+  # name: msrresrchvc
 
 environment:
   image: zeliu98/pytorch:superbench-nvcr21.05-fixfusedlamb-itp-mmcv-msrest
@@ -216,23 +216,23 @@ jobs:
   #       --auto-resume
   #       --work-dir /zeliuwestus2/output_svlseg/20221003_large_voc_swinv2b16_cosine_80k_bs16_cocostuff_ade847_temp0.05_max1000_sing
 
-  - name: 20221003_large_voc_swinv2b16_cosine_80k_bs16_cocostuff_ade847_templearn_structure_thre0.0_sing
-    sku: G8
-    sla_tier: basic
-    execution_mode: basic
-    priority: high
-    command:
-      - set -x; set -e
-      - pwd; ls; nvidia-smi
-      - sudo bash aml_setup_sing.sh
-      - /opt/conda/bin/python -m torch.distributed.launch 
-        --nproc_per_node=8
-        --master_port=$$MASTER_PORT
-        tools/train.py
-        configs/large_voc/large_voc_swinv2b16_cosine_80k_bs16_cocostuff_ade847_templearn_structure_thre0.0.py
-        --launcher pytorch
-        --auto-resume
-        --work-dir /zeliuwestus2/output_svlseg/20221003_large_voc_swinv2b16_cosine_80k_bs16_cocostuff_ade847_templearn_structure_thre0.0_sing
+  # - name: 20221003_large_voc_swinv2b16_cosine_80k_bs16_cocostuff_ade847_templearn_structure_thre0.0_sing
+  #   sku: G8
+  #   sla_tier: basic
+  #   execution_mode: basic
+  #   priority: high
+  #   command:
+  #     - set -x; set -e
+  #     - pwd; ls; nvidia-smi
+  #     - sudo bash aml_setup_sing.sh
+  #     - /opt/conda/bin/python -m torch.distributed.launch 
+  #       --nproc_per_node=8
+  #       --master_port=$$MASTER_PORT
+  #       tools/train.py
+  #       configs/large_voc/large_voc_swinv2b16_cosine_80k_bs16_cocostuff_ade847_templearn_structure_thre0.0.py
+  #       --launcher pytorch
+  #       --auto-resume
+  #       --work-dir /zeliuwestus2/output_svlseg/20221003_large_voc_swinv2b16_cosine_80k_bs16_cocostuff_ade847_templearn_structure_thre0.0_sing
 
   # - name: 20221003_large_voc_swinv2b16_cosine_80k_bs16_cocostuff_ade847_templearn_structure_thre0.2_sing
   #   sku: G8
