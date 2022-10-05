@@ -57,6 +57,13 @@ class MaskTransformerLargeVocHead(BaseDecodeHead):
         test_dataset="ade847",
         ignore_indices=[255, -1],
         test_ignore_index=-1,
+        # separate heads
+        use_cls_head=False,
+        use_loc_head=False,
+        num_cls_head_layers=3,
+        num_loc_head_layers=3,
+        # prior loss
+        use_prior_loss=True,
         # weakly supervised
         weakly_supervised_datasets=["ade847"],
         weakly_prior_thresh=0.8,
@@ -67,7 +74,7 @@ class MaskTransformerLargeVocHead(BaseDecodeHead):
         use_structure_loss=False,
         structure_loss_weight=1.0,
         structure_loss_thresh=0.2,
-        # class embedding
+        # contrastive loss for class embedding
         use_cls_structure_loss=False,
         cls_structure_loss_weight=1.0,
         cls_structure_loss_thresh=0.2,
@@ -104,6 +111,13 @@ class MaskTransformerLargeVocHead(BaseDecodeHead):
         self.test_dataset = test_dataset
         self.ignore_indices = ignore_indices
         self.test_ignore_index = test_ignore_index
+        # separate heads
+        self.use_cls_head = use_cls_head
+        self.use_loc_head = use_loc_head
+        self.num_cls_head_layers = num_cls_head_layers
+        self.num_loc_head_layers = num_loc_head_layers
+        # prior loss
+        self.use_prior_loss = use_prior_loss
         # weakly supervised
         self.weakly_supervised_datasets = weakly_supervised_datasets
         self.weakly_prior_thresh = weakly_prior_thresh
@@ -125,20 +139,14 @@ class MaskTransformerLargeVocHead(BaseDecodeHead):
 
         self.proj_dec = nn.Linear(d_encoder, d_model)
         self.proj_patch = nn.Parameter(self.scale * torch.randn(d_model, d_model))
-        self.gamma = nn.Parameter(torch.ones([]))
-        self.beta = nn.Parameter(torch.zeros([]))
-        # NOTE: cosine classifier
-        if self.all_cls is not None:
+        # cosine classifier
+        if self.use_prior_loss:
+            self.gamma = nn.Parameter(torch.ones([]))
+            self.beta = nn.Parameter(torch.zeros([]))
+            num_classes = self.num_classes if self.all_cls is None else len(self.all_cls) 
             self.cls_emb = nn.Parameter(
-                # all categories for training
-                self.scale * torch.randn(len(self.all_cls), d_model)
+                self.scale * torch.randn(num_classes, d_model)
             )
-        else:
-            self.cls_emb = nn.Parameter(
-                self.scale * torch.randn(self.num_classes, d_model)
-            )
-        if self.learnable_temperature:
-            self.logit_scale = nn.Parameter((torch.ones([]) * np.log(1 / 0.07)).exp())
 
     def init_weights(self):
         self.apply(init_weights)
@@ -175,46 +183,42 @@ class MaskTransformerLargeVocHead(BaseDecodeHead):
             x = F.interpolate(
                 x, scale_factor=self.upsample_input, mode="bilinear", align_corners=self.align_corners
             )
-        cls_emb = self.cls_emb[self.cls_index]
-        cls_emb = cls_emb.expand(x.size(0), -1, -1)
+        if self.use_prior_loss:
+            cls_emb = self.cls_emb[self.cls_index]
+            cls_emb = cls_emb.expand(x.size(0), -1, -1)
         B, C, H, W = x.size()
-        feats = x.clone()
         x = x.view(B, C, -1).permute(0, 2, 1)
-
-        x = self.proj_dec(x)
-        patches, cls_seg_feat = x, cls_emb
+        patches = self.proj_dec(x)
         patches = patches @ self.proj_patch
         # B, HW, C
         patches = patches / patches.norm(dim=-1, keepdim=True)
-        # B, N, C
-        cls_seg_feat = cls_seg_feat / cls_seg_feat.norm(dim=-1, keepdim=True)
-
-        if self.learnable_temperature:
-            masks = self.logit_scale * patches @ cls_seg_feat.transpose(1, 2)
+        if self.use_prior_loss:
+            # B, N, C
+            cls_emb = cls_emb / cls_emb.norm(dim=-1, keepdim=True)
+            masks = patches @ cls_emb.transpose(1, 2) / self.temperature
+            if self.training:
+                masks = (
+                    (masks - torch.mean(masks, dim=-1, keepdim=True))
+                    / torch.sqrt(torch.var(masks, dim=-1, keepdim=True, unbiased=False) + 1e-5)
+                ) * self.gamma + self.beta
+            B, HW, N = masks.size()
+            masks = masks.view(B, H, W, N).permute(0, 3, 1, 2)
         else:
-            masks = patches @ cls_seg_feat.transpose(1, 2) / self.temperature
-        if self.training:
-            masks = (
-                (masks - torch.mean(masks, dim=-1, keepdim=True))
-                / torch.sqrt(torch.var(masks, dim=-1, keepdim=True, unbiased=False) + 1e-5)
-            ) * self.gamma + self.beta
-        B, HW, N = masks.size()
-
-        masks = masks.view(B, H, W, N).permute(0, 3, 1, 2)
+            masks = None
         embeds = patches.clone()
         embeds = embeds.view(B, H, W, -1).permute(0, 3, 1, 2)
-        return masks, embeds, feats
+        return masks, embeds
 
     def forward_train(self, inputs, img_metas, gt_semantic_seg, train_cfg):
         self._update(training=True)
         img_labels = None
-        masks, embeds, feats = self.forward(inputs, img_metas)
-        losses = self.losses(masks, embeds, feats, gt_semantic_seg, img_labels)
+        masks, embeds = self.forward(inputs, img_metas)
+        losses = self.losses(masks, embeds, gt_semantic_seg, img_labels)
         return losses
 
     def forward_test(self, inputs, img_metas, test_cfg, gt_semantic_seg=None):
         self._update(training=False)
-        masks, embeds, feats = self.forward(inputs, img_metas)
+        masks, embeds = self.forward(inputs, img_metas)
         if self.oracle_inference:
             assert gt_semantic_seg is not None
             masks = self.oracle_propagation(embeds, gt_semantic_seg)
@@ -258,73 +262,58 @@ class MaskTransformerLargeVocHead(BaseDecodeHead):
         return masks
 
     @force_fp32(apply_to=('seg_mask', ))
-    def losses(self, seg_mask, seg_embed, seg_feat, seg_label, img_labels=None):
+    def losses(self, seg_mask, seg_embed, seg_label, img_labels=None):
         """Compute segmentation loss."""
         loss = dict()
         h = seg_label.shape[-2] // self.downsample_rate
         w = seg_label.shape[-1] // self.downsample_rate
-        seg_mask = resize(
-            input=seg_mask,
-            size=(h, w),
-            mode='bilinear',
-            align_corners=self.align_corners
-        )
         seg_embed = resize(
-            input=seg_embed,
-            size=(h, w),
-            mode='bilinear',
-            align_corners=self.align_corners
-        )
-        seg_feat = resize(
-            input=seg_feat,
-            size=(h, w),
-            mode='bilinear',
-            align_corners=self.align_corners
+            seg_embed, size=(h, w), mode='bilinear', align_corners=self.align_corners
         )
         seg_label = resize(
-            input=seg_label.float(),
-            size=(h, w),
-            mode='nearest'
+            seg_label.float(), size=(h, w), mode='nearest'
         ).long()
 
-        B, N, H, W = seg_mask.shape
-        if self.dataset_on_gpu in self.weakly_supervised_datasets:
-            prior_mask, prior_label = self._weak_sample(seg_mask, seg_label)
-        else:
-            prior_mask, prior_label = self._sample(seg_mask, seg_label)
-
-        seg_label = seg_label.reshape(B * H * W)
-        seg_mask = seg_mask.permute(0, 2, 3, 1).reshape(B * H * W, N)
-
-        if prior_mask is None:
-            loss['loss_prior'] = torch.tensor(
-                0, dtype=seg_mask.dtype, device=seg_mask.device, requires_grad=True
+        # classification task
+        if self.use_prior_loss:
+            seg_mask = resize(
+                seg_mask, size=(h, w), mode='bilinear', align_corners=self.align_corners
             )
-            if self.use_structure_loss:
-                loss['loss_structure'] = torch.tensor(
+            B, N, H, W = seg_mask.shape
+            if self.dataset_on_gpu in self.weakly_supervised_datasets:
+                prior_mask, prior_label = self._weak_sample(seg_mask, seg_label)
+            else:
+                prior_mask, prior_label = self._sample(seg_mask, seg_label)
+            # no valid label
+            if prior_mask is None:
+                loss['loss_prior'] = torch.tensor(
                     0, dtype=seg_mask.dtype, device=seg_mask.device, requires_grad=True
                 )
-        else:
-            assert prior_label is not None
-            loss['loss_prior'] = self.loss_decode(
-                prior_mask, 
-                prior_label,
-                weight=None,
-                ignore_index=self.ignore_index
-            ) * self.prior_loss_weight
-            if self.use_structure_loss:
-                loss['loss_structure'] = self.loss_structure(
-                    seg_feat, seg_label
-                ) * self.structure_loss_weight
-        if self.use_cls_structure_loss:
-            loss['loss_cls_structure'] = self.loss_similarity(
-                self.cls_emb, 
-                torch.arange(len(self.cls_emb)).to(self.cls_emb.device),
-                self.cls_structure_loss_thresh
-            ) * self.cls_structure_loss_weight
+            else:
+                assert prior_label is not None
+                loss['loss_prior'] = self.loss_decode(
+                    prior_mask, 
+                    prior_label,
+                    weight=None,
+                    ignore_index=self.ignore_index
+                ) * self.prior_loss_weight
+            # force class embeddings to be sparse
+            if self.use_cls_structure_loss:
+                loss['loss_cls_structure'] = self.loss_similarity(
+                    self.cls_emb, 
+                    torch.arange(len(self.cls_emb)).to(self.cls_emb.device),
+                    self.cls_structure_loss_thresh
+                ) * self.cls_structure_loss_weight
+            # log accuracy
+            seg_label = seg_label.flatten()
+            seg_mask = seg_mask.permute(0, 2, 3, 1).reshape(B * H * W, N)
+            loss['acc_seg'] = accuracy(seg_mask, seg_label)
 
-        acc_weight = 1.0
-        loss['acc_seg'] = accuracy(seg_mask, seg_label) * acc_weight
+        # localization task
+        if self.use_structure_loss:
+            loss['loss_structure'] = self.loss_structure(
+                seg_embed, seg_label
+            ) * self.structure_loss_weight
         return loss
     
     def _sample(self, seg_mask, seg_label, min_kept=1):

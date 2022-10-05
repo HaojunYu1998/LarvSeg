@@ -3,14 +3,13 @@ export CUDA_VISIBLE_DEVICES=0,1,2,3
 # export CUDA_LAUNCH_BLOCKING=1
 
 bash tools/dist_train.sh \
-configs/large_voc/swinv2/large_voc_swinv2b16_cosine_80k_bs16_cocostuff_cls_structure_weight100.0_thre0.0.py
-
+configs/large_voc/vit/large_voc_vitb16_cosine_80k_bs16_cocostuff_structure_loss.py
 
 # bash tools/dist_test.sh \
-# configs/large_voc/vit/large_voc_vitb16_cosine_80k_bs16_cocostuff_ade847_temp0.05.py \
-# work_dirs/20221004_large_voc_vitb16_cosine_80k_bs16_cocostuff_ade847_temp0.05_sing/iter_80000.pth \
+# configs/large_voc/swinv2/oracle/large_voc_swinv2b16_cosine_80k_bs16_cocostuff_ade847_temp0.05_oracle1.py \
+# work_dirs/20221004_large_voc_swinv2b16_cosine_80k_bs16_cocostuff_ade847_structure_weight5.0_thre0.4/iter_80000.pth \
 # 4 \
-# --eval mIoU > weak.txt
+# --eval mIoU
 
 # sudo nvidia-docker run --ipc=host -it -v /mnt/haojun/itpsea4data:/itpsea4data --ipc=host hsfzxjy/mmseg:pytorch1.8.1-cuda10.2-cudnn7-devel /bin/bash
 # sudo nvidia-docker run --ipc=host -it -v /mnt/haojun/itpsea4data:/itpsea4data --ipc=host zeliu98/pytorch:superbench-nvcr21.05-fixfusedlamb-itp-mmcv-msrest /bin/bash
