@@ -62,10 +62,15 @@ class MaskTransformerLargeVocHead(BaseDecodeHead):
         weakly_prior_thresh=0.8,
         weakly_min_kept=1,
         weakly_max_kept=100,
+        weakly_prior_loss_weight=1.0,
         # contrastive loss
         use_structure_loss=False,
         structure_loss_weight=1.0,
         structure_loss_thresh=0.2,
+        # class embedding
+        use_cls_structure_loss=False,
+        cls_structure_loss_weight=1.0,
+        cls_structure_loss_thresh=0.2,
         # oracle experiment
         oracle_inference=False,
         num_oracle_points=10,
@@ -104,10 +109,15 @@ class MaskTransformerLargeVocHead(BaseDecodeHead):
         self.weakly_prior_thresh = weakly_prior_thresh
         self.weakly_min_kept = weakly_min_kept
         self.weakly_max_kept = weakly_max_kept
+        self.weakly_prior_loss_weight = weakly_prior_loss_weight
         # contrastive loss
         self.use_structure_loss = use_structure_loss
         self.structure_loss_weight = structure_loss_weight
         self.structure_loss_thresh = structure_loss_thresh
+        # contrastive loss for classification embedding
+        self.use_cls_structure_loss = use_cls_structure_loss
+        self.cls_structure_loss_weight = cls_structure_loss_weight
+        self.cls_structure_loss_thresh = cls_structure_loss_thresh
         # oracle experiment
         self.oracle_inference = oracle_inference
         self.num_oracle_points = num_oracle_points
@@ -138,6 +148,8 @@ class MaskTransformerLargeVocHead(BaseDecodeHead):
         if training:
             self.dataset_on_gpu = self.mix_batch_datasets[rank % len(self.mix_batch_datasets)]
             self.ignore_index = self.ignore_indices[rank % len(self.mix_batch_datasets)]
+            if self.dataset_on_gpu in self.weakly_supervised_datasets:
+                self.prior_loss_weight = self.weakly_prior_loss_weight
         else:
             self.dataset_on_gpu = self.test_dataset
             self.ignore_index = self.test_ignore_index
@@ -304,6 +316,12 @@ class MaskTransformerLargeVocHead(BaseDecodeHead):
                 loss['loss_structure'] = self.loss_structure(
                     seg_feat, seg_label
                 ) * self.structure_loss_weight
+        if self.use_cls_structure_loss:
+            loss['loss_cls_structure'] = self.loss_similarity(
+                self.cls_emb, 
+                torch.arange(len(self.cls_emb)).to(self.cls_emb.device),
+                self.cls_structure_loss_thresh
+            ) * self.cls_structure_loss_weight
 
         acc_weight = 1.0
         loss['acc_seg'] = accuracy(seg_mask, seg_label) * acc_weight
@@ -376,7 +394,7 @@ class MaskTransformerLargeVocHead(BaseDecodeHead):
         prior_label = torch.cat(prior_label, dim=0)
         # assert False, f"{prior_mask.shape}"
         return prior_mask, prior_label
-
+    
     def loss_structure(self, seg_feat, seg_label):
         if self.dataset_on_gpu in self.weakly_supervised_datasets:
             return torch.tensor(
@@ -398,14 +416,14 @@ class MaskTransformerLargeVocHead(BaseDecodeHead):
             seg_label[[i]] for i in pos_inds], dim=0).to(seg_feat.device)
         sample_feat = torch.cat([
             seg_feat[i] for i in pos_inds], dim=0)
-        loss = self.loss_similarity(sample_feat, sample_cls)
+        loss = self.loss_similarity(sample_feat, sample_cls, self.structure_loss_thresh)
         return loss
 
-    def loss_similarity(self, feat, label):
+    def loss_similarity(self, feat, label, thresh):
         """Compute the similarity loss
         Args:
-            embedding (torch.Tensor): [512, C]
-            label (torch.Tensor): [512]
+            embedding (torch.Tensor): [N, C]
+            label (torch.Tensor): [N]
         """
         feat = feat / feat.norm(dim=-1, keepdim=True)
         cos_sim = feat @ feat.T  # [B,B]
@@ -419,7 +437,7 @@ class MaskTransformerLargeVocHead(BaseDecodeHead):
         label_sim = label_sim[valid_mask.bool()]
         # NOTE: for negative samples, don't add loss if they are lower than the thresh
         _mask = (
-            (cos_sim > self.structure_loss_thresh) | (label_sim == 1)
+            (cos_sim > thresh) | (label_sim == 1)
         )
         cos_sim = cos_sim[_mask]
         label_sim = label_sim[_mask]

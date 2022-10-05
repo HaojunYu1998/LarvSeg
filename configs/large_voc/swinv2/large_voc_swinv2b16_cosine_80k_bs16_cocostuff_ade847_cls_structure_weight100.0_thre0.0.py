@@ -1,5 +1,5 @@
 _base_ = [
-    "../../_base_/models/large_voc_vitb16.py",
+    "../../_base_/models/large_voc_swinv2b16.py",
     "../../_base_/datasets/mix_batch_cocostuff_adefull.py",
     "../../_base_/default_runtime.py",
     "../../_base_/schedules/schedule_80k.py",
@@ -30,11 +30,15 @@ model = dict(
         weakly_supervised_datasets=["ade847"],
         weakly_prior_thresh=0.9,
         weakly_min_kept=10,
-        weakly_max_kept=100,
+        weakly_max_kept=1000,
         # contrastive loss
         use_structure_loss=False,
         structure_loss_weight=1.0,
         structure_loss_thresh=0.0,
+        # contrastive loss for classification embeding
+        use_cls_structure_loss=True,
+        cls_structure_loss_weight=100.0,
+        cls_structure_loss_thresh=0.0,
         # oracle experiment
         oracle_inference=False,
         num_oracle_points=10,

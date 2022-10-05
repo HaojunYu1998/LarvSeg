@@ -3,7 +3,7 @@ export CUDA_VISIBLE_DEVICES=0,1,2,3
 # export CUDA_LAUNCH_BLOCKING=1
 
 bash tools/dist_train.sh \
-configs/large_voc/vit/large_voc_vitb16_cosine_80k_bs16_cocostuff_ade847_temp0.05_max100_min10.py
+configs/large_voc/swinv2/large_voc_swinv2b16_cosine_80k_bs16_cocostuff_cls_structure_weight100.0_thre0.0.py
 
 
 # bash tools/dist_test.sh \
