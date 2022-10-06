@@ -1,8 +1,8 @@
 _base_ = [
-    "../../../_base_/models/large_voc_vitb16.py",
-    "../../../_base_/datasets/adefull_oracle.py",
-    "../../../_base_/default_runtime.py",
-    "../../../_base_/schedules/schedule_80k.py",
+    "../../_base_/models/large_voc_vitb16.py",
+    "../../_base_/datasets/cocostuff_eval_adefull.py",
+    "../../_base_/default_runtime.py",
+    "../../_base_/schedules/schedule_80k.py",
 ]
 
 model = dict(
@@ -21,24 +21,27 @@ model = dict(
         downsample_rate=2,
         temperature=0.05,
         # datasets
-        all_cls_path="notebook/ade847ucoco.json",
-        mix_batch_datasets=["coco171", "ade847"],
-        test_dataset="ade847",
+        all_cls_path="",
+        mix_batch_datasets=["coco171"],
+        test_dataset="coco171", # not used
         # 65535 is -1 for int16, but during training the label will be cast to int32
-        ignore_indices=[255, -1],
-        test_ignore_index=-1,
+        ignore_indices=[255,],
+        test_ignore_index=-1, # used
+        # prior loss
+        use_prior_loss=True,
+        use_linear_classifier=True,
         # weakly supervised
-        weakly_supervised_datasets=["ade847"],
+        weakly_supervised_datasets=[],
         weakly_prior_thresh=0.9,
         weakly_min_kept=1,
         weakly_max_kept=100,
         # contrastive loss
-        use_structure_loss=False,
-        structure_loss_weight=1.0,
-        structure_loss_thresh=0.0,
+        use_structure_loss=True,
+        structure_loss_weight=10.0,
+        structure_loss_thresh=0.3,
         # oracle experiment
         oracle_inference=True,
-        num_oracle_points=10,
+        num_oracle_points=1,
         oracle_downsample_rate=1,
     ),
     test_cfg=dict(mode="slide", crop_size=(512, 512), stride=(512, 512)),

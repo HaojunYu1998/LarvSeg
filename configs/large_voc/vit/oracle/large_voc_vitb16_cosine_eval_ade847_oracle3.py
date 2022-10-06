@@ -21,14 +21,14 @@ model = dict(
         downsample_rate=2,
         temperature=0.05,
         # datasets
-        all_cls_path="notebook/ade847ucoco.json",
-        mix_batch_datasets=["coco171", "ade847"],
+        all_cls_path="",
+        mix_batch_datasets=[],
         test_dataset="ade847",
         # 65535 is -1 for int16, but during training the label will be cast to int32
-        ignore_indices=[255, -1],
+        ignore_indices=[],
         test_ignore_index=-1,
         # weakly supervised
-        weakly_supervised_datasets=["ade847"],
+        weakly_supervised_datasets=[],
         weakly_prior_thresh=0.9,
         weakly_min_kept=1,
         weakly_max_kept=100,
@@ -41,7 +41,7 @@ model = dict(
         num_oracle_points=3,
         oracle_downsample_rate=1,
     ),
-    test_cfg=dict(mode="slide", crop_size=(512, 512), stride=(512, 512)),
+    test_cfg=dict(mode="whole", crop_size=(512, 512), stride=(512, 512)),
 )
 
 optimizer = dict(

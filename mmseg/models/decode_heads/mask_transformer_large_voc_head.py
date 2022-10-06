@@ -64,6 +64,8 @@ class MaskTransformerLargeVocHead(BaseDecodeHead):
         num_loc_head_layers=3,
         # prior loss
         use_prior_loss=True,
+        prior_loss_weight=1.0,
+        use_linear_classifier=False,
         # weakly supervised
         weakly_supervised_datasets=["ade847"],
         weakly_prior_thresh=0.8,
@@ -97,7 +99,6 @@ class MaskTransformerLargeVocHead(BaseDecodeHead):
         self.n_cls = n_cls
         self.d_model = d_model
         self.scale = d_model**-0.5
-        self.prior_loss_weight = 1.0
         self.downsample_rate = downsample_rate
         self.temperature = temperature
         self.learnable_temperature = learnable_temperature
@@ -118,6 +119,8 @@ class MaskTransformerLargeVocHead(BaseDecodeHead):
         self.num_loc_head_layers = num_loc_head_layers
         # prior loss
         self.use_prior_loss = use_prior_loss
+        self.prior_loss_weight = prior_loss_weight
+        self.use_linear_classifier = use_linear_classifier
         # weakly supervised
         self.weakly_supervised_datasets = weakly_supervised_datasets
         self.weakly_prior_thresh = weakly_prior_thresh
@@ -143,10 +146,13 @@ class MaskTransformerLargeVocHead(BaseDecodeHead):
         if self.use_prior_loss:
             self.gamma = nn.Parameter(torch.ones([]))
             self.beta = nn.Parameter(torch.zeros([]))
-            num_classes = self.num_classes if self.all_cls is None else len(self.all_cls) 
-            self.cls_emb = nn.Parameter(
-                self.scale * torch.randn(num_classes, d_model)
-            )
+            num_classes = self.num_classes if self.all_cls is None else len(self.all_cls)
+            if self.use_linear_classifier:
+                self.cls_emb = nn.Linear(d_model, num_classes)
+            else:
+                self.cls_emb = nn.Parameter(
+                    self.scale * torch.randn(num_classes, d_model)
+                )
 
     def init_weights(self):
         self.apply(init_weights)
@@ -171,6 +177,8 @@ class MaskTransformerLargeVocHead(BaseDecodeHead):
         elif self.dataset_on_gpu == "ade847":
             from mmseg.datasets.ade import ADE20KFULLDataset
             cls_name = ADE20KFULLDataset.CLASSES
+        else:
+            raise NotImplementedError(f"{self.dataset_on_gpu} is not supported")
 
         if self.all_cls is not None:
             self.cls_index = [self.all_cls.index(name) for name in cls_name]
@@ -183,19 +191,20 @@ class MaskTransformerLargeVocHead(BaseDecodeHead):
             x = F.interpolate(
                 x, scale_factor=self.upsample_input, mode="bilinear", align_corners=self.align_corners
             )
-        if self.use_prior_loss:
-            cls_emb = self.cls_emb[self.cls_index]
-            cls_emb = cls_emb.expand(x.size(0), -1, -1)
         B, C, H, W = x.size()
         x = x.view(B, C, -1).permute(0, 2, 1)
         patches = self.proj_dec(x)
         patches = patches @ self.proj_patch
-        # B, HW, C
-        patches = patches / patches.norm(dim=-1, keepdim=True)
         if self.use_prior_loss:
-            # B, N, C
-            cls_emb = cls_emb / cls_emb.norm(dim=-1, keepdim=True)
-            masks = patches @ cls_emb.transpose(1, 2) / self.temperature
+            if self.use_linear_classifier:
+                masks = self.cls_emb(patches)
+                masks = masks[:, :, self.cls_index]
+            else:
+                cls_emb = self.cls_emb[self.cls_index]
+                cls_emb = cls_emb.expand(x.size(0), -1, -1)
+                patches = patches / patches.norm(dim=-1, keepdim=True)
+                cls_emb = cls_emb / cls_emb.norm(dim=-1, keepdim=True)
+                masks = patches @ cls_emb.transpose(1, 2) / self.temperature
             if self.training:
                 masks = (
                     (masks - torch.mean(masks, dim=-1, keepdim=True))
@@ -299,8 +308,9 @@ class MaskTransformerLargeVocHead(BaseDecodeHead):
                 ) * self.prior_loss_weight
             # force class embeddings to be sparse
             if self.use_cls_structure_loss:
+                cls_emb = self.cls_emb.weight if self.use_linear_classifier else self.cls_emb
                 loss['loss_cls_structure'] = self.loss_similarity(
-                    self.cls_emb, 
+                    cls_emb,
                     torch.arange(len(self.cls_emb)).to(self.cls_emb.device),
                     self.cls_structure_loss_thresh
                 ) * self.cls_structure_loss_weight
@@ -317,8 +327,7 @@ class MaskTransformerLargeVocHead(BaseDecodeHead):
         return loss
     
     def _sample(self, seg_mask, seg_label, min_kept=1):
-        """Sample pixels that have high loss or with low prediction confidence.
-
+        """
         Args:
             seg_mask (torch.Tensor): segmentation logits, shape (B, N, H, W)
             seg_label (torch.Tensor): segmentation label, shape (B, 1, H, W)

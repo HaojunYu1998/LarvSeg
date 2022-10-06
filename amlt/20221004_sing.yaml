@@ -1,8 +1,8 @@
 description: CVPR2023
 target:
   service: sing
-  name: msroctovc
-  # name: msrresrchvc
+  # name: msroctovc
+  name: msrresrchvc
 
 environment:
   image: zeliu98/pytorch:superbench-nvcr21.05-fixfusedlamb-itp-mmcv-msrest

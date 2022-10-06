@@ -1,6 +1,6 @@
 _base_ = [
     "../../../_base_/models/large_voc_vitb16.py",
-    "../../../_base_/datasets/adefull_oracle.py",
+    "../../../_base_/datasets/ade_oracle.py",
     "../../../_base_/default_runtime.py",
     "../../../_base_/schedules/schedule_80k.py",
 ]
@@ -17,18 +17,17 @@ model = dict(
     ),
     decode_head=dict(
         type="MaskTransformerLargeVocHead",
-        n_cls=847,
+        n_cls=150,
         downsample_rate=2,
         temperature=0.05,
         # datasets
-        all_cls_path="notebook/ade847ucoco.json",
-        mix_batch_datasets=["coco171", "ade847"],
-        test_dataset="ade847",
-        # 65535 is -1 for int16, but during training the label will be cast to int32
-        ignore_indices=[255, -1],
-        test_ignore_index=-1,
+        all_cls_path="",
+        mix_batch_datasets=[],
+        test_dataset="ade150",
+        ignore_indices=[],
+        test_ignore_index=255,
         # weakly supervised
-        weakly_supervised_datasets=["ade847"],
+        weakly_supervised_datasets=[],
         weakly_prior_thresh=0.9,
         weakly_min_kept=1,
         weakly_max_kept=100,
@@ -41,7 +40,7 @@ model = dict(
         num_oracle_points=1,
         oracle_downsample_rate=1,
     ),
-    test_cfg=dict(mode="slide", crop_size=(512, 512), stride=(512, 512)),
+    test_cfg=dict(mode="whole", crop_size=(512, 512), stride=(512, 512)),
 )
 
 optimizer = dict(

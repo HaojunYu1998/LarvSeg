@@ -1,8 +1,8 @@
 _base_ = [
-    "../../../_base_/models/large_voc_vitb16.py",
-    "../../../_base_/datasets/adefull_oracle.py",
-    "../../../_base_/default_runtime.py",
-    "../../../_base_/schedules/schedule_80k.py",
+    "../../_base_/models/large_voc_vitb16.py",
+    "../../_base_/datasets/adefull_oracle.py",
+    "../../_base_/default_runtime.py",
+    "../../_base_/schedules/schedule_80k.py",
 ]
 
 model = dict(
@@ -24,9 +24,10 @@ model = dict(
         all_cls_path="",
         mix_batch_datasets=["ade847"],
         test_dataset="ade847",
-        # 65535 is -1 for int16, but during training the label will be cast to int32
-        ignore_indices=[-1],
+        ignore_indices=[-1,],
         test_ignore_index=-1,
+        # prior loss
+        use_prior_loss=True,
         # weakly supervised
         weakly_supervised_datasets=[],
         weakly_prior_thresh=0.9,
@@ -34,8 +35,8 @@ model = dict(
         weakly_max_kept=100,
         # contrastive loss
         use_structure_loss=False,
-        structure_loss_weight=1.0,
-        structure_loss_thresh=0.0,
+        structure_loss_weight=10.0,
+        structure_loss_thresh=0.3,
         # oracle experiment
         oracle_inference=True,
         num_oracle_points=1,
