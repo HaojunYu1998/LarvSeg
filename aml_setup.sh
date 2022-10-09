@@ -7,6 +7,7 @@ sudo apt-get install vim -y
 
 # sudo /opt/conda/bin/pip install protobuf==3.20.1
 # sudo /opt/conda/bin/pip install wandb==0.11.0
+sudo /opt/conda/bin/pip install timm
 sudo /opt/conda/bin/pip install git+https://github.com/lucasb-eyer/pydensecrf.git
 cd third_party/CLIP
 sudo /opt/conda/bin/pip install -e .

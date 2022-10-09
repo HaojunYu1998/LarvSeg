@@ -153,10 +153,6 @@ class LoadAnnotations(object):
                 .squeeze()
                 .astype(np.uint8)
             )
-        # modify if custom classes
-        if results.get("label_map", None) is not None:
-            for old_id, new_id in results["label_map"].items():
-                gt_semantic_seg[gt_semantic_seg == old_id] = new_id
         # reduce zero_label
         if self.reduce_zero_label:
             # avoid using underflow conversion
@@ -167,6 +163,10 @@ class LoadAnnotations(object):
                 gt_semantic_seg[gt_semantic_seg == 0] = 255
                 gt_semantic_seg = gt_semantic_seg - 1
                 gt_semantic_seg[gt_semantic_seg == 254] = 255
+        # modify if custom classes
+        if results.get("label_map", None) is not None:
+            for old_id, new_id in results["label_map"].items():
+                gt_semantic_seg[gt_semantic_seg == old_id] = new_id
         # assert False, f"{np.unique(gt_semantic_seg)}"
         results["gt_semantic_seg"] = gt_semantic_seg
         results["seg_fields"].append("gt_semantic_seg")

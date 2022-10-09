@@ -36,7 +36,7 @@ jobs:
   #       --auto-resume
   #       --work-dir /zeliuwestus2/output_svlseg/20221006_large_voc_vitb16_linear_80k_bs16_ade150_prior_loss
 
-  # - name: 20221006_large_voc_vitb16_linear_80k_bs16_ade150_prior_structure_loss
+  # - name: 20221006_large_voc_vitb16_linear_80k_bs16_ade150_prior_structure_loss_sing
   #   sku: G8
   #   sla_tier: basic
   #   execution_mode: basic
@@ -144,7 +144,7 @@ jobs:
   #       --auto-resume
   #       --work-dir /zeliuwestus2/output_svlseg/20221006_large_voc_vitb16_cosine_80k_bs16_ade150_prior_loss
 
-  - name: 20221006_large_voc_vitb16_cosine_80k_bs16_ade150_prior_structure_loss
+  - name: 20221006_large_voc_vitb16_cosine_80k_bs16_ade150_prior_structure_loss_sing
     sku: G8
     sla_tier: basic
     execution_mode: basic
@@ -198,23 +198,23 @@ jobs:
   #       --auto-resume
   #       --work-dir /zeliuwestus2/output_svlseg/20221006_large_voc_vitb16_cosine_80k_bs16_ade847_prior_loss
 
-  - name: 20221006_large_voc_vitb16_cosine_80k_bs16_ade847_prior_structure_loss
-    sku: G8
-    sla_tier: basic
-    execution_mode: basic
-    priority: high
-    command:
-      - set -x; set -e
-      - pwd; ls; nvidia-smi
-      - sudo bash aml_setup_sing.sh
-      - /opt/conda/bin/python -m torch.distributed.launch
-        --nproc_per_node=8
-        --master_port=$$MASTER_PORT
-        tools/train.py
-        configs/large_voc/vit/large_voc_vitb16_cosine_80k_bs16_ade847_prior_structure_loss.py
-        --launcher pytorch
-        --auto-resume
-        --work-dir /zeliuwestus2/output_svlseg/20221006_large_voc_vitb16_cosine_80k_bs16_ade847_prior_structure_loss
+  # - name: 20221006_large_voc_vitb16_cosine_80k_bs16_ade847_prior_structure_loss
+  #   sku: G8
+  #   sla_tier: basic
+  #   execution_mode: basic
+  #   priority: high
+  #   command:
+  #     - set -x; set -e
+  #     - pwd; ls; nvidia-smi
+  #     - sudo bash aml_setup_sing.sh
+  #     - /opt/conda/bin/python -m torch.distributed.launch
+  #       --nproc_per_node=8
+  #       --master_port=$$MASTER_PORT
+  #       tools/train.py
+  #       configs/large_voc/vit/large_voc_vitb16_cosine_80k_bs16_ade847_prior_structure_loss.py
+  #       --launcher pytorch
+  #       --auto-resume
+  #       --work-dir /zeliuwestus2/output_svlseg/20221006_large_voc_vitb16_cosine_80k_bs16_ade847_prior_structure_loss
 
   # - name: 20221006_large_voc_vitb16_cosine_80k_bs16_ade847_structure_loss
   #   sku: G8

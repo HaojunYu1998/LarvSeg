@@ -1,5 +1,12 @@
 # Copyright (c) OpenMMLab. All rights reserved.
-from .ade import ADE20KDataset, ADE20KFULLDataset, ADE20KFULLMergedDataset, ADE20KHyperDataset, ADE20KFULLHyperDataset
+from .ade import (
+    ADE20KDataset, 
+    ADE20K130Dataset, 
+    ADE20KFULLDataset, 
+    ADE20KFULLMergedDataset, 
+    ADE20KHyperDataset, 
+    ADE20KFULLHyperDataset
+)
 from .builder import DATASETS, PIPELINES, build_dataloader, build_dataset
 from .chase_db1 import ChaseDB1Dataset
 from .cityscapes import CityscapesDataset
@@ -15,7 +22,7 @@ from .voc import PascalVOCDataset
 from .coco_stuff import COCOStuffDataset
 from .coco_lvis import COCOLVISDataset
 
-from .imagenet import ImageNet21K
+from .imagenet import ImageNet21K, ImageNet130
 from .mix_batch import MixBatchDataset
 from .demo import DemoDataset
 
@@ -27,5 +34,5 @@ __all__ = [
     'STAREDataset', 'DarkZurichDataset', 'NightDrivingDataset', 'COCOStuffDataset',
     'ADE20KFULLDataset', "COCOLVISDataset", "ImageNet21K", "MixBatchDataset",
     "ADE20KFULLMergedDataset", "ADE20KHyperDataset", "ADE20KFULLHyperDataset",
-    "DemoDataset"
+    "DemoDataset", "ADE20K130Dataset","ImageNet130"
 ]

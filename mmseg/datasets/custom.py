@@ -427,7 +427,7 @@ class CustomDataset(Dataset):
             self.label_map = {}
             for i, c in enumerate(self.CLASSES):
                 if c not in class_names:
-                    self.label_map[i] = -1
+                    self.label_map[i] = self.ignore_index
                 else:
                     self.label_map[i] = classes.index(c)
 
@@ -441,7 +441,7 @@ class CustomDataset(Dataset):
             # return subset of palette
             palette = []
             for old_id, new_id in sorted(self.label_map.items(), key=lambda x: x[1]):
-                if new_id != -1:
+                if new_id != self.ignore_index:
                     palette.append(self.PALETTE[old_id])
             palette = type(self.PALETTE)(palette)
 

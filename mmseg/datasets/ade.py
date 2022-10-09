@@ -88,6 +88,7 @@ class ADE20KDataset(CustomDataset):
             img_suffix='.jpg',
             seg_map_suffix='.png',
             reduce_zero_label=True,
+            gt_seg_map_loader_cfg={"reduce_zero_label": True},
             **kwargs)
 
     def results2img(self, results, imgfile_prefix, to_label_id, indices=None):
@@ -165,6 +166,42 @@ class ADE20KDataset(CustomDataset):
         result_files = self.results2img(results, imgfile_prefix, to_label_id,
                                         indices)
         return result_files
+
+
+@DATASETS.register_module()
+class ADE20K130Dataset(ADE20KDataset):
+    """ADE20K dataset with 130 IN21K classes.
+
+    In segmentation map annotation for ADE20K, 0 stands for background, which
+    is not included in 150 categories. ``reduce_zero_label`` is fixed to True.
+    The ``img_suffix`` is fixed to '.jpg' and ``seg_map_suffix`` is fixed to
+    '.png'.
+    """
+    CLASSES130 = (
+        'wall', 'building', 'sky', 'floor', 'tree', 'ceiling', 'road', 
+        'bed', 'windowpane', 'grass', 'cabinet', 'sidewalk', 'person', 'earth', 
+        'door', 'table', 'mountain', 'plant', 'curtain', 'chair', 'car', 
+        'water', 'sofa', 'shelf', 'house', 'mirror', 'rug', 'field', 
+        'armchair', 'fence', 'desk', 'rock', 'wardrobe', 'lamp', 'bathtub', 
+        'railing', 'cushion', 'base', 'box', 'column', 'chest of drawers', 'counter', 
+        'sand', 'sink', 'skyscraper', 'fireplace', 'refrigerator', 'stairs', 'runway', 
+        'case', 'pool table', 'screen door', 'river', 'bridge', 'bookcase', 'blind', 
+        'coffee table', 'toilet', 'flower', 'book', 'hill', 'bench', 'stove', 
+        'palm', 'kitchen island', 'computer', 'swivel chair', 'boat', 'bar', 'arcade machine', 
+        'hovel', 'bus', 'towel', 'light', 'truck', 'tower', 'chandelier', 
+        'awning', 'streetlight', 'booth', 'television receiver', 'airplane', 'dirt track', 'apparel', 
+        'pole', 'bannister', 'ottoman', 'bottle', 'buffet', 'stage', 'van', 
+        'ship', 'fountain', 'conveyer belt', 'canopy', 'washer', 'stool', 'basket', 
+        'tent', 'bag', 'minibike', 'cradle', 'oven', 'ball', 'food', 
+        'tank', 'trade name', 'microwave', 'pot', 'animal', 'bicycle', 'lake', 
+        'dishwasher', 'blanket', 'sculpture', 'sconce', 'vase', 'traffic light', 'tray', 
+        'ashcan', 'fan', 'pier', 'crt screen', 'plate', 'monitor', 'shower', 
+        'radiator', 'glass', 'clock', 'flag')
+
+    def __init__(self, **kwargs):
+        super(ADE20K130Dataset, self).__init__(
+            classes=self.CLASSES130, 
+            **kwargs)
 
 @DATASETS.register_module()
 class ADE20KFULLDataset(CustomDataset):

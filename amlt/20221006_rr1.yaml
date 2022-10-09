@@ -1,0 +1,74 @@
+description: CVPR2023
+target:
+  service: amlk8s
+  name: itplabrr1cl1
+
+environment:
+  image: zeliu98/pytorch:superbench-nvcr21.05-fixfusedlamb-itp-mmcv-msrest
+
+storage:
+  output:
+    storage_account_name: zeliuwestus2
+    container_name: v-miazhang
+    mount_dir: /zeliuwestus2
+
+code:
+  local_dir: $CONFIG_DIR/../
+
+jobs:
+
+  - name: 20221006_large_voc_vitb16_cosine_80k_bs16_ade150_prior_structure_loss
+    sku: G8
+    sla_tier: basic
+    execution_mode: basic
+    priority: high
+    command:
+      - set -x; set -e
+      - pwd; ls; nvidia-smi
+      - sudo bash aml_setup.sh
+      - bash tools/dist_train.sh
+        configs/large_voc/vit/large_voc_vitb16_cosine_80k_bs16_ade150_prior_structure_loss.py
+        --auto-resume
+        --work-dir /zeliuwestus2/output_svlseg/20221006_large_voc_vitb16_cosine_80k_bs16_ade150_prior_structure_loss
+
+  # - name: 20221006_large_voc_vitb16_linear_80k_bs16_ade150_prior_loss
+  #   sku: G8
+  #   sla_tier: basic
+  #   execution_mode: basic
+  #   priority: high
+  #   command:
+  #     - set -x; set -e
+  #     - pwd; ls; nvidia-smi
+  #     - sudo bash aml_setup.sh
+  #     - bash tools/dist_train.sh
+  #       configs/large_voc/vit/large_voc_vitb16_linear_80k_bs16_ade150_prior_loss.py
+  #       --auto-resume
+  #       --work-dir /zeliuwestus2/output_svlseg/20221006_large_voc_vitb16_linear_80k_bs16_ade150_prior_loss
+
+  - name: 20221006_large_voc_vitb16_linear_80k_bs16_ade150_prior_structure_loss
+    sku: G8
+    sla_tier: basic
+    execution_mode: basic
+    priority: high
+    command:
+      - set -x; set -e
+      - pwd; ls; nvidia-smi
+      - sudo bash aml_setup.sh
+      - bash tools/dist_train.sh
+        configs/large_voc/vit/large_voc_vitb16_linear_80k_bs16_ade150_prior_structure_loss.py
+        --auto-resume
+        --work-dir /zeliuwestus2/output_svlseg/20221006_large_voc_vitb16_linear_80k_bs16_ade150_prior_structure_loss
+
+  # - name: 20221006_large_voc_vitb16_cosine_80k_bs16_ade150_prior_loss
+  #   sku: G8
+  #   sla_tier: basic
+  #   execution_mode: basic
+  #   priority: high
+  #   command:
+  #     - set -x; set -e
+  #     - pwd; ls; nvidia-smi
+  #     - sudo bash aml_setup.sh
+  #     - bash tools/dist_train.sh
+  #       configs/large_voc/vit/large_voc_vitb16_cosine_80k_bs16_ade150_prior_loss.py
+  #       --auto-resume
+  #       --work-dir /zeliuwestus2/output_svlseg/20221006_large_voc_vitb16_cosine_80k_bs16_ade150_prior_loss

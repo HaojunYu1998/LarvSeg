@@ -1,3 +1,4 @@
+from enum import unique
 from genericpath import exists
 import random
 import math
@@ -174,9 +175,15 @@ class MaskTransformerLargeVocHead(BaseDecodeHead):
         elif self.dataset_on_gpu == "ade150":
             from mmseg.datasets.ade import ADE20KDataset
             cls_name = ADE20KDataset.CLASSES
+        elif self.dataset_on_gpu == "ade130":
+            from mmseg.datasets.ade import ADE20K130Dataset
+            cls_name = ADE20K130Dataset.CLASSES130
         elif self.dataset_on_gpu == "ade847":
             from mmseg.datasets.ade import ADE20KFULLDataset
             cls_name = ADE20KFULLDataset.CLASSES
+        elif self.dataset_on_gpu == "in130":
+            from mmseg.datasets.imagenet import ImageNet130
+            cls_name = ImageNet130.CLASSES
         else:
             raise NotImplementedError(f"{self.dataset_on_gpu} is not supported")
 
@@ -317,6 +324,9 @@ class MaskTransformerLargeVocHead(BaseDecodeHead):
             # log accuracy
             seg_label = seg_label.flatten()
             seg_mask = seg_mask.permute(0, 2, 3, 1).reshape(B * H * W, N)
+            imagenet_in_batch = any(["in" in x for x in self.mix_batch_datasets])
+            acc_weight = 0.0 if "in" in self.dataset_on_gpu else 2.0
+            acc_weight = acc_weight if imagenet_in_batch else 1.0
             loss['acc_seg'] = accuracy(seg_mask, seg_label)
 
         # localization task
@@ -380,12 +390,14 @@ class MaskTransformerLargeVocHead(BaseDecodeHead):
             label = label.reshape(H * W)
             unique_label = torch.unique(label)
             unique_label = unique_label[unique_label != self.ignore_index]
+            # print("unique_label", unique_label)
             for l in unique_label:
                 inds = (mask[:, l] > self.weakly_prior_thresh).nonzero(as_tuple=False).flatten()
                 if inds.numel() < self.weakly_min_kept:
                     inds = mask[:, l].topk(self.weakly_min_kept).indices
                 elif inds.numel() > self.weakly_max_kept:
                     inds = mask[:, l].topk(self.weakly_max_kept).indices
+                # print("inds", inds)
                 prior_mask.append(mask[inds])
                 prior_label.append(label[inds])
         prior_mask = torch.cat(prior_mask, dim=0)
