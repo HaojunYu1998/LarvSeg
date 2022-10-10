@@ -3,7 +3,7 @@ export CUDA_VISIBLE_DEVICES=0,1,2,3
 # export CUDA_LAUNCH_BLOCKING=1
 
 bash tools/dist_train.sh \
-configs/large_voc/vit/large_voc_vitb16_linear_80k_bs16_ade585_prior_loss.py
+configs/large_voc/vit/pretrain_backbone.py
 
 # bash tools/dist_train.sh \
 # configs/large_voc/vit/large_voc_vitb16_linear_80k_bs16_coco171_in585_eval_ade585_prior_loss.py

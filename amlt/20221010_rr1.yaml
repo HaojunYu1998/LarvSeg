@@ -17,7 +17,7 @@ code:
 
 jobs:
 
-  - name: 20221009_large_voc_vitb16_cosine_320k_bs16_coco171_in130_eval_ade130_prior_loss
+  - name: 20221010_large_voc_vitb16_cosine_320k_bs16_coco171_in130_eval_ade130_prior_loss
     sku: G8
     sla_tier: basic
     execution_mode: basic
@@ -29,9 +29,9 @@ jobs:
       - bash tools/dist_train.sh
         configs/large_voc/vit/large_voc_vitb16_cosine_320k_bs16_coco171_in130_eval_ade130_prior_loss.py
         --auto-resume
-        --work-dir /zeliuwestus2/output_svlseg/20221009_large_voc_vitb16_cosine_320k_bs16_coco171_in130_eval_ade130_prior_loss
+        --work-dir /zeliuwestus2/output_svlseg/20221010_large_voc_vitb16_cosine_320k_bs16_coco171_in130_eval_ade130_prior_loss
 
-  - name: 20221009_large_voc_vitb16_linear_320k_bs16_coco171_in130_eval_ade130_prior_loss
+  - name: 20221010_large_voc_vitb16_cosine_320k_bs16_coco171_in585_eval_ade585_prior_loss
     sku: G8
     sla_tier: basic
     execution_mode: basic
@@ -41,6 +41,6 @@ jobs:
       - pwd; ls; nvidia-smi
       - sudo bash aml_setup.sh
       - bash tools/dist_train.sh
-        configs/large_voc/vit/large_voc_vitb16_linear_320k_bs16_coco171_in130_eval_ade130_prior_loss.py
+        configs/large_voc/vit/large_voc_vitb16_cosine_320k_bs16_coco171_in585_eval_ade585_prior_loss.py
         --auto-resume
-        --work-dir /zeliuwestus2/output_svlseg/20221009_large_voc_vitb16_linear_320k_bs16_coco171_in130_eval_ade130_prior_loss
+        --work-dir /zeliuwestus2/output_svlseg/20221010_large_voc_vitb16_cosine_320k_bs16_coco171_in585_eval_ade585_prior_loss
