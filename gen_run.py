@@ -10,8 +10,9 @@ for i, out_dir in enumerate([
         # "work_dirs/20221006_large_voc_vitb16_linear_80k_bs16_ade847_prior_structure_loss",
         # "work_dirs/20221006_large_voc_vitb16_linear_80k_bs16_cocostuff_prior_loss",
         # "work_dirs/20221006_large_voc_vitb16_linear_80k_bs16_cocostuff_prior_structure_loss"
-        "work_dirs/20221006_large_voc_vitb16_linear_80k_bs16_ade150_prior_loss",
-        "work_dirs/20221006_large_voc_vitb16_linear_80k_bs16_ade150_prior_structure_loss"
+        # "work_dirs/20221006_large_voc_vitb16_linear_80k_bs16_ade150_prior_loss",
+        # "work_dirs/20221006_large_voc_vitb16_linear_80k_bs16_ade150_prior_structure_loss"
+        "work_dirs/20221006_large_voc_vitb16_cosine_80k_bs16_ade150_prior_structure_loss"
     ]):
     for data in ["coco171", "ade150", "ade847"]:
         for o in [1,3,10]:
@@ -29,5 +30,5 @@ for i, out_dir in enumerate([
             else:
                 mode = "structure"
             for v in range(5):
-                print(f"bash tools/dist_test.sh {cfg} {out_dir}/iter_80000.pth 4 --eval mIoU > {i+9}{data}_{mode}_point{o}_v{v}.txt", file=f)
+                print(f"bash tools/dist_test.sh {cfg} {out_dir}/iter_80000.pth 4 --eval mIoU > {i+11}{data}_{mode}_point{o}_v{v}.txt", file=f)
 f.close()

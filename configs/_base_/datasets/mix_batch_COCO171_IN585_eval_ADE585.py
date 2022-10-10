@@ -36,7 +36,6 @@ ade_test_pipeline = [
     dict(
         type='MultiScaleFlipAug',
         img_scale=(2048, 512),
-        # img_ratios=[0.5, 0.75, 1.0, 1.25, 1.5, 1.75],
         flip=False,
         transforms=[
             dict(type='Resize', keep_ratio=True),
@@ -60,24 +59,24 @@ data = dict(
                 ann_dir='annotations/train2017',
                 pipeline=coco_train_pipeline),
             dict(
-                type='ImageNet21K',
+                type='ImageNet585',
                 data_root=in21k_data_root,
-                img_dir="fall11_whole",
+                img_dir='fall11_whole',
                 ann_dir='annotations_cam_new',
-                split="in21k_inter_ade_full_merged.txt",
+                split="ImageNet585.txt",
                 img_suffix=".JPEG",
                 pipeline=in21k_train_pipeline),
         ]
     ),
     val=dict(
-        type='ADE20K586Dataset',
+        type='ADE20K585Dataset',
         data_root=ade_data_root,
         img_dir='images_detectron2/validation',
-        ann_dir='annotations_detectron2/validation_merged',
+        ann_dir='annotations_detectron2/validation',
         pipeline=ade_test_pipeline),
     test=dict(
-        type='ADE20K586Dataset',
+        type='ADE20K585Dataset',
         data_root=ade_data_root,
         img_dir='images_detectron2/validation',
-        ann_dir='annotations_detectron2/validation_merged',
+        ann_dir='annotations_detectron2/validation',
         pipeline=ade_test_pipeline))

@@ -17,19 +17,19 @@ code:
 
 jobs:
 
-  - name: 20221009_large_voc_vitb16_cosine_320k_bs16_coco171_in130_eval_ade130_prior_loss
-    sku: G8
-    sla_tier: basic
-    execution_mode: basic
-    priority: high
-    command:
-      - set -x; set -e
-      - pwd; ls; nvidia-smi
-      - sudo bash aml_setup.sh
-      - bash tools/dist_train.sh
-        configs/large_voc/vit/large_voc_vitb16_cosine_320k_bs16_coco171_in130_eval_ade130_prior_loss.py
-        --auto-resume
-        --work-dir /zeliuwestus2/output_svlseg/20221009_large_voc_vitb16_cosine_320k_bs16_coco171_in130_eval_ade130_prior_loss
+  # - name: 20221009_large_voc_vitb16_cosine_320k_bs16_coco171_in130_eval_ade130_prior_loss
+  #   sku: G8
+  #   sla_tier: basic
+  #   execution_mode: basic
+  #   priority: high
+  #   command:
+  #     - set -x; set -e
+  #     - pwd; ls; nvidia-smi
+  #     - sudo bash aml_setup.sh
+  #     - bash tools/dist_train.sh
+  #       configs/large_voc/vit/large_voc_vitb16_cosine_320k_bs16_coco171_in130_eval_ade130_prior_loss.py
+  #       --auto-resume
+  #       --work-dir /zeliuwestus2/output_svlseg/20221009_large_voc_vitb16_cosine_320k_bs16_coco171_in130_eval_ade130_prior_loss
 
   - name: 20221009_large_voc_vitb16_linear_320k_bs16_coco171_in130_eval_ade130_prior_loss
     sku: G8

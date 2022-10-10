@@ -60,28 +60,32 @@ class LoadImageFromFile(object):
             filename = osp.join(results["img_prefix"], results["img_info"]["filename"])
         else:
             filename = results["img_info"]["filename"]
-        img_bytes = self.file_client.get(filename)
-        img = mmcv.imfrombytes(
-            img_bytes, flag=self.color_type, backend=self.imdecode_backend
-        )
-        if self.to_float32:
-            img = img.astype(np.float32)
+        try:
+            img_bytes = self.file_client.get(filename)
+            img = mmcv.imfrombytes(
+                img_bytes, flag=self.color_type, backend=self.imdecode_backend
+            )
+            if self.to_float32:
+                img = img.astype(np.float32)
 
-        results["filename"] = filename
-        results["ori_filename"] = results["img_info"]["filename"]
-        results["img"] = img
-        results["img_shape"] = img.shape
-        results["ori_shape"] = img.shape
-        # Set initial values for default meta_keys
-        results["pad_shape"] = img.shape
-        results["scale_factor"] = 1.0
-        num_channels = 1 if len(img.shape) < 3 else img.shape[2]
-        results["img_norm_cfg"] = dict(
-            mean=np.zeros(num_channels, dtype=np.float32),
-            std=np.ones(num_channels, dtype=np.float32),
-            to_rgb=False,
-        )
-        return results
+            results["filename"] = filename
+            results["ori_filename"] = results["img_info"]["filename"]
+            results["img"] = img
+            results["img_shape"] = img.shape
+            results["ori_shape"] = img.shape
+            # Set initial values for default meta_keys
+            results["pad_shape"] = img.shape
+            results["scale_factor"] = 1.0
+            num_channels = 1 if len(img.shape) < 3 else img.shape[2]
+            results["img_norm_cfg"] = dict(
+                mean=np.zeros(num_channels, dtype=np.float32),
+                std=np.ones(num_channels, dtype=np.float32),
+                to_rgb=False,
+            )
+            return results
+        except:
+            print(filename, "is invalid")
+            return None
 
     def __repr__(self):
         repr_str = self.__class__.__name__
@@ -163,10 +167,13 @@ class LoadAnnotations(object):
                 gt_semantic_seg[gt_semantic_seg == 0] = 255
                 gt_semantic_seg = gt_semantic_seg - 1
                 gt_semantic_seg[gt_semantic_seg == 254] = 255
+        
+        import copy
+        gt_semantic_seg_ = copy.deepcopy(gt_semantic_seg)
         # modify if custom classes
         if results.get("label_map", None) is not None:
             for old_id, new_id in results["label_map"].items():
-                gt_semantic_seg[gt_semantic_seg == old_id] = new_id
+                gt_semantic_seg[gt_semantic_seg_ == old_id] = new_id
         # assert False, f"{np.unique(gt_semantic_seg)}"
         results["gt_semantic_seg"] = gt_semantic_seg
         results["seg_fields"].append("gt_semantic_seg")

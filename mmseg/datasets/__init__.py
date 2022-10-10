@@ -3,6 +3,7 @@ from .ade import (
     ADE20KDataset, 
     ADE20K130Dataset, 
     ADE20KFULLDataset, 
+    ADE20K585Dataset,
     ADE20KFULLMergedDataset, 
     ADE20KHyperDataset, 
     ADE20KFULLHyperDataset
@@ -22,7 +23,7 @@ from .voc import PascalVOCDataset
 from .coco_stuff import COCOStuffDataset
 from .coco_lvis import COCOLVISDataset
 
-from .imagenet import ImageNet21K, ImageNet130
+from .imagenet import ImageNet21K, ImageNet130, ImageNet585
 from .mix_batch import MixBatchDataset
 from .demo import DemoDataset
 
@@ -34,5 +35,5 @@ __all__ = [
     'STAREDataset', 'DarkZurichDataset', 'NightDrivingDataset', 'COCOStuffDataset',
     'ADE20KFULLDataset', "COCOLVISDataset", "ImageNet21K", "MixBatchDataset",
     "ADE20KFULLMergedDataset", "ADE20KHyperDataset", "ADE20KFULLHyperDataset",
-    "DemoDataset", "ADE20K130Dataset","ImageNet130"
+    "DemoDataset", "ADE20K130Dataset","ImageNet130", "ImageNet585", "ADE20K585Dataset"
 ]

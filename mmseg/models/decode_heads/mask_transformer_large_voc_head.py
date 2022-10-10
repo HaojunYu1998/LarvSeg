@@ -181,9 +181,15 @@ class MaskTransformerLargeVocHead(BaseDecodeHead):
         elif self.dataset_on_gpu == "ade847":
             from mmseg.datasets.ade import ADE20KFULLDataset
             cls_name = ADE20KFULLDataset.CLASSES
+        elif self.dataset_on_gpu == "ade585":
+            from mmseg.datasets.ade import ADE20K585Dataset
+            cls_name = ADE20K585Dataset.CLASSES585
         elif self.dataset_on_gpu == "in130":
             from mmseg.datasets.imagenet import ImageNet130
             cls_name = ImageNet130.CLASSES
+        elif self.dataset_on_gpu == "in585":
+            from mmseg.datasets.imagenet import ImageNet585
+            cls_name = ImageNet585.CLASSES
         else:
             raise NotImplementedError(f"{self.dataset_on_gpu} is not supported")
 
@@ -390,19 +396,16 @@ class MaskTransformerLargeVocHead(BaseDecodeHead):
             label = label.reshape(H * W)
             unique_label = torch.unique(label)
             unique_label = unique_label[unique_label != self.ignore_index]
-            # print("unique_label", unique_label)
             for l in unique_label:
                 inds = (mask[:, l] > self.weakly_prior_thresh).nonzero(as_tuple=False).flatten()
                 if inds.numel() < self.weakly_min_kept:
                     inds = mask[:, l].topk(self.weakly_min_kept).indices
                 elif inds.numel() > self.weakly_max_kept:
                     inds = mask[:, l].topk(self.weakly_max_kept).indices
-                # print("inds", inds)
                 prior_mask.append(mask[inds])
                 prior_label.append(label[inds])
         prior_mask = torch.cat(prior_mask, dim=0)
         prior_label = torch.cat(prior_label, dim=0)
-        # assert False, f"{prior_mask.shape}"
         return prior_mask, prior_label
     
     def loss_structure(self, seg_feat, seg_label):

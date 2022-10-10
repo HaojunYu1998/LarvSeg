@@ -197,6 +197,7 @@ class CustomDataset(Dataset):
         results["seg_prefix"] = self.ann_dir
         if self.custom_classes:
             results["label_map"] = self.label_map
+            # assert False, f"{np.unique(list(self.label_map.values())), self.label_map}"
 
     def __getitem__(self, idx):
         """Get training/test data after pipeline.
@@ -249,10 +250,6 @@ class CustomDataset(Dataset):
         if "gt_semantic_seg" in results_temp.keys() and not self.oracle_inference:
             results_temp.pop("gt_semantic_seg")
         return results_temp
-
-    # def format_results(self, results, imgfile_prefix, indices=None, **kwargs):
-    #     """Place holder to format result to dataset specific output."""
-    #     raise NotImplementedError
 
     def results2img(self, results, imgfile_prefix, to_label_id, indices=None):
         """Write the segmentation results to images.
@@ -374,7 +371,6 @@ class CustomDataset(Dataset):
             preds = [preds]
 
         pre_eval_results = []
-
         for pred, index in zip(preds, indices):
             seg_map = self.get_gt_seg_map_by_idx(index)
             pre_eval_results.append(
@@ -388,7 +384,6 @@ class CustomDataset(Dataset):
                     self.int16,
                 )
             )
-
         return pre_eval_results
 
     def get_classes_and_palette(self, classes=None, palette=None):
@@ -437,7 +432,7 @@ class CustomDataset(Dataset):
 
     def get_palette_for_custom_classes(self, class_names, palette=None):
 
-        if self.label_map is not None:
+        if self.label_map is not None and self.PALETTE is not None:
             # return subset of palette
             palette = []
             for old_id, new_id in sorted(self.label_map.items(), key=lambda x: x[1]):

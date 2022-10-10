@@ -64,21 +64,6 @@ def intersect_and_union(pred_label,
     else:
         label = torch.from_numpy(label)
 
-    # print("unique_label for evaluation", label.unique())
-    # print("reduce_zero_label", reduce_zero_label)
-    # print("unique pred_label", pred_label.unique())
-    # if reduce_zero_label:
-    #     if int16:
-    #         label = label - 1
-    #         label[label == -2] = -1
-    #     else:
-    #         label[label == 0] = 255
-    #         label = label - 1
-    #         label[label == 254] = 255
-    # if label_map is not None:
-    #     for old_id, new_id in label_map.items():
-    #         label[label == old_id] = new_id
-
     mask = (label != ignore_index)
     pred_label = pred_label[mask]
     label = label[mask]

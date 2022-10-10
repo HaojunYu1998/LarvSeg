@@ -25,7 +25,7 @@ from .builder import DATASETS
 from .pipelines import Compose, LoadAnnotations
 from .coco_stuff import COCOStuffDataset
 from .ade import ADE20KDataset, ADE20KFULLDataset
-from .imagenet import ImageNet21K, ImageNet130
+from .imagenet import ImageNet21K, ImageNet130, ImageNet585
 
 
 @DATASETS.register_module()
@@ -44,6 +44,8 @@ class MixBatchDataset(Dataset):
                 return ImageNet21K(**args)
             elif type == "ImageNet130":
                 return ImageNet130(**args)
+            elif type == "ImageNet585":
+                return ImageNet585(**args)
             assert False, f"{type} is not supported"
 
         self.rank, world_size = get_dist_info()
