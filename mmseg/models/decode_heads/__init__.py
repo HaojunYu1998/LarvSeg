@@ -43,6 +43,7 @@ from .mask_transformer_linear_head import MaskTransformerLinearHead
 from .mask_transformer_cos_head import MaskTransformerCosHead
 from .mask_transformer_weak_head import MaskTransformerWeakHead
 from .mask_transformer_large_voc_head import MaskTransformerLargeVocHead
+from .mask_transformer_large_voc_propagation_head import MaskTransformerLargeVocPropagationHead
 
 __all__ = [
     'FCNHead', 'PSPHead', 'ASPPHead', 'PSAHead', 'NLHead', 'GCHead', 'CCHead',
@@ -56,5 +57,5 @@ __all__ = [
     'MaskTransformerPixEmbedHead', 'MaskTransformerPropagationHead', 'MaskTransformerLSegHead',
     'MaskTransformerContrastiveHead', 'MaskTransformerPromptLearningHead',
     'MaskTransformerStructureHead', 'MaskTransformerLinearHead', 'MaskTransformerCosHead',
-    'MaskTransformerLargeVocHead'
+    'MaskTransformerLargeVocHead', 'MaskTransformerLargeVocPropagationHead'
 ]

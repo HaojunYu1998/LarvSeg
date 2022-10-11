@@ -2,8 +2,11 @@ export OMP_NUM_THREADS=1
 export CUDA_VISIBLE_DEVICES=0,1,2,3
 # export CUDA_LAUNCH_BLOCKING=1
 
+# bash tools/dist_train.sh \
+# configs/large_voc/vit/large_voc_vitb16_prop_head_cosine_80k_bs16_coco171_in130_eval_ade130.py
+
 bash tools/dist_train.sh \
-configs/large_voc/vit/pretrain_backbone.py
+configs/large_voc/vit/large_voc_vitb16_prop_head_cosine_80k_bs16_coco171_in130_eval_ade130.py
 
 # bash tools/dist_train.sh \
 # configs/large_voc/vit/large_voc_vitb16_linear_80k_bs16_coco171_in585_eval_ade585_prior_loss.py

@@ -26,6 +26,14 @@ model = dict(
         test_dataset="ade150",
         ignore_indices=[255,],
         test_ignore_index=255,
+        # attention head
+        d_encoder=768,
+        n_layers=6,
+        n_heads=12,
+        d_model=768,
+        d_ff=4 * 768,
+        drop_path_rate=0.0,
+        dropout=0.1,
         # prior loss
         use_prior_loss=True,
         use_linear_classifier=True,

@@ -24,9 +24,16 @@ model = dict(
         all_cls_path="",
         mix_batch_datasets=["coco171"],
         test_dataset="coco171", # not used
-        # 65535 is -1 for int16, but during training the label will be cast to int32
         ignore_indices=[255,],
         test_ignore_index=-1, # used
+        # attention head
+        d_encoder=768,
+        n_layers=6,
+        n_heads=12,
+        d_model=768,
+        d_ff=4 * 768,
+        drop_path_rate=0.0,
+        dropout=0.1,
         # prior loss
         use_prior_loss=True,
         # weakly supervised
@@ -34,6 +41,7 @@ model = dict(
         weakly_prior_thresh=0.9,
         weakly_min_kept=1,
         weakly_max_kept=100,
+        weakly_prior_loss_weight=0.05,
         # contrastive loss
         use_structure_loss=True,
         structure_loss_weight=10.0,
