@@ -1,8 +1,8 @@
 _base_ = [
-    "../../_base_/models/large_voc_vitb16.py",
-    "../../_base_/datasets/mix_batch_COCO171_IN585_eval_ADE585.py",
-    "../../_base_/default_runtime.py",
-    "../../_base_/schedules/schedule_160k.py",
+    "../../../_base_/models/large_voc_vitb16.py",
+    "../../../_base_/datasets/mix_batch_COCO171_IN130_eval_ADE130.py",
+    "../../../_base_/default_runtime.py",
+    "../../../_base_/schedules/schedule_160k.py",
 ]
 
 model = dict(
@@ -16,15 +16,15 @@ model = dict(
     ),
     decode_head=dict(
         type="MaskTransformerLargeVocHead",
-        n_cls=585, # train on 686 classes, eval 585 classes
+        n_cls=130, # train on 256 classes, eval 130 classes
         downsample_rate=2,
         temperature=0.05,
         # datasets
-        all_cls_path="notebook/ade585ucoco.json",
-        mix_batch_datasets=["coco171", "in585"],
-        test_dataset="ade585", # not used
-        ignore_indices=[255, -1],
-        test_ignore_index=-1, # used
+        all_cls_path="notebook/ade130ucoco.json",
+        mix_batch_datasets=["coco171", "in130"],
+        test_dataset="ade130", # not used
+        ignore_indices=[255, 255],
+        test_ignore_index=255, # used
         # attention head
         d_encoder=768,
         n_layers=6,
@@ -35,17 +35,19 @@ model = dict(
         dropout=0.1,
         # prior loss
         use_prior_loss=True,
-        use_linear_classifier=True,
+        use_linear_classifier=False,
         # weakly supervised
-        weakly_supervised_datasets=["in585"],
+        weakly_supervised_datasets=["in130"],
         weakly_prior_thresh=0.9,
         weakly_min_kept=10,
         weakly_max_kept=1000,
         weakly_prior_loss_weight=0.05,
+        weakly_structure_loss_weight=1.0,
         # contrastive loss
-        use_structure_loss=False,
+        use_structure_loss=True,
         structure_loss_weight=10.0,
-        structure_loss_thresh=0.3,
+        structure_loss_thresh=0.0,
+        structure_loss_no_negative=True,
         # oracle experiment
         oracle_inference=False,
         num_oracle_points=1,

@@ -1,0 +1,307 @@
+description: CVPR2023
+target:
+  service: sing
+  name: msroctovc
+  # name: msrresrchvc
+
+environment:
+  image: zeliu98/pytorch:superbench-nvcr21.05-fixfusedlamb-itp-mmcv-msrest
+
+storage:
+  output:
+    storage_account_name: zeliuwestus2
+    container_name: v-miazhang
+    mount_dir: /zeliuwestus2
+
+code:
+  local_dir: $CONFIG_DIR/../
+
+jobs:
+
+  # - name: 20221012_large_voc_vitb16_cosine_160k_bs16_coco171_ade150w_eval_ade150
+  #   sku: G8
+  #   sla_tier: basic
+  #   execution_mode: basic
+  #   priority: high
+  #   command:
+  #     - set -x; set -e
+  #     - pwd; ls; nvidia-smi
+  #     - sudo bash aml_setup_sing.sh
+  #     - /opt/conda/bin/python -m torch.distributed.launch
+  #       --nproc_per_node=8
+  #       --master_port=$$MASTER_PORT
+  #       tools/train.py
+  #       configs/large_voc/vit/large_voc_vitb16_cosine_160k_bs16_coco171_ade150w_eval_ade150.py
+  #       --launcher pytorch
+  #       --auto-resume
+  #       --work-dir /zeliuwestus2/output_svlseg/20221012_large_voc_vitb16_cosine_160k_bs16_coco171_ade150w_eval_ade150
+
+  # - name: 20221012_large_voc_vitb16_cosine_160k_bs16_coco171_ade150w_eval_ade150
+  #   sku: G8
+  #   sla_tier: basic
+  #   execution_mode: basic
+  #   priority: high
+  #   command:
+  #     - set -x; set -e
+  #     - pwd; ls; nvidia-smi
+  #     - sudo bash aml_setup_sing.sh
+  #     - /opt/conda/bin/python -m torch.distributed.launch
+  #       --nproc_per_node=8
+  #       --master_port=$$MASTER_PORT
+  #       tools/train.py
+  #       configs/large_voc/vit/large_voc_vitb16_cosine_160k_bs16_coco171_ade150w_eval_ade150.py
+  #       --launcher pytorch
+  #       --auto-resume
+  #       --work-dir /zeliuwestus2/output_svlseg/20221012_large_voc_vitb16_cosine_160k_bs16_coco171_ade150w_eval_ade150
+
+  # - name: 20221012_large_voc_vitb16_cosine_160k_bs16_coco171_ade847w_eval_ade847
+  #   sku: G8
+  #   sla_tier: basic
+  #   execution_mode: basic
+  #   priority: high
+  #   command:
+  #     - set -x; set -e
+  #     - pwd; ls; nvidia-smi
+  #     - sudo bash aml_setup_sing.sh
+  #     - /opt/conda/bin/python -m torch.distributed.launch
+  #       --nproc_per_node=8
+  #       --master_port=$$MASTER_PORT
+  #       tools/train.py
+  #       configs/large_voc/vit/large_voc_vitb16_cosine_160k_bs16_coco171_ade847w_eval_ade847.py
+  #       --launcher pytorch
+  #       --auto-resume
+  #       --work-dir /zeliuwestus2/output_svlseg/20221012_large_voc_vitb16_cosine_160k_bs16_coco171_ade847w_eval_ade847
+
+  - name: 20221012_large_voc_vitb16_cosine_160k_bs16_ade130_supervised
+    sku: G8
+    sla_tier: basic
+    execution_mode: basic
+    priority: high
+    command:
+      - set -x; set -e
+      - pwd; ls; nvidia-smi
+      - sudo bash aml_setup_sing.sh
+      - /opt/conda/bin/python -m torch.distributed.launch
+        --nproc_per_node=8
+        --master_port=$$MASTER_PORT
+        tools/train.py
+        configs/large_voc/vit/large_voc_vitb16_cosine_160k_bs16_ade130_supervised.py
+        --launcher pytorch
+        --auto-resume
+        --work-dir /zeliuwestus2/output_svlseg/20221012_large_voc_vitb16_cosine_160k_bs16_ade130_supervised
+
+  - name: 20221012_large_voc_vitb16_cosine_160k_bs16_ade150_supervised
+    sku: G8
+    sla_tier: basic
+    execution_mode: basic
+    priority: high
+    command:
+      - set -x; set -e
+      - pwd; ls; nvidia-smi
+      - sudo bash aml_setup_sing.sh
+      - /opt/conda/bin/python -m torch.distributed.launch
+        --nproc_per_node=8
+        --master_port=$$MASTER_PORT
+        tools/train.py
+        configs/large_voc/vit/large_voc_vitb16_cosine_160k_bs16_ade150_supervised.py
+        --launcher pytorch
+        --auto-resume
+        --work-dir /zeliuwestus2/output_svlseg/20221012_large_voc_vitb16_cosine_160k_bs16_ade150_supervised
+
+  # - name: 20221012_large_voc_vitb16_cosine_160k_bs16_ade585_supervised
+  #   sku: G8
+  #   sla_tier: basic
+  #   execution_mode: basic
+  #   priority: high
+  #   command:
+  #     - set -x; set -e
+  #     - pwd; ls; nvidia-smi
+  #     - sudo bash aml_setup_sing.sh
+  #     - /opt/conda/bin/python -m torch.distributed.launch
+  #       --nproc_per_node=8
+  #       --master_port=$$MASTER_PORT
+  #       tools/train.py
+  #       configs/large_voc/vit/large_voc_vitb16_cosine_160k_bs16_ade585_supervised.py
+  #       --launcher pytorch
+  #       --auto-resume
+  #       --work-dir /zeliuwestus2/output_svlseg/20221012_large_voc_vitb16_cosine_160k_bs16_ade585_supervised
+
+  # - name: 20221012_large_voc_vitb16_cosine_160k_bs16_ade847_supervised
+  #   sku: G8
+  #   sla_tier: basic
+  #   execution_mode: basic
+  #   priority: high
+  #   command:
+  #     - set -x; set -e
+  #     - pwd; ls; nvidia-smi
+  #     - sudo bash aml_setup_sing.sh
+  #     - /opt/conda/bin/python -m torch.distributed.launch
+  #       --nproc_per_node=8
+  #       --master_port=$$MASTER_PORT
+  #       tools/train.py
+  #       configs/large_voc/vit/large_voc_vitb16_cosine_160k_bs16_ade847_supervised.py
+  #       --launcher pytorch
+  #       --auto-resume
+  #       --work-dir /zeliuwestus2/output_svlseg/20221012_large_voc_vitb16_cosine_160k_bs16_ade847_supervised
+
+  # - name: 20221012_large_voc_vitb16_cosine_80k_bs16_coco171_in585_eval_ade585_prior_loss
+  #   sku: G8
+  #   sla_tier: basic
+  #   execution_mode: basic
+  #   priority: high
+  #   command:
+  #     - set -x; set -e
+  #     - pwd; ls; nvidia-smi
+  #     - sudo bash aml_setup_sing.sh
+  #     - /opt/conda/bin/python -m torch.distributed.launch
+  #       --nproc_per_node=8
+  #       --master_port=$$MASTER_PORT
+  #       tools/train.py
+  #       configs/large_voc/vit/large_voc_vitb16_cosine_80k_bs16_coco171_in585_eval_ade585_prior_loss.py
+  #       --launcher pytorch
+  #       --auto-resume
+  #       --work-dir /zeliuwestus2/output_svlseg/20221012_large_voc_vitb16_cosine_80k_bs16_coco171_in585_eval_ade585_prior_loss
+
+  # - name: 20221012_large_voc_vitb16_prop_head_cosine_160k_bs16_coco171_in130_eval_ade130_thre0.0
+  #   sku: G8
+  #   sla_tier: basic
+  #   execution_mode: basic
+  #   priority: high
+  #   command:
+  #     - set -x; set -e
+  #     - pwd; ls; nvidia-smi
+  #     - sudo bash aml_setup_sing.sh
+  #     - /opt/conda/bin/python -m torch.distributed.launch
+  #       --nproc_per_node=8
+  #       --master_port=$$MASTER_PORT
+  #       tools/train.py
+  #       configs/large_voc/vit/large_voc_vitb16_prop_head_cosine_160k_bs16_coco171_in130_eval_ade130_thre0.0.py
+  #       --launcher pytorch
+  #       --auto-resume
+  #       --work-dir /zeliuwestus2/output_svlseg/20221012_large_voc_vitb16_prop_head_cosine_160k_bs16_coco171_in130_eval_ade130_thre0.0
+
+  # - name: 20221012_large_voc_vitb16_prop_head_cosine_160k_bs16_coco171_in130_eval_ade130_thre0.1
+  #   sku: G8
+  #   sla_tier: basic
+  #   execution_mode: basic
+  #   priority: high
+  #   command:
+  #     - set -x; set -e
+  #     - pwd; ls; nvidia-smi
+  #     - sudo bash aml_setup_sing.sh
+  #     - /opt/conda/bin/python -m torch.distributed.launch
+  #       --nproc_per_node=8
+  #       --master_port=$$MASTER_PORT
+  #       tools/train.py
+  #       configs/large_voc/vit/large_voc_vitb16_prop_head_cosine_160k_bs16_coco171_in130_eval_ade130_thre0.1.py
+  #       --launcher pytorch
+  #       --auto-resume
+  #       --work-dir /zeliuwestus2/output_svlseg/20221012_large_voc_vitb16_prop_head_cosine_160k_bs16_coco171_in130_eval_ade130_thre0.1
+
+  # - name: 20221012_large_voc_vitb16_prop_head_cosine_160k_bs16_coco171_in130_eval_ade130_thre0.2
+  #   sku: G8
+  #   sla_tier: basic
+  #   execution_mode: basic
+  #   priority: high
+  #   command:
+  #     - set -x; set -e
+  #     - pwd; ls; nvidia-smi
+  #     - sudo bash aml_setup_sing.sh
+  #     - /opt/conda/bin/python -m torch.distributed.launch
+  #       --nproc_per_node=8
+  #       --master_port=$$MASTER_PORT
+  #       tools/train.py
+  #       configs/large_voc/vit/large_voc_vitb16_prop_head_cosine_160k_bs16_coco171_in130_eval_ade130_thre0.2.py
+  #       --launcher pytorch
+  #       --auto-resume
+  #       --work-dir /zeliuwestus2/output_svlseg/20221012_large_voc_vitb16_prop_head_cosine_160k_bs16_coco171_in130_eval_ade130_thre0.2
+
+  # - name: 20221012_large_voc_vitb16_prop_head_cosine_160k_bs16_coco171_in130_eval_ade130_thre0.3
+  #   sku: G8
+  #   sla_tier: basic
+  #   execution_mode: basic
+  #   priority: high
+  #   command:
+  #     - set -x; set -e
+  #     - pwd; ls; nvidia-smi
+  #     - sudo bash aml_setup_sing.sh
+  #     - /opt/conda/bin/python -m torch.distributed.launch
+  #       --nproc_per_node=8
+  #       --master_port=$$MASTER_PORT
+  #       tools/train.py
+  #       configs/large_voc/vit/large_voc_vitb16_prop_head_cosine_160k_bs16_coco171_in130_eval_ade130_thre0.3.py
+  #       --launcher pytorch
+  #       --auto-resume
+  #       --work-dir /zeliuwestus2/output_svlseg/20221012_large_voc_vitb16_prop_head_cosine_160k_bs16_coco171_in130_eval_ade130_thre0.3
+
+  # - name: 20221012_large_voc_vitb16_cosine_160k_bs16_coco171_in130_eval_ade130_prior_loss
+  #   sku: G8
+  #   sla_tier: basic
+  #   execution_mode: basic
+  #   priority: high
+  #   command:
+  #     - set -x; set -e
+  #     - pwd; ls; nvidia-smi
+  #     - sudo bash aml_setup_sing.sh
+  #     - /opt/conda/bin/python -m torch.distributed.launch
+  #       --nproc_per_node=8
+  #       --master_port=$$MASTER_PORT
+  #       tools/train.py
+  #       configs/large_voc/vit/large_voc_vitb16_cosine_160k_bs16_coco171_in130_eval_ade130_prior_loss.py
+  #       --launcher pytorch
+  #       --auto-resume
+  #       --work-dir /zeliuwestus2/output_svlseg/20221012_large_voc_vitb16_cosine_160k_bs16_coco171_in130_eval_ade130_prior_loss
+
+  # - name: 20221012_large_voc_vitb16_cosine_160k_bs16_coco171_in130_eval_ade130_prior_loss_prior0.95
+  #   sku: G8
+  #   sla_tier: basic
+  #   execution_mode: basic
+  #   priority: high
+  #   command:
+  #     - set -x; set -e
+  #     - pwd; ls; nvidia-smi
+  #     - sudo bash aml_setup_sing.sh
+  #     - /opt/conda/bin/python -m torch.distributed.launch
+  #       --nproc_per_node=8
+  #       --master_port=$$MASTER_PORT
+  #       tools/train.py
+  #       configs/large_voc/vit/large_voc_vitb16_cosine_160k_bs16_coco171_in130_eval_ade130_prior_loss_prior0.95.py
+  #       --launcher pytorch
+  #       --auto-resume
+  #       --work-dir /zeliuwestus2/output_svlseg/20221012_large_voc_vitb16_cosine_160k_bs16_coco171_in130_eval_ade130_prior_loss_prior0.95
+
+  # - name: 20221012_large_voc_vitb16_cosine_160k_bs16_coco171_in130_eval_ade130_prior_loss_prior0.85
+  #   sku: G8
+  #   sla_tier: basic
+  #   execution_mode: basic
+  #   priority: high
+  #   command:
+  #     - set -x; set -e
+  #     - pwd; ls; nvidia-smi
+  #     - sudo bash aml_setup_sing.sh
+  #     - /opt/conda/bin/python -m torch.distributed.launch
+  #       --nproc_per_node=8
+  #       --master_port=$$MASTER_PORT
+  #       tools/train.py
+  #       configs/large_voc/vit/large_voc_vitb16_cosine_160k_bs16_coco171_in130_eval_ade130_prior_loss_prior0.85.py
+  #       --launcher pytorch
+  #       --auto-resume
+  #       --work-dir /zeliuwestus2/output_svlseg/20221012_large_voc_vitb16_cosine_160k_bs16_coco171_in130_eval_ade130_prior_loss_prior0.85
+
+  # - name: 20221012_large_voc_vitb16_cosine_160k_bs16_coco171_in130_eval_ade130_prior_loss_max100
+  #   sku: G8
+  #   sla_tier: basic
+  #   execution_mode: basic
+  #   priority: high
+  #   command:
+  #     - set -x; set -e
+  #     - pwd; ls; nvidia-smi
+  #     - sudo bash aml_setup_sing.sh
+  #     - /opt/conda/bin/python -m torch.distributed.launch
+  #       --nproc_per_node=8
+  #       --master_port=$$MASTER_PORT
+  #       tools/train.py
+  #       configs/large_voc/vit/large_voc_vitb16_cosine_160k_bs16_coco171_in130_eval_ade130_prior_loss_max100.py
+  #       --launcher pytorch
+  #       --auto-resume
+  #       --work-dir /zeliuwestus2/output_svlseg/20221012_large_voc_vitb16_cosine_160k_bs16_coco171_in130_eval_ade130_prior_loss_max100

@@ -1,8 +1,8 @@
 _base_ = [
-    "../../_base_/models/large_voc_vitb16.py",
-    "../../_base_/datasets/mix_batch_COCO171_IN130_eval_ADE130.py",
-    "../../_base_/default_runtime.py",
-    "../../_base_/schedules/schedule_320k.py",
+    "../../../_base_/models/large_voc_vitb16.py",
+    "../../../_base_/datasets/mix_batch_COCO171_IN130_eval_ADE130.py",
+    "../../../_base_/default_runtime.py",
+    "../../../_base_/schedules/schedule_160k.py",
 ]
 
 model = dict(
@@ -35,7 +35,7 @@ model = dict(
         dropout=0.1,
         # prior loss
         use_prior_loss=True,
-        use_linear_classifier=False,
+        use_linear_classifier=True,
         # weakly supervised
         weakly_supervised_datasets=["in130"],
         weakly_prior_thresh=0.9,

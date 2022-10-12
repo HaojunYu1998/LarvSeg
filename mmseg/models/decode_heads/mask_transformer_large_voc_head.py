@@ -73,10 +73,12 @@ class MaskTransformerLargeVocHead(BaseDecodeHead):
         weakly_min_kept=1,
         weakly_max_kept=100,
         weakly_prior_loss_weight=1.0,
+        weakly_structure_loss_weight=0.0,
         # contrastive loss
         use_structure_loss=False,
         structure_loss_weight=1.0,
         structure_loss_thresh=0.2,
+        structure_loss_no_negative=False,
         # contrastive loss for class embedding
         use_cls_structure_loss=False,
         cls_structure_loss_weight=1.0,
@@ -128,10 +130,12 @@ class MaskTransformerLargeVocHead(BaseDecodeHead):
         self.weakly_min_kept = weakly_min_kept
         self.weakly_max_kept = weakly_max_kept
         self.weakly_prior_loss_weight = weakly_prior_loss_weight
+        self.weakly_structure_loss_weight = weakly_structure_loss_weight
         # contrastive loss
         self.use_structure_loss = use_structure_loss
         self.structure_loss_weight = structure_loss_weight
         self.structure_loss_thresh = structure_loss_thresh
+        self.structure_loss_no_negative = structure_loss_no_negative
         # contrastive loss for classification embedding
         self.use_cls_structure_loss = use_cls_structure_loss
         self.cls_structure_loss_weight = cls_structure_loss_weight
@@ -172,6 +176,7 @@ class MaskTransformerLargeVocHead(BaseDecodeHead):
             self.ignore_index = self.ignore_indices[rank % len(self.mix_batch_datasets)]
             if self.dataset_on_gpu in self.weakly_supervised_datasets:
                 self.prior_loss_weight = self.weakly_prior_loss_weight
+                self.structure_loss_weight = self.weakly_structure_loss_weight
         else:
             self.dataset_on_gpu = self.test_dataset
             self.ignore_index = self.test_ignore_index
@@ -179,6 +184,7 @@ class MaskTransformerLargeVocHead(BaseDecodeHead):
         if self.dataset_on_gpu == "coco171":
             from mmseg.datasets.coco_stuff import COCOStuffDataset
             cls_name = COCOStuffDataset.CLASSES
+            cls_name = [x.split("-")[0] for x in cls_name]
         elif self.dataset_on_gpu == "ade150":
             from mmseg.datasets.ade import ADE20KDataset
             cls_name = ADE20KDataset.CLASSES
@@ -318,9 +324,7 @@ class MaskTransformerLargeVocHead(BaseDecodeHead):
                 prior_mask, prior_label = self._sample(seg_mask, seg_label)
             # no valid label
             if prior_mask is None:
-                loss['loss_prior'] = torch.tensor(
-                    0, dtype=seg_mask.dtype, device=seg_mask.device, requires_grad=True
-                )
+                loss['loss_prior'] = seg_mask.sum() * 0.0
             else:
                 assert prior_label is not None
                 loss['loss_prior'] = self.loss_decode(
@@ -372,7 +376,7 @@ class MaskTransformerLargeVocHead(BaseDecodeHead):
                 (seg_label == l).nonzero(as_tuple=False)[:, 0]
             )
         if len(pos_bucket) == 0:
-            return []
+            return None, None
         seg_mask = seg_mask.permute(0, 2, 3, 1).reshape(B * H * W, N)
         num_per_bucket = []
         for p in pos_bucket:
@@ -385,7 +389,7 @@ class MaskTransformerLargeVocHead(BaseDecodeHead):
             inds = seg_mask[p, int(l)].topk(k).indices
             prior_bucket.append(p[inds])
         # don't know what happened to cause this
-        if len(prior_bucket) <= 0:
+        if len(prior_bucket) == 0:
             return None, None
         prior_inds = torch.cat(prior_bucket)
         seg_label = seg_label.reshape(B * H * W)
@@ -458,10 +462,13 @@ class MaskTransformerLargeVocHead(BaseDecodeHead):
         ] = 0
         cos_sim = cos_sim[valid_mask.bool()]
         label_sim = label_sim[valid_mask.bool()]
-        # NOTE: for negative samples, don't add loss if they are lower than the thresh
-        _mask = (
-            (cos_sim > thresh) | (label_sim == 1)
-        )
+        if self.structure_loss_no_negative:
+            _mask = label_sim == 1
+        else:
+            # NOTE: for negative samples, don't add loss if they are lower than the thresh
+            _mask = (
+                (cos_sim > thresh) | (label_sim == 1)
+            )
         cos_sim = cos_sim[_mask]
         label_sim = label_sim[_mask]
         return torch.pow(cos_sim - label_sim, 2)

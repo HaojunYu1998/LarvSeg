@@ -68,9 +68,11 @@ class MaskTransformerLargeVocPropagationHead(BaseDecodeHead):
         weakly_min_kept=1,
         weakly_max_kept=100,
         weakly_prior_loss_weight=1.0,
+        weakly_structure_loss_weight=0.0,
         # structure loss
         structure_loss_weight=1.0,
         structure_loss_thresh=0.2,
+        structure_loss_no_negative=False,
         # oracle experiment
         oracle_inference=False,
         num_oracle_points=10,
@@ -110,9 +112,11 @@ class MaskTransformerLargeVocPropagationHead(BaseDecodeHead):
         self.weakly_min_kept = weakly_min_kept
         self.weakly_max_kept = weakly_max_kept
         self.weakly_prior_loss_weight = weakly_prior_loss_weight
+        self.weakly_structure_loss_weight = weakly_structure_loss_weight
         # structure loss
         self.structure_loss_weight = structure_loss_weight
         self.structure_loss_thresh = structure_loss_thresh
+        self.structure_loss_no_negative = structure_loss_no_negative
         # oracle experiment
         self.oracle_inference = oracle_inference
         self.num_oracle_points = num_oracle_points
@@ -155,6 +159,7 @@ class MaskTransformerLargeVocPropagationHead(BaseDecodeHead):
             self.ignore_index = self.ignore_indices[rank % len(self.mix_batch_datasets)]
             if self.dataset_on_gpu in self.weakly_supervised_datasets:
                 self.prior_loss_weight = self.weakly_prior_loss_weight
+                self.structure_loss_weight = self.weakly_structure_loss_weight
         else:
             self.dataset_on_gpu = self.test_dataset
             self.ignore_index = self.test_ignore_index
@@ -162,6 +167,7 @@ class MaskTransformerLargeVocPropagationHead(BaseDecodeHead):
         if self.dataset_on_gpu == "coco171":
             from mmseg.datasets.coco_stuff import COCOStuffDataset
             cls_name = COCOStuffDataset.CLASSES
+            cls_name = [x.split("-")[0] for x in cls_name]
         elif self.dataset_on_gpu == "ade150":
             from mmseg.datasets.ade import ADE20KDataset
             cls_name = ADE20KDataset.CLASSES
@@ -350,7 +356,7 @@ class MaskTransformerLargeVocPropagationHead(BaseDecodeHead):
                 (seg_label == l).nonzero(as_tuple=False)[:, 0]
             )
         if len(pos_bucket) == 0:
-            return []
+            return None, None
         seg_mask = seg_mask.permute(0, 2, 3, 1).reshape(B * H * W, N)
         num_per_bucket = []
         for p in pos_bucket:
@@ -363,7 +369,7 @@ class MaskTransformerLargeVocPropagationHead(BaseDecodeHead):
             inds = seg_mask[p, int(l)].topk(k).indices
             prior_bucket.append(p[inds])
         # don't know what happened to cause this
-        if len(prior_bucket) <= 0:
+        if len(prior_bucket) == 0:
             return None, None
         prior_inds = torch.cat(prior_bucket)
         seg_label = seg_label.reshape(B * H * W)
@@ -397,7 +403,7 @@ class MaskTransformerLargeVocPropagationHead(BaseDecodeHead):
         return prior_mask, prior_label
     
     def loss_structure(self, seg_feat, seg_label):
-        if self.dataset_on_gpu in self.weakly_supervised_datasets:
+        if self.structure_loss_weight == 0.0:
             return seg_feat.sum() * 0.0
         B, C, H, W = seg_feat.size()
         seg_feat = seg_feat.permute(0, 2, 3, 1).reshape(B * H * W, C)
@@ -434,10 +440,13 @@ class MaskTransformerLargeVocPropagationHead(BaseDecodeHead):
         ] = 0
         cos_sim = cos_sim[valid_mask.bool()]
         label_sim = label_sim[valid_mask.bool()]
-        # NOTE: for negative samples, don't add loss if they are lower than the thresh
-        _mask = (
-            (cos_sim > thresh) | (label_sim == 1)
-        )
+        if self.structure_loss_no_negative:
+            _mask = label_sim == 1
+        else:
+            # NOTE: for negative samples, don't add loss if they are lower than the thresh
+            _mask = (
+                (cos_sim > thresh) | (label_sim == 1)
+            )
         cos_sim = cos_sim[_mask]
         label_sim = label_sim[_mask]
         return torch.pow(cos_sim - label_sim, 2)
@@ -505,7 +514,8 @@ class PropagateAttention(nn.Module):
         self.heads = heads
         head_dim = dim // heads
         self.scale = head_dim**-0.5
-        self.gamma = nn.Parameter(torch.ones([]))
+        # gamma is a learnable scalar for each head
+        self.gamma = nn.Parameter(torch.ones(heads))
 
         self.qc_linear = nn.Linear(dim, dim, bias=False)
         self.qs_linear = nn.Linear(dim, dim, bias=False)
@@ -530,7 +540,7 @@ class PropagateAttention(nn.Module):
 
         attn_c = (qc @ kc.transpose(-2, -1)) * self.scale
         qs = qs / qs.norm(dim=-1, keepdim=True)
-        attn_s = (qs @ qs.transpose(-2, -1)) * self.gamma
+        attn_s = (qs @ qs.transpose(-2, -1)) * self.gamma[None, :, None, None]
         attn = (attn_c + attn_s).softmax(dim=-1)
         attn = self.attn_drop(attn)
 
