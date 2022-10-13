@@ -1,27 +1,24 @@
-from enum import unique
-from genericpath import exists
-import random
-import math
-import os
 import json
-from importlib_metadata import requires
+import math
+import numpy as np
+import os
+import random
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-import numpy as np
+from enum import unique
+from genericpath import exists
+from importlib_metadata import requires
+from mmcv.runner import force_fp32, get_dist_info
 from PIL import Image
+from random import sample
+from timm.models.layers import DropPath
 from torch.nn.init import trunc_normal_
 
-from ..builder import HEADS
-from .decode_head import BaseDecodeHead
-from ..losses.accuracy import accuracy
-
 from mmseg.ops import resize
-from mmcv.runner import force_fp32
-
-from timm.models.layers import DropPath
-from mmcv.runner import get_dist_info
-from random import sample
+from ..builder import HEADS
+from ..losses.accuracy import accuracy
+from .decode_head import BaseDecodeHead
 
 
 def init_weights(m):
@@ -61,7 +58,7 @@ class MaskTransformerLargeVocPropagationHead(BaseDecodeHead):
         # losses
         prior_loss_weight=1.0,
         use_linear_classifier=False,
-        use_auxiliary_loss=False,
+        use_auxiliary_prior_loss=False,
         # weakly supervised
         weakly_supervised_datasets=["ade847"],
         weakly_prior_thresh=0.8,
@@ -111,7 +108,7 @@ class MaskTransformerLargeVocPropagationHead(BaseDecodeHead):
         # prior loss
         self.prior_loss_weight = prior_loss_weight
         self.use_linear_classifier = use_linear_classifier
-        self.use_auxiliary_loss = use_auxiliary_loss
+        self.use_auxiliary_prior_loss = use_auxiliary_prior_loss
         # weakly supervised
         self.weakly_supervised_datasets = weakly_supervised_datasets
         self.weakly_prior_thresh = weakly_prior_thresh
@@ -139,10 +136,8 @@ class MaskTransformerLargeVocPropagationHead(BaseDecodeHead):
         self.blocks = nn.ModuleList([
             Block(
                 dim=d_model, heads=n_heads, mlp_dim=d_ff, dropout=dropout, drop_path=dpr[i], 
-                gamma_init=self.structure_gamma_initial_value,
-                qk_cosine=self.structure_qk_cosine
-            )
-            for i in range(n_layers)
+                gamma_init=self.structure_gamma_initial_value, qk_cosine=self.structure_qk_cosine
+            ) for i in range(n_layers)
         ])
         self.norm_c = nn.LayerNorm(d_model)
         self.norm_s = nn.LayerNorm(d_model)
@@ -157,20 +152,24 @@ class MaskTransformerLargeVocPropagationHead(BaseDecodeHead):
             self.cls_emb_c = nn.Linear(d_model, num_classes)
             self.cls_emb_s = None
             if self.structure_branch_use_prior_loss and self.structure_branch_separate_classifier:
-                self.cls_emb_s = nn.Linear(d_model, num_classes) 
+                self.cls_emb_s = nn.Linear(d_model, num_classes)
         else:
             self.proj_feat_c = nn.Parameter(self.scale * torch.randn(d_model, d_model))
-            self.proj_feat_s = nn.Parameter(self.scale * torch.randn(d_model, d_model))
             self.proj_cls_c = nn.Parameter(self.scale * torch.randn(d_model, d_model))
-            self.proj_cls_s = nn.Parameter(self.scale * torch.randn(d_model, d_model))
-            self.cls_emb_c = nn.Parameter(
-                self.scale * torch.randn(num_classes, d_model)
-            )
+            self.cls_emb_c = nn.Parameter(self.scale * torch.randn(num_classes, d_model))
+            if self.structure_branch_use_prior_loss:
+                self.proj_feat_s = nn.Parameter(self.scale * torch.randn(d_model, d_model))
+                self.proj_cls_s = nn.Parameter(self.scale * torch.randn(d_model, d_model))
             self.cls_emb_s = None
             if self.structure_branch_use_prior_loss and self.structure_branch_separate_classifier:
-                self.cls_emb_s = nn.Parameter(
-                    self.scale * torch.randn(num_classes, d_model)
-                )
+                self.cls_emb_s = nn.Parameter(self.scale * torch.randn(num_classes, d_model))
+        # auxiliary loss for classification task
+        if self.use_auxiliary_prior_loss:
+            self.aux_gamma_c = nn.Parameter(torch.ones(n_layers - 1))
+            self.aux_beta_c = nn.Parameter(torch.zeros(n_layers - 1))
+            if not self.use_linear_classifier:
+                self.aux_proj_feat_c = nn.Parameter(self.scale * torch.randn(n_layers - 1, d_model, d_model))
+                self.aux_proj_cls_c = nn.Parameter(self.scale * torch.randn(n_layers - 1, d_model, d_model))
 
     def init_weights(self):
         self.apply(init_weights)
@@ -224,10 +223,13 @@ class MaskTransformerLargeVocPropagationHead(BaseDecodeHead):
         fc = fs = self.proj_dec(x)
         if self.structure_branch_detach:
             fs = fs.detach()
+        aux_fc_list = []
         for blk in self.blocks:
             fc, fs = blk(fc, fs)
+            aux_fc_list.append(fc)
         fc = self.norm_c(fc)
         fs = self.norm_s(fs)
+        # generate classification masks
         if self.use_linear_classifier:
             masks_c = self.cls_emb_c(fc)
             masks_c = masks_c[:, :, self.cls_index]
@@ -247,7 +249,30 @@ class MaskTransformerLargeVocPropagationHead(BaseDecodeHead):
         B, HW, N = masks_c.size()
         masks_c = masks_c.view(B, H, W, N).permute(0, 3, 1, 2)
         embeds = fs.clone().view(B, H, W, -1).permute(0, 3, 1, 2)
+        # auxiliary loss for classification task
+        aux_masks_c_list = []
+        if self.use_auxiliary_prior_loss:
+            for lid, aux_fc in enumerate(aux_fc_list[:-1]):
+                if self.use_linear_classifier:
+                    aux_masks_c = self.cls_emb_c(aux_fc)
+                    aux_masks_c = aux_masks_c[:, :, self.cls_index]
+                else:
+                    aux_cls_emb_c = self.cls_emb_c[self.cls_index]
+                    aux_cls_emb_c = aux_cls_emb_c.expand(x.size(0), -1, -1)
+                    aux_fc = aux_fc @ self.aux_proj_feat_c[lid]
+                    aux_cls_emb_c = aux_cls_emb_c @ self.aux_proj_cls_c[lid]
+                    aux_fc = aux_fc / aux_fc.norm(dim=-1, keepdim=True)
+                    aux_cls_emb_c = aux_cls_emb_c / aux_cls_emb_c.norm(dim=-1, keepdim=True)
+                    aux_masks_c = aux_fc @ aux_cls_emb_c.transpose(1, 2) / self.temperature
+                if self.training:
+                    aux_masks_c = (
+                        (aux_masks_c - torch.mean(aux_masks_c, dim=-1, keepdim=True))
+                        / torch.sqrt(torch.var(aux_masks_c, dim=-1, keepdim=True, unbiased=False) + 1e-5)
+                    ) * self.aux_gamma_c[lid] + self.aux_beta_c[lid]
+                aux_masks_c = aux_masks_c.view(B, H, W, N).permute(0, 3, 1, 2)
+                aux_masks_c_list.append(aux_masks_c)
 
+        # generate masks by structuring feature
         masks_s = None
         if self.structure_branch_use_prior_loss:
             if not self.structure_branch_separate_classifier:
@@ -270,18 +295,18 @@ class MaskTransformerLargeVocPropagationHead(BaseDecodeHead):
                 ) * self.gamma_s + self.beta_s
             masks_s = masks_s.view(B, H, W, N).permute(0, 3, 1, 2)
         
-        return masks_c, masks_s, embeds
+        return masks_c, masks_s, embeds, aux_masks_c_list
 
     def forward_train(self, inputs, img_metas, gt_semantic_seg, train_cfg):
         self._update(training=True)
         img_labels = None
-        masks_c, masks_s, embeds = self.forward(inputs, img_metas)
-        losses = self.losses(masks_c, masks_s, embeds, gt_semantic_seg, img_labels)
+        masks_c, masks_s, embeds, aux_masks_c_list = self.forward(inputs, img_metas)
+        losses = self.losses(masks_c, masks_s, embeds, aux_masks_c_list, gt_semantic_seg, img_labels)
         return losses
 
     def forward_test(self, inputs, img_metas, test_cfg, gt_semantic_seg=None):
         self._update(training=False)
-        masks_c, masks_s, embeds = self.forward(inputs, img_metas)
+        masks_c, _, embeds, _ = self.forward(inputs, img_metas)
         if self.oracle_inference:
             assert gt_semantic_seg is not None
             masks_c = self.oracle_propagation(embeds, gt_semantic_seg)
@@ -319,20 +344,14 @@ class MaskTransformerLargeVocPropagationHead(BaseDecodeHead):
         return masks
 
     @force_fp32(apply_to=('seg_mask_c', 'seg_mask_s'))
-    def losses(self, seg_mask, seg_mask_s, seg_embed, seg_label, img_labels=None):
+    def losses(self, seg_mask, seg_mask_s, seg_embed, aux_seg_mask_list, seg_label, img_labels=None):
         """Compute segmentation loss."""
         loss = dict()
         h = seg_label.shape[-2] // self.downsample_rate
         w = seg_label.shape[-1] // self.downsample_rate
-        seg_mask = resize(
-            seg_mask, size=(h, w), mode='bilinear', align_corners=self.align_corners
-        )
-        seg_embed = resize(
-            seg_embed, size=(h, w), mode='bilinear', align_corners=self.align_corners
-        )
-        seg_label = resize(
-            seg_label.float(), size=(h, w), mode='nearest'
-        ).long()
+        seg_mask = resize(seg_mask, size=(h, w), mode='bilinear', align_corners=self.align_corners)
+        seg_embed = resize(seg_embed, size=(h, w), mode='bilinear', align_corners=self.align_corners)
+        seg_label = resize(seg_label.float(), size=(h, w), mode='nearest').long()
 
         ########## classification task ##########
         B, N, H, W = seg_mask.shape
@@ -348,10 +367,9 @@ class MaskTransformerLargeVocPropagationHead(BaseDecodeHead):
             loss['loss_prior'] = self.loss_decode(
                 prior_mask, prior_label, weight=None, ignore_index=self.ignore_index
             ) * self.prior_loss_weight
+        # add classification supervision to structuring branch
         if self.structure_branch_use_prior_loss:
-            seg_mask_s = resize(
-                seg_mask_s, size=(h, w), mode='bilinear', align_corners=self.align_corners
-            )
+            seg_mask_s = resize(seg_mask_s, size=(h, w), mode='bilinear', align_corners=self.align_corners)
             if self.dataset_on_gpu in self.weakly_supervised_datasets:
                 prior_mask, prior_label = self._weak_sample(seg_mask_s, seg_label)
             else:
@@ -364,6 +382,23 @@ class MaskTransformerLargeVocPropagationHead(BaseDecodeHead):
                 loss['loss_prior_s'] = self.loss_decode(
                     prior_mask, prior_label, weight=None, ignore_index=self.ignore_index
                 ) * self.prior_loss_weight
+        # auxiliary loss for classification task
+        if self.use_auxiliary_prior_loss:
+            for lid, aux_seg_mask in enumerate(aux_seg_mask_list):
+                aux_seg_mask = resize(aux_seg_mask, size=(h, w), mode='bilinear', align_corners=self.align_corners)
+                if self.dataset_on_gpu in self.weakly_supervised_datasets:
+                    prior_mask, prior_label = self._weak_sample(aux_seg_mask, seg_label)
+                else:
+                    prior_mask, prior_label = self._sample(aux_seg_mask, seg_label)
+                # no valid label
+                if prior_mask is None:
+                    loss[f'loss_prior_{lid}'] = aux_seg_mask.sum() * 0.0
+                else:
+                    assert prior_label is not None
+                    loss[f'loss_prior_{lid}'] = self.loss_decode(
+                        prior_mask, prior_label, weight=None, ignore_index=self.ignore_index
+                    ) * self.prior_loss_weight
+        # log accuracy
         seg_label = seg_label.flatten()
         seg_mask = seg_mask.permute(0, 2, 3, 1).reshape(B * H * W, N)
         imagenet_in_batch = any(["in" in x for x in self.mix_batch_datasets])
@@ -371,7 +406,7 @@ class MaskTransformerLargeVocPropagationHead(BaseDecodeHead):
         acc_weight = acc_weight if imagenet_in_batch else 1.0
         loss['acc_seg'] = accuracy(seg_mask, seg_label)
 
-        ########## structure task ##########
+        ########## structuring task ##########
         loss['loss_structure'] = self.loss_structure(
             seg_embed, seg_label
         ) * self.structure_loss_weight

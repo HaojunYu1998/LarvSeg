@@ -3,7 +3,8 @@ export CUDA_VISIBLE_DEVICES=0,1,2,3
 # export CUDA_LAUNCH_BLOCKING=1
 
 bash tools/dist_train.sh \
-configs/large_voc/vit/prop_linear_in130/large_voc_vitb16_prop_head_linear_160k_bs16_coco171_in130_eval_ade130_thre0.3_detach.py
+configs/large_voc/vit/prop_linear_in130/large_voc_vitb16_prop_head_linear_160k_bs16_coco171_in130_eval_ade130_thre0.0_aux_cls.py
+
 
 # bash tools/dist_train.sh \
 # configs/large_voc/vit/large_voc_vitb16_cosine_160k_bs16_coco171_ade847w_eval_ade847.py
