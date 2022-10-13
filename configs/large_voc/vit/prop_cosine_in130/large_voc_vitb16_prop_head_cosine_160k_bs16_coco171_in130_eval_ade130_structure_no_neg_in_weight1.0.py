@@ -2,7 +2,7 @@ _base_ = [
     "../../../_base_/models/large_voc_vitb16.py",
     "../../../_base_/datasets/mix_batch_COCO171_IN130_eval_ADE130.py",
     "../../../_base_/default_runtime.py",
-    "../../../_base_/schedules/schedule_320k.py",
+    "../../../_base_/schedules/schedule_160k.py",
 ]
 
 model = dict(
@@ -15,7 +15,7 @@ model = dict(
         index=-1,
     ),
     decode_head=dict(
-        type="MaskTransformerLargeVocHead",
+        type="MaskTransformerLargeVocPropagationHead",
         n_cls=130, # train on 256 classes, eval 130 classes
         downsample_rate=2,
         temperature=0.05,
@@ -25,7 +25,7 @@ model = dict(
         test_dataset="ade130", # not used
         ignore_indices=[255, 255],
         test_ignore_index=255, # used
-        # attention head
+        # propagation head
         d_encoder=768,
         n_layers=6,
         n_heads=12,
@@ -33,19 +33,18 @@ model = dict(
         d_ff=4 * 768,
         drop_path_rate=0.0,
         dropout=0.1,
-        # prior loss
-        use_prior_loss=True,
-        use_linear_classifier=True,
+        structure_branch_use_prior_loss=True,
         # weakly supervised
         weakly_supervised_datasets=["in130"],
         weakly_prior_thresh=0.9,
         weakly_min_kept=10,
         weakly_max_kept=5000,
         weakly_prior_loss_weight=0.05,
+        weakly_structure_loss_weight=1.0,
         # contrastive loss
-        use_structure_loss=False,
         structure_loss_weight=10.0,
-        structure_loss_thresh=0.3,
+        structure_loss_thresh=0.0,
+        structure_loss_no_negative=True,
         # oracle experiment
         oracle_inference=False,
         num_oracle_points=1,

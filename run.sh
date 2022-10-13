@@ -3,7 +3,7 @@ export CUDA_VISIBLE_DEVICES=0,1,2,3
 # export CUDA_LAUNCH_BLOCKING=1
 
 bash tools/dist_train.sh \
-configs/large_voc/vit/propagation/large_voc_vitb16_prop_head_cosine_160k_bs16_coco171_in130_eval_ade130_structure_no_neg_in_weight5.0.py
+configs/large_voc/vit/prop_linear_in130/large_voc_vitb16_prop_head_linear_160k_bs16_coco171_in130_eval_ade130_thre0.3_detach.py
 
 # bash tools/dist_train.sh \
 # configs/large_voc/vit/large_voc_vitb16_cosine_160k_bs16_coco171_ade847w_eval_ade847.py
@@ -14,9 +14,9 @@ configs/large_voc/vit/propagation/large_voc_vitb16_prop_head_cosine_160k_bs16_co
 
 # bash tools/dist_test.sh \
 # configs/large_voc/vit/oracle/large_voc_vitb16_cosine_eval_coco171_oracle1.py \
-# work_dirs/20221006_large_voc_vitb16_cosine_80k_bs16_ade847_prior_loss/iter_80000.pth \
+# work_dirs/20221012_large_voc_vitb16_cosine_160k_bs16_coco171_in130_eval_ade130_prior_loss/iter_160000.pth \
 # 4 \
-# --eval mIoU > 1coco171_prior_structure1_v1.txt
+# --eval mIoU
 
 # sudo nvidia-docker run --ipc=host -it -v /mnt/haojun/itpsea4data:/itpsea4data --ipc=host hsfzxjy/mmseg:pytorch1.8.1-cuda10.2-cudnn7-devel /bin/bash
 # sudo nvidia-docker run --ipc=host -it -v /mnt/haojun/itpsea4data:/itpsea4data --ipc=host zeliu98/pytorch:superbench-nvcr21.05-fixfusedlamb-itp-mmcv-msrest /bin/bash

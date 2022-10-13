@@ -34,15 +34,17 @@ model = dict(
         drop_path_rate=0.0,
         dropout=0.1,
         structure_branch_use_prior_loss=True,
+        use_linear_classifier=True,
+        structure_branch_detach=True,
         # weakly supervised
         weakly_supervised_datasets=["in130"],
         weakly_prior_thresh=0.9,
         weakly_min_kept=10,
-        weakly_max_kept=1000,
+        weakly_max_kept=10000,
         weakly_prior_loss_weight=0.05,
         # contrastive loss
         structure_loss_weight=10.0,
-        structure_loss_thresh=0.2,
+        structure_loss_thresh=0.0,
         # oracle experiment
         oracle_inference=False,
         num_oracle_points=1,

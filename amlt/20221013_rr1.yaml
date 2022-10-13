@@ -1,0 +1,88 @@
+description: CVPR2023
+target:
+  service: amlk8s
+  name: itplabrr1cl1
+
+environment:
+  image: zeliu98/pytorch:superbench-nvcr21.05-fixfusedlamb-itp-mmcv-msrest
+
+storage:
+  output:
+    storage_account_name: zeliuwestus2
+    container_name: v-miazhang
+    mount_dir: /zeliuwestus2
+
+code:
+  local_dir: $CONFIG_DIR/../
+
+jobs:
+
+  - name: 20221013_large_voc_vitb16_prop_head_cosine_160k_bs16_coco171_in130_eval_ade130_thre0.0_fix_bug
+    sku: G8
+    sla_tier: basic
+    execution_mode: basic
+    priority: high
+    command:
+      - set -x; set -e
+      - pwd; ls; nvidia-smi
+      - sudo bash aml_setup.sh
+      - bash tools/dist_train.sh
+        configs/large_voc/vit/propagation/large_voc_vitb16_prop_head_cosine_160k_bs16_coco171_in130_eval_ade130_thre0.0.py
+        --auto-resume
+        --work-dir /zeliuwestus2/output_svlseg/20221013_large_voc_vitb16_prop_head_cosine_160k_bs16_coco171_in130_eval_ade130_thre0.0_fix_bug
+
+  # - name: 20221013_large_voc_vitb16_prop_head_cosine_160k_bs16_coco171_in130_eval_ade130_thre0.1
+  #   sku: G8
+  #   sla_tier: basic
+  #   execution_mode: basic
+  #   priority: high
+  #   command:
+  #     - set -x; set -e
+  #     - pwd; ls; nvidia-smi
+  #     - sudo bash aml_setup.sh
+  #     - bash tools/dist_train.sh
+  #       configs/large_voc/vit/propagation/large_voc_vitb16_prop_head_cosine_160k_bs16_coco171_in130_eval_ade130_thre0.1.py
+  #       --auto-resume
+  #       --work-dir /zeliuwestus2/output_svlseg/20221013_large_voc_vitb16_prop_head_cosine_160k_bs16_coco171_in130_eval_ade130_thre0.1
+
+  - name: 20221013_large_voc_vitb16_prop_head_cosine_160k_bs16_coco171_in130_eval_ade130_thre0.2_fix_bug
+    sku: G8
+    sla_tier: basic
+    execution_mode: basic
+    priority: high
+    command:
+      - set -x; set -e
+      - pwd; ls; nvidia-smi
+      - sudo bash aml_setup.sh
+      - bash tools/dist_train.sh
+        configs/large_voc/vit/propagation/large_voc_vitb16_prop_head_cosine_160k_bs16_coco171_in130_eval_ade130_thre0.2.py
+        --auto-resume
+        --work-dir /zeliuwestus2/output_svlseg/20221013_large_voc_vitb16_prop_head_cosine_160k_bs16_coco171_in130_eval_ade130_thre0.2_fix_bug
+
+  # - name: 20221013_large_voc_vitb16_prop_head_cosine_160k_bs16_coco171_in130_eval_ade130_thre0.3
+  #   sku: G8
+  #   sla_tier: basic
+  #   execution_mode: basic
+  #   priority: high
+  #   command:
+  #     - set -x; set -e
+  #     - pwd; ls; nvidia-smi
+  #     - sudo bash aml_setup.sh
+  #     - bash tools/dist_train.sh
+  #       configs/large_voc/vit/propagation/large_voc_vitb16_prop_head_cosine_160k_bs16_coco171_in130_eval_ade130_thre0.3.py
+  #       --auto-resume
+  #       --work-dir /zeliuwestus2/output_svlseg/20221013_large_voc_vitb16_prop_head_cosine_160k_bs16_coco171_in130_eval_ade130_thre0.3
+
+  - name: 20221013_large_voc_vitb16_prop_head_cosine_160k_bs16_coco171_in130_eval_ade130_thre0.0_detach_fix_bug
+    sku: G8
+    sla_tier: basic
+    execution_mode: basic
+    priority: high
+    command:
+      - set -x; set -e
+      - pwd; ls; nvidia-smi
+      - sudo bash aml_setup.sh
+      - bash tools/dist_train.sh
+        configs/large_voc/vit/propagation/large_voc_vitb16_prop_head_cosine_160k_bs16_coco171_in130_eval_ade130_thre0.0_detach.py
+        --auto-resume
+        --work-dir /zeliuwestus2/output_svlseg/20221013_large_voc_vitb16_prop_head_cosine_160k_bs16_coco171_in130_eval_ade130_thre0.0_detach_fix_bug
