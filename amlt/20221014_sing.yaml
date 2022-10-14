@@ -17,7 +17,118 @@ code:
   local_dir: $CONFIG_DIR/../
 
 jobs:
-configs/large_voc/vit/prop_linear_in130/large_voc_vitb16_prop_head_linear_160k_bs16_coco171_in130_eval_ade130_thre0.0_no_neg.py
+
+# configs/large_voc/vit/prop_linear_in130/large_voc_vitb16_prop_head_linear_160k_bs16_coco171_in130_eval_ade130_thre0.0_weak_structure0.9_weight5.0_detach.py
+# configs/large_voc/vit/prop_linear_in130/large_voc_vitb16_prop_head_linear_160k_bs16_coco171_in130_eval_ade130_thre0.0_weak_structure0.85_detach.py
+
+  - name: 20221014_large_voc_vitb16_prop_head_linear_160k_bs16_coco171_in130_eval_ade130_thre0.0_weak_structure0.9_detach
+    sku: G8
+    sla_tier: basic
+    execution_mode: basic
+    priority: high
+    command:
+      - set -x; set -e
+      - pwd; ls; nvidia-smi
+      - sudo bash aml_setup_sing.sh
+      - /opt/conda/bin/python -m torch.distributed.launch
+        --nproc_per_node=8
+        --master_port=$$MASTER_PORT
+        tools/train.py
+        configs/large_voc/vit/prop_linear_in130/large_voc_vitb16_prop_head_linear_160k_bs16_coco171_in130_eval_ade130_thre0.0_weak_structure0.9_detach.py
+        --launcher pytorch
+        --auto-resume
+        --work-dir /zeliuwestus2/output_svlseg/20221014_large_voc_vitb16_prop_head_linear_160k_bs16_coco171_in130_eval_ade130_thre0.0_weak_structure0.9_detach
+
+  - name: 20221014_large_voc_vitb16_prop_head_linear_160k_bs16_coco171_in130_eval_ade130_thre0.0_weak_structure0.9_weight1.0_detach
+    sku: G8
+    sla_tier: basic
+    execution_mode: basic
+    priority: high
+    command:
+      - set -x; set -e
+      - pwd; ls; nvidia-smi
+      - sudo bash aml_setup_sing.sh
+      - /opt/conda/bin/python -m torch.distributed.launch
+        --nproc_per_node=8
+        --master_port=$$MASTER_PORT
+        tools/train.py
+        configs/large_voc/vit/prop_linear_in130/large_voc_vitb16_prop_head_linear_160k_bs16_coco171_in130_eval_ade130_thre0.0_weak_structure0.9_weight1.0_detach.py
+        --launcher pytorch
+        --auto-resume
+        --work-dir /zeliuwestus2/output_svlseg/20221014_large_voc_vitb16_prop_head_linear_160k_bs16_coco171_in130_eval_ade130_thre0.0_weak_structure0.9_weight1.0_detach
+
+  - name: 20221014_large_voc_vitb16_prop_head_linear_160k_bs16_coco171_in130_eval_ade130_thre0.0_weak_structure0.95_detach
+    sku: G8
+    sla_tier: basic
+    execution_mode: basic
+    priority: high
+    command:
+      - set -x; set -e
+      - pwd; ls; nvidia-smi
+      - sudo bash aml_setup_sing.sh
+      - /opt/conda/bin/python -m torch.distributed.launch
+        --nproc_per_node=8
+        --master_port=$$MASTER_PORT
+        tools/train.py
+        configs/large_voc/vit/prop_linear_in130/large_voc_vitb16_prop_head_linear_160k_bs16_coco171_in130_eval_ade130_thre0.0_weak_structure0.95_detach.py
+        --launcher pytorch
+        --auto-resume
+        --work-dir /zeliuwestus2/output_svlseg/20221014_large_voc_vitb16_prop_head_linear_160k_bs16_coco171_in130_eval_ade130_thre0.0_weak_structure0.95_detach
+
+  # - name: 20221014_large_voc_vitb16_prop_head_linear_160k_bs16_coco171_in130_eval_ade130_thre0.0_weak_structure0.9
+  #   sku: G8
+  #   sla_tier: basic
+  #   execution_mode: basic
+  #   priority: high
+  #   command:
+  #     - set -x; set -e
+  #     - pwd; ls; nvidia-smi
+  #     - sudo bash aml_setup_sing.sh
+  #     - /opt/conda/bin/python -m torch.distributed.launch
+  #       --nproc_per_node=8
+  #       --master_port=$$MASTER_PORT
+  #       tools/train.py
+  #       configs/large_voc/vit/prop_linear_in130/large_voc_vitb16_prop_head_linear_160k_bs16_coco171_in130_eval_ade130_thre0.0_weak_structure0.9.py
+  #       --launcher pytorch
+  #       --auto-resume
+  #       --work-dir /zeliuwestus2/output_svlseg/20221014_large_voc_vitb16_prop_head_linear_160k_bs16_coco171_in130_eval_ade130_thre0.0_weak_structure0.9
+
+  # - name: 20221014_large_voc_vitb16_prop_head_linear_160k_bs16_coco171_in130_eval_ade130_thre0.0_weak_structure0.9_weight1.0
+  #   sku: G8
+  #   sla_tier: basic
+  #   execution_mode: basic
+  #   priority: high
+  #   command:
+  #     - set -x; set -e
+  #     - pwd; ls; nvidia-smi
+  #     - sudo bash aml_setup_sing.sh
+  #     - /opt/conda/bin/python -m torch.distributed.launch
+  #       --nproc_per_node=8
+  #       --master_port=$$MASTER_PORT
+  #       tools/train.py
+  #       configs/large_voc/vit/prop_linear_in130/large_voc_vitb16_prop_head_linear_160k_bs16_coco171_in130_eval_ade130_thre0.0_weak_structure0.9_weight1.0.py
+  #       --launcher pytorch
+  #       --auto-resume
+  #       --work-dir /zeliuwestus2/output_svlseg/20221014_large_voc_vitb16_prop_head_linear_160k_bs16_coco171_in130_eval_ade130_thre0.0_weak_structure0.9_weight1.0
+
+  # - name: 20221014_large_voc_vitb16_prop_head_linear_160k_bs16_coco171_in130_eval_ade130_thre0.0_weak_structure0.9_weight5.0
+  #   sku: G8
+  #   sla_tier: basic
+  #   execution_mode: basic
+  #   priority: high
+  #   command:
+  #     - set -x; set -e
+  #     - pwd; ls; nvidia-smi
+  #     - sudo bash aml_setup_sing.sh
+  #     - /opt/conda/bin/python -m torch.distributed.launch
+  #       --nproc_per_node=8
+  #       --master_port=$$MASTER_PORT
+  #       tools/train.py
+  #       configs/large_voc/vit/prop_linear_in130/large_voc_vitb16_prop_head_linear_160k_bs16_coco171_in130_eval_ade130_thre0.0_weak_structure0.9_weight5.0.py
+  #       --launcher pytorch
+  #       --auto-resume
+  #       --work-dir /zeliuwestus2/output_svlseg/20221014_large_voc_vitb16_prop_head_linear_160k_bs16_coco171_in130_eval_ade130_thre0.0_weak_structure0.9_weight5.0
+
   # - name: 20221014_large_voc_vitb16_prop_head_linear_160k_bs16_coco171_in130_eval_ade130_thre0.0
   #   sku: G8
   #   sla_tier: basic
