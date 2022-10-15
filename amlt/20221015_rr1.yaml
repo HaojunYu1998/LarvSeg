@@ -17,7 +17,21 @@ code:
 
 jobs:
 
-  - name: 20221015_large_voc_vitb16_prop_head_cosine_160k_bs16_coco171_in130_eval_ade130_thre0.2_weak_structure0.9_detach
+  # - name: 20221015_large_voc_vitb16_prop_head_cosine_160k_bs16_coco171_in130_eval_ade130_thre0.2_max10000
+  #   sku: G8
+  #   sla_tier: basic
+  #   execution_mode: basic
+  #   priority: high
+  #   command:
+  #     - set -x; set -e
+  #     - pwd; ls; nvidia-smi
+  #     - sudo bash aml_setup.sh
+  #     - bash tools/dist_train.sh
+  #       configs/large_voc/vit/prop_cosine_in130/large_voc_vitb16_prop_head_cosine_160k_bs16_coco171_in130_eval_ade130_thre0.2_max10000.py
+  #       --auto-resume
+  #       --work-dir /zeliuwestus2/output_svlseg/20221015_large_voc_vitb16_prop_head_cosine_160k_bs16_coco171_in130_eval_ade130_thre0.2_max10000
+
+  - name: 20221015_large_voc_vitb16_prop_head_cosine_160k_bs16_coco171_in130_eval_ade130_thre0.2_detach_max10000
     sku: G8
     sla_tier: basic
     execution_mode: basic
@@ -27,9 +41,23 @@ jobs:
       - pwd; ls; nvidia-smi
       - sudo bash aml_setup.sh
       - bash tools/dist_train.sh
-        configs/large_voc/vit/prop_cosine_in130/large_voc_vitb16_prop_head_cosine_160k_bs16_coco171_in130_eval_ade130_thre0.2_weak_structure0.9_detach.py
+        configs/large_voc/vit/prop_cosine_in130/large_voc_vitb16_prop_head_cosine_160k_bs16_coco171_in130_eval_ade130_thre0.2_detach_max10000.py
         --auto-resume
-        --work-dir /zeliuwestus2/output_svlseg/20221015_large_voc_vitb16_prop_head_cosine_160k_bs16_coco171_in130_eval_ade130_thre0.2_weak_structure0.9_detach
+        --work-dir /zeliuwestus2/output_svlseg/20221015_large_voc_vitb16_prop_head_cosine_160k_bs16_coco171_in130_eval_ade130_thre0.2_detach_max10000
+
+  # - name: 20221015_large_voc_vitb16_prop_head_cosine_160k_bs16_coco171_in130_eval_ade130_thre0.2_weak_structure0.9_detach
+  #   sku: G8
+  #   sla_tier: basic
+  #   execution_mode: basic
+  #   priority: high
+  #   command:
+  #     - set -x; set -e
+  #     - pwd; ls; nvidia-smi
+  #     - sudo bash aml_setup.sh
+  #     - bash tools/dist_train.sh
+  #       configs/large_voc/vit/prop_cosine_in130/large_voc_vitb16_prop_head_cosine_160k_bs16_coco171_in130_eval_ade130_thre0.2_weak_structure0.9_detach.py
+  #       --auto-resume
+  #       --work-dir /zeliuwestus2/output_svlseg/20221015_large_voc_vitb16_prop_head_cosine_160k_bs16_coco171_in130_eval_ade130_thre0.2_weak_structure0.9_detach
 
   # - name: 20221015_large_voc_vitb16_linear_160k_bs16_coco171_in130_eval_ade130_prior_structure_loss_thre0.0
   #   sku: G8

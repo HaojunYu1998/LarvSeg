@@ -46,6 +46,7 @@ class MaskTransformerLargeVocPropagationHead(BaseDecodeHead):
         d_ff,
         drop_path_rate,
         dropout,
+        use_baseline=False,
         # other configs
         downsample_rate=8,
         temperature=1.0,
@@ -140,7 +141,7 @@ class MaskTransformerLargeVocPropagationHead(BaseDecodeHead):
         self.num_oracle_points = num_oracle_points
         self.oracle_downsample_rate = oracle_downsample_rate
 
-        self.proj_dec = nn.Linear(d_encoder, d_model)
+        # self.proj_dec = nn.Linear(d_encoder, d_model)
         # propagation head
         self.structure_branch_use_prior_loss = structure_branch_use_prior_loss
         self.structure_branch_separate_classifier = structure_branch_separate_classifier
@@ -151,7 +152,7 @@ class MaskTransformerLargeVocPropagationHead(BaseDecodeHead):
         self.blocks = nn.ModuleList([
             Block(
                 dim=d_model, heads=n_heads, mlp_dim=d_ff, dropout=dropout, drop_path=dpr[i], 
-                gamma_init=self.structure_gamma_initial_value, qk_cosine=self.structure_qk_cosine
+                gamma_init=self.structure_gamma_initial_value, use_baseline=use_baseline
             ) for i in range(n_layers)
         ])
         self.norm_c = nn.LayerNorm(d_model)
@@ -166,18 +167,18 @@ class MaskTransformerLargeVocPropagationHead(BaseDecodeHead):
         if self.use_linear_classifier:
             self.cls_emb_c = nn.Linear(d_model, num_classes)
             self.cls_emb_s = None
-            if self.structure_branch_use_prior_loss and self.structure_branch_separate_classifier:
+            if self.structure_branch_use_prior_loss: # and self.structure_branch_separate_classifier:
                 self.cls_emb_s = nn.Linear(d_model, num_classes)
         else:
             self.proj_feat_c = nn.Parameter(self.scale * torch.randn(d_model, d_model))
             self.proj_cls_c = nn.Parameter(self.scale * torch.randn(d_model, d_model))
-            self.cls_emb_c = nn.Parameter(self.scale * torch.randn(num_classes, d_model))
+            self.cls_emb_c = nn.Parameter(torch.randn(num_classes, d_model))
             if self.structure_branch_use_prior_loss:
                 self.proj_feat_s = nn.Parameter(self.scale * torch.randn(d_model, d_model))
                 self.proj_cls_s = nn.Parameter(self.scale * torch.randn(d_model, d_model))
             self.cls_emb_s = None
-            if self.structure_branch_use_prior_loss and self.structure_branch_separate_classifier:
-                self.cls_emb_s = nn.Parameter(self.scale * torch.randn(num_classes, d_model))
+            if self.structure_branch_use_prior_loss: # and self.structure_branch_separate_classifier:
+                self.cls_emb_s = nn.Parameter(torch.randn(num_classes, d_model))
         # auxiliary loss for classification task
         if self.use_auxiliary_prior_loss:
             self.aux_gamma_c = nn.Parameter(torch.ones(n_layers - 1))
@@ -188,6 +189,10 @@ class MaskTransformerLargeVocPropagationHead(BaseDecodeHead):
 
     def init_weights(self):
         self.apply(init_weights)
+        if not self.use_linear_classifier:
+            trunc_normal_(self.cls_emb_c, std=0.02)
+            if self.structure_branch_use_prior_loss:
+                trunc_normal_(self.cls_emb_s, std=0.02)
 
     def _update(self, training):
         rank, _ = get_dist_info()
@@ -236,7 +241,8 @@ class MaskTransformerLargeVocPropagationHead(BaseDecodeHead):
         x = self._transform_inputs(x)
         B, C, H, W = x.size()
         x = x.view(B, C, -1).permute(0, 2, 1)
-        fc = fs = self.proj_dec(x)
+        # fc = fs = self.proj_dec(x)
+        fc = fs = x
         if self.structure_branch_detach:
             fs = fs.detach()
         aux_fc_list = []
@@ -256,12 +262,11 @@ class MaskTransformerLargeVocPropagationHead(BaseDecodeHead):
             cls_emb_c = cls_emb_c @ self.proj_cls_c
             fc = fc / fc.norm(dim=-1, keepdim=True)
             cls_emb_c = cls_emb_c / cls_emb_c.norm(dim=-1, keepdim=True)
-            masks_c = fc @ cls_emb_c.transpose(1, 2) / self.temperature
-        if self.training:
-            masks_c = (
-                (masks_c - torch.mean(masks_c, dim=-1, keepdim=True))
-                / torch.sqrt(torch.var(masks_c, dim=-1, keepdim=True, unbiased=False) + 1e-5)
-            ) * self.gamma_c + self.beta_c
+            masks_c = fc @ cls_emb_c.transpose(1, 2) # / self.temperature
+        masks_c = (
+            (masks_c - torch.mean(masks_c, dim=-1, keepdim=True))
+            / torch.sqrt(torch.var(masks_c, dim=-1, keepdim=True, unbiased=False) + 1e-5)
+        ) * self.gamma_c + self.beta_c
         B, HW, N = masks_c.size()
         masks_c = masks_c.view(B, H, W, N).permute(0, 3, 1, 2)
         embeds = fs.clone().view(B, H, W, -1).permute(0, 3, 1, 2)
@@ -279,20 +284,20 @@ class MaskTransformerLargeVocPropagationHead(BaseDecodeHead):
                     aux_cls_emb_c = aux_cls_emb_c @ self.aux_proj_cls_c[lid]
                     aux_fc = aux_fc / aux_fc.norm(dim=-1, keepdim=True)
                     aux_cls_emb_c = aux_cls_emb_c / aux_cls_emb_c.norm(dim=-1, keepdim=True)
-                    aux_masks_c = aux_fc @ aux_cls_emb_c.transpose(1, 2) / self.temperature
-                if self.training:
-                    aux_masks_c = (
-                        (aux_masks_c - torch.mean(aux_masks_c, dim=-1, keepdim=True))
-                        / torch.sqrt(torch.var(aux_masks_c, dim=-1, keepdim=True, unbiased=False) + 1e-5)
-                    ) * self.aux_gamma_c[lid] + self.aux_beta_c[lid]
+                    aux_masks_c = aux_fc @ aux_cls_emb_c.transpose(1, 2)# / self.temperature
+                # if self.training:
+                aux_masks_c = (
+                    (aux_masks_c - torch.mean(aux_masks_c, dim=-1, keepdim=True))
+                    / torch.sqrt(torch.var(aux_masks_c, dim=-1, keepdim=True, unbiased=False) + 1e-5)
+                ) * self.aux_gamma_c[lid] + self.aux_beta_c[lid]
                 aux_masks_c = aux_masks_c.view(B, H, W, N).permute(0, 3, 1, 2)
                 aux_masks_c_list.append(aux_masks_c)
 
         # generate masks by structuring feature
         masks_s = None
         if self.structure_branch_use_prior_loss:
-            if not self.structure_branch_separate_classifier:
-                self.cls_emb_s = self.cls_emb_c
+            # if not self.structure_branch_separate_classifier:
+            # self.cls_emb_s = self.cls_emb_c
             if self.use_linear_classifier:
                 masks_s = self.cls_emb_s(fs)
                 masks_s = masks_s[:, :, self.cls_index]
@@ -303,21 +308,20 @@ class MaskTransformerLargeVocPropagationHead(BaseDecodeHead):
                 cls_emb_s = cls_emb_s @ self.proj_cls_s
                 fs = fs / fs.norm(dim=-1, keepdim=True)
                 cls_emb_s = cls_emb_s / cls_emb_s.norm(dim=-1, keepdim=True)
-                masks_s = fs @ cls_emb_s.transpose(1, 2) / self.temperature
-            if self.training:
-                masks_s = (
-                    (masks_s - torch.mean(masks_s, dim=-1, keepdim=True))
-                    / torch.sqrt(torch.var(masks_s, dim=-1, keepdim=True, unbiased=False) + 1e-5)
-                ) * self.gamma_s + self.beta_s
+                masks_s = fs @ cls_emb_s.transpose(1, 2) # / self.temperature
+            # if self.training:
+            masks_s = (
+                (masks_s - torch.mean(masks_s, dim=-1, keepdim=True))
+                / torch.sqrt(torch.var(masks_s, dim=-1, keepdim=True, unbiased=False) + 1e-5)
+            ) * self.gamma_s + self.beta_s
             masks_s = masks_s.view(B, H, W, N).permute(0, 3, 1, 2)
         
         return masks_c, masks_s, embeds, aux_masks_c_list
 
     def forward_train(self, inputs, img_metas, gt_semantic_seg, train_cfg):
         self._update(training=True)
-        img_labels = None
         masks_c, masks_s, embeds, aux_masks_c_list = self.forward(inputs, img_metas)
-        losses = self.losses(masks_c, masks_s, embeds, aux_masks_c_list, gt_semantic_seg, img_labels)
+        losses = self.losses(masks_c, masks_s, embeds, aux_masks_c_list, gt_semantic_seg)
         return losses
 
     def forward_test(self, inputs, img_metas, test_cfg, gt_semantic_seg=None):
@@ -359,12 +363,13 @@ class MaskTransformerLargeVocPropagationHead(BaseDecodeHead):
             masks[0, l] = score_mat
         return masks
 
-    @force_fp32(apply_to=('seg_mask_c', 'seg_mask_s'))
-    def losses(self, seg_mask, seg_mask_s, seg_embed, aux_seg_mask_list, seg_label, img_labels=None):
+    @force_fp32(apply_to=('seg_mask', 'seg_mask_s'))
+    def losses(self, seg_mask, seg_mask_s, seg_embed, aux_seg_mask_list, seg_label):
         """Compute segmentation loss."""
         loss = dict()
         h = seg_label.shape[-2] // self.downsample_rate
         w = seg_label.shape[-1] // self.downsample_rate
+        # (256, 256), (160, 160)
         seg_mask = resize(seg_mask, size=(h, w), mode='bilinear', align_corners=self.align_corners)
         seg_embed = resize(seg_embed, size=(h, w), mode='bilinear', align_corners=self.align_corners)
         seg_label = resize(seg_label.float(), size=(h, w), mode='nearest').long()
@@ -635,23 +640,23 @@ class FeedForward(nn.Module):
 
 class PropagateAttention(nn.Module):
 
-    def __init__(self, dim, heads, dropout, gamma_init, qk_cosine):
+    def __init__(self, dim, heads, dropout, gamma_init, use_baseline):
         super().__init__()
         self.heads = heads
-        self.qk_cosine = qk_cosine
+        self.use_baseline = use_baseline
         head_dim = dim // heads
         self.scale = head_dim**-0.5
         # gamma is a learnable scalar for each head
-        self.gamma = nn.Parameter(torch.ones(heads) * gamma_init)
+        if not self.use_baseline:
+            self.gamma = nn.Parameter(torch.ones(heads) * gamma_init)
 
         self.qc_linear = nn.Linear(dim, dim, bias=False)
         self.qs_linear = nn.Linear(dim, dim, bias=False)
         self.kc_linear = nn.Linear(dim, dim, bias=False)
-        self.ks_linear = nn.Linear(dim, dim, bias=False)
         self.vc_linear = nn.Linear(dim, dim, bias=False)
         self.vs_linear = nn.Linear(dim, dim, bias=False)
-        if not self.qk_cosine:
-            self.ks_linear = None
+        if self.use_baseline:
+            self.ks_linear = nn.Linear(dim, dim, bias=False)
 
         self.attn_drop = nn.Dropout(dropout)
         self.proj_c = nn.Linear(dim, dim)
@@ -665,18 +670,24 @@ class PropagateAttention(nn.Module):
         qc = self.qc_linear(fc).reshape(B, -1, self.heads, C // self.heads).permute(0, 2, 1, 3)
         qs = self.qs_linear(fs).reshape(B, -1, self.heads, C // self.heads).permute(0, 2, 1, 3)
         kc = self.kc_linear(fc).reshape(B, -1, self.heads, C // self.heads).permute(0, 2, 1, 3)
-        ks = qs if not self.qk_cosine else self.ks_linear(fs).reshape(B, -1, self.heads, C // self.heads).permute(0, 2, 1, 3)
         vc = self.vc_linear(fc).reshape(B, -1, self.heads, C // self.heads).permute(0, 2, 1, 3)
         vs = self.vs_linear(fs).reshape(B, -1, self.heads, C // self.heads).permute(0, 2, 1, 3)
 
         attn_c = (qc @ kc.transpose(-2, -1)) * self.scale
-        qs = qs / qs.norm(dim=-1, keepdim=True)
-        attn_s = (qs @ ks.transpose(-2, -1)) * self.gamma[None, :, None, None]
-        attn = (attn_c + attn_s).softmax(dim=-1)
-        attn = self.attn_drop(attn)
+        if self.use_baseline:
+            ks = self.ks_linear(fs).reshape(B, -1, self.heads, C // self.heads).permute(0, 2, 1, 3)
+            attn_s = (qs @ ks.transpose(-2, -1)) * self.scale
+        else:
+            qs = qs / qs.norm(dim=-1, keepdim=True)
+            attn_s = (qs @ qs.transpose(-2, -1)) * self.gamma[None, :, None, None]
+        attn1 = (attn_c + attn_s.detach()).softmax(dim=-1)
+        attn2 = (attn_c.detach() + attn_s).softmax(dim=-1)
+        # attn = self.attn_drop(attn)
+        attn1 = self.attn_drop(attn1)
+        attn2 = self.attn_drop(attn2)
 
-        fc = (attn @ vc).transpose(1, 2).reshape(B, -1, C)
-        fs = (attn @ vs).transpose(1, 2).reshape(B, -1, C)
+        fc = (attn1 @ vc).transpose(1, 2).reshape(B, -1, C)
+        fs = (attn2 @ vs).transpose(1, 2).reshape(B, -1, C)
         fc = self.proj_c(fc)
         fs = self.proj_s(fs)
         fc = self.proj_drop(fc)
@@ -687,18 +698,17 @@ class PropagateAttention(nn.Module):
 class Block(nn.Module):
 
     def __init__(
-        self, dim, heads, mlp_dim, dropout, drop_path, gamma_init=1.0, qk_cosine=False
+        self, dim, heads, mlp_dim, dropout, drop_path, gamma_init=1.0, use_baseline=False
     ):
         super().__init__()
         self.normc1 = nn.LayerNorm(dim)
         self.norms1 = nn.LayerNorm(dim)
         self.normc2 = nn.LayerNorm(dim)
         self.norms2 = nn.LayerNorm(dim)
-        self.attn = PropagateAttention(dim, heads, dropout, gamma_init, qk_cosine)
+        self.attn = PropagateAttention(dim, heads, dropout, gamma_init, use_baseline)
         self.mlp_c = FeedForward(dim, mlp_dim, dropout)
         self.mlp_s = FeedForward(dim, mlp_dim, dropout)
-        self.drop_path = DropPath(
-            drop_path) if drop_path > 0.0 else nn.Identity()
+        self.drop_path = DropPath(drop_path) if drop_path > 0.0 else nn.Identity()
 
     def forward(self, fc, fs):
         fc1, fs1 = self.attn(self.normc1(fc), self.norms1(fs))
@@ -709,5 +719,5 @@ class Block(nn.Module):
 
         fs = fs + self.drop_path(fs1)
         fs1 = self.mlp_s(self.norms2(fs))
-        fc = fc + self.drop_path(fs1)
+        fs = fs + self.drop_path(fs1)
         return fc, fs
