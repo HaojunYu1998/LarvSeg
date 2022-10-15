@@ -32,7 +32,7 @@ def init_weights(m):
 
 
 @HEADS.register_module()
-class MaskTransformerLargeVocPropagationHead(BaseDecodeHead):
+class MaskTransformerLargeVocMemoryBankHead(BaseDecodeHead):
 
     def __init__(
         self,
@@ -61,18 +61,13 @@ class MaskTransformerLargeVocPropagationHead(BaseDecodeHead):
         prior_rate=1.0,
         prior_loss_weight=1.0,
         use_linear_classifier=False,
-        use_auxiliary_prior_loss=False,
         # weakly supervised
         weakly_supervised_datasets=["ade847"],
         weakly_prior_thresh=0.8,
         weakly_min_kept=1,
         weakly_max_kept=100,
         weakly_sample_num=5000,
-        weakly_pos_sample_num=10,
-        weakly_neg_sample_num=10,
         weakly_prior_loss_weight=1.0,
-        weakly_structure_pos_thresh=0.9,
-        weakly_structure_neg_thresh=0.5,
         weakly_structure_loss_weight=0.0,
         # structure loss
         structure_loss_weight=1.0,
@@ -82,9 +77,8 @@ class MaskTransformerLargeVocPropagationHead(BaseDecodeHead):
         structure_branch_separate_classifier=False,
         structure_branch_detach=False,
         structure_gamma_initial_value=1.0,
-        structure_qk_cosine=False,
-        structure_use_memory_bank=False,
         structure_memory_bank_size=10,
+        structure_sample_neg_class=50,
         # oracle experiment
         oracle_inference=False,
         num_oracle_points=10,
@@ -121,25 +115,20 @@ class MaskTransformerLargeVocPropagationHead(BaseDecodeHead):
         self.prior_rate = prior_rate
         self.prior_loss_weight = prior_loss_weight
         self.use_linear_classifier = use_linear_classifier
-        self.use_auxiliary_prior_loss = use_auxiliary_prior_loss
         # weakly supervised
         self.weakly_supervised_datasets = weakly_supervised_datasets
         self.weakly_prior_thresh = weakly_prior_thresh
         self.weakly_min_kept = weakly_min_kept
         self.weakly_max_kept = weakly_max_kept
         self.weakly_sample_num = weakly_sample_num
-        self.weakly_pos_sample_num = weakly_pos_sample_num
-        self.weakly_neg_sample_num = weakly_neg_sample_num
         self.weakly_prior_loss_weight = weakly_prior_loss_weight
-        self.weakly_structure_pos_thresh = weakly_structure_pos_thresh
-        self.weakly_structure_neg_thresh = weakly_structure_neg_thresh
         self.weakly_structure_loss_weight = weakly_structure_loss_weight
         # structure loss
         self.structure_loss_weight = structure_loss_weight
         self.structure_loss_thresh = structure_loss_thresh
         self.structure_loss_no_negative = structure_loss_no_negative
-        self.structure_use_memory_bank = structure_use_memory_bank
         self.structure_memory_bank_size = structure_memory_bank_size
+        self.structure_sample_neg_class = structure_sample_neg_class
         # oracle experiment
         self.oracle_inference = oracle_inference
         self.num_oracle_points = num_oracle_points
@@ -151,7 +140,6 @@ class MaskTransformerLargeVocPropagationHead(BaseDecodeHead):
         self.structure_branch_separate_classifier = structure_branch_separate_classifier
         self.structure_branch_detach = structure_branch_detach
         self.structure_gamma_initial_value = structure_gamma_initial_value
-        self.structure_qk_cosine = structure_qk_cosine
         dpr = [x.item() for x in torch.linspace(0, drop_path_rate, n_layers)]
         self.blocks = nn.ModuleList([
             Block(
@@ -183,13 +171,13 @@ class MaskTransformerLargeVocPropagationHead(BaseDecodeHead):
             self.cls_emb_s = None
             if self.structure_branch_use_prior_loss: # and self.structure_branch_separate_classifier:
                 self.cls_emb_s = nn.Parameter(torch.randn(num_classes, d_model))
-        # auxiliary loss for classification task
-        if self.use_auxiliary_prior_loss:
-            self.aux_gamma_c = nn.Parameter(torch.ones(n_layers - 1))
-            self.aux_beta_c = nn.Parameter(torch.zeros(n_layers - 1))
-            if not self.use_linear_classifier:
-                self.aux_proj_feat_c = nn.Parameter(self.scale * torch.randn(n_layers - 1, d_model, d_model))
-                self.aux_proj_cls_c = nn.Parameter(self.scale * torch.randn(n_layers - 1, d_model, d_model))
+        # memory bank
+        for i in range(num_classes):
+            self.register_buffer("queue"+str(i), torch.randn(self.structure_memory_bank_size, d_model))
+            self.register_buffer("ptr"+str(i), torch.zeros(1, dtype=torch.long))
+            exec("self.queue"+str(i) + '=' + 'nn.functional.normalize(' + "self.queue"+str(i) + ',dim=0)')
+        self.all_num_classes = num_classes
+        self.prior_ind_bucket = None
 
     def init_weights(self):
         self.apply(init_weights)
@@ -197,6 +185,18 @@ class MaskTransformerLargeVocPropagationHead(BaseDecodeHead):
             trunc_normal_(self.cls_emb_c, std=0.02)
             if self.structure_branch_use_prior_loss:
                 trunc_normal_(self.cls_emb_s, std=0.02)
+
+    def _dequeue_and_enqueue(self, feat, cls):
+        """
+        Params:
+            feat: torch.Tensor(d_model)
+            cls: int, class index of current dataset
+        """
+        cls_ind = self.cls_index[cls]
+        ptr = int(eval("self.ptr"+str(cls_ind)))
+        eval("self.queue"+str(cls_ind))[ptr] = feat
+        ptr = (ptr + 1) % self.structure_memory_bank_size
+        eval("self.ptr"+str(cls_ind))[0] = ptr
 
     def _update(self, training):
         rank, _ = get_dist_info()
@@ -245,7 +245,6 @@ class MaskTransformerLargeVocPropagationHead(BaseDecodeHead):
         x = self._transform_inputs(x)
         B, C, H, W = x.size()
         x = x.view(B, C, -1).permute(0, 2, 1)
-        # fc = fs = self.proj_dec(x)
         fc = fs = x
         if self.structure_branch_detach:
             fs = fs.detach()
@@ -274,34 +273,9 @@ class MaskTransformerLargeVocPropagationHead(BaseDecodeHead):
         B, HW, N = masks_c.size()
         masks_c = masks_c.view(B, H, W, N).permute(0, 3, 1, 2)
         embeds = fs.clone().view(B, H, W, -1).permute(0, 3, 1, 2)
-        # auxiliary loss for classification task
-        aux_masks_c_list = []
-        if self.use_auxiliary_prior_loss:
-            for lid, aux_fc in enumerate(aux_fc_list[:-1]):
-                if self.use_linear_classifier:
-                    aux_masks_c = self.cls_emb_c(aux_fc)
-                    aux_masks_c = aux_masks_c[:, :, self.cls_index]
-                else:
-                    aux_cls_emb_c = self.cls_emb_c[self.cls_index]
-                    aux_cls_emb_c = aux_cls_emb_c.expand(x.size(0), -1, -1)
-                    aux_fc = aux_fc @ self.aux_proj_feat_c[lid]
-                    aux_cls_emb_c = aux_cls_emb_c @ self.aux_proj_cls_c[lid]
-                    aux_fc = aux_fc / aux_fc.norm(dim=-1, keepdim=True)
-                    aux_cls_emb_c = aux_cls_emb_c / aux_cls_emb_c.norm(dim=-1, keepdim=True)
-                    aux_masks_c = aux_fc @ aux_cls_emb_c.transpose(1, 2)# / self.temperature
-                # if self.training:
-                aux_masks_c = (
-                    (aux_masks_c - torch.mean(aux_masks_c, dim=-1, keepdim=True))
-                    / torch.sqrt(torch.var(aux_masks_c, dim=-1, keepdim=True, unbiased=False) + 1e-5)
-                ) * self.aux_gamma_c[lid] + self.aux_beta_c[lid]
-                aux_masks_c = aux_masks_c.view(B, H, W, N).permute(0, 3, 1, 2)
-                aux_masks_c_list.append(aux_masks_c)
-
         # generate masks by structuring feature
         masks_s = None
         if self.structure_branch_use_prior_loss:
-            # if not self.structure_branch_separate_classifier:
-            # self.cls_emb_s = self.cls_emb_c
             if self.use_linear_classifier:
                 masks_s = self.cls_emb_s(fs)
                 masks_s = masks_s[:, :, self.cls_index]
@@ -312,25 +286,24 @@ class MaskTransformerLargeVocPropagationHead(BaseDecodeHead):
                 cls_emb_s = cls_emb_s @ self.proj_cls_s
                 fs = fs / fs.norm(dim=-1, keepdim=True)
                 cls_emb_s = cls_emb_s / cls_emb_s.norm(dim=-1, keepdim=True)
-                masks_s = fs @ cls_emb_s.transpose(1, 2) # / self.temperature
-            # if self.training:
+                masks_s = fs @ cls_emb_s.transpose(1, 2)
             masks_s = (
                 (masks_s - torch.mean(masks_s, dim=-1, keepdim=True))
                 / torch.sqrt(torch.var(masks_s, dim=-1, keepdim=True, unbiased=False) + 1e-5)
             ) * self.gamma_s + self.beta_s
             masks_s = masks_s.view(B, H, W, N).permute(0, 3, 1, 2)
         
-        return masks_c, masks_s, embeds, aux_masks_c_list
+        return masks_c, masks_s, embeds
 
     def forward_train(self, inputs, img_metas, gt_semantic_seg, train_cfg):
         self._update(training=True)
-        masks_c, masks_s, embeds, aux_masks_c_list = self.forward(inputs, img_metas)
-        losses = self.losses(masks_c, masks_s, embeds, aux_masks_c_list, gt_semantic_seg)
+        masks_c, masks_s, embeds = self.forward(inputs, img_metas)
+        losses = self.losses(masks_c, masks_s, embeds, gt_semantic_seg)
         return losses
 
     def forward_test(self, inputs, img_metas, test_cfg, gt_semantic_seg=None):
         self._update(training=False)
-        masks_c, _, embeds, _ = self.forward(inputs, img_metas)
+        masks_c, _, embeds = self.forward(inputs, img_metas)
         if self.oracle_inference:
             assert gt_semantic_seg is not None
             masks_c = self.oracle_propagation(embeds, gt_semantic_seg)
@@ -368,7 +341,7 @@ class MaskTransformerLargeVocPropagationHead(BaseDecodeHead):
         return masks
 
     @force_fp32(apply_to=('seg_mask', 'seg_mask_s'))
-    def losses(self, seg_mask, seg_mask_s, seg_embed, aux_seg_mask_list, seg_label):
+    def losses(self, seg_mask, seg_mask_s, seg_embed, seg_label):
         """Compute segmentation loss."""
         loss = dict()
         h = seg_label.shape[-2] // self.downsample_rate
@@ -379,51 +352,17 @@ class MaskTransformerLargeVocPropagationHead(BaseDecodeHead):
         seg_label = resize(seg_label.float(), size=(h, w), mode='nearest').long()
 
         ########## classification task ##########
-        B, N, H, W = seg_mask.shape
-        if self.dataset_on_gpu in self.weakly_supervised_datasets:
-            prior_mask, prior_label, prior_inds = self._weak_sample(seg_mask, seg_label)
-        else:
-            prior_mask, prior_label, prior_inds = self._sample(seg_mask, seg_label)
-        # no valid label
-        if prior_mask is None:
-            loss['loss_prior'] = seg_mask.sum() * 0.0
-        else:
-            assert prior_label is not None
-            loss['loss_prior'] = self.loss_decode(
-                prior_mask, prior_label, weight=None, ignore_index=self.ignore_index
-            ) * self.prior_loss_weight
+        loss['loss_classification'] = self.loss_classification(
+            seg_mask, seg_label
+        ) * self.prior_loss_weight
         # add classification supervision to structuring branch
         if self.structure_branch_use_prior_loss:
             seg_mask_s = resize(seg_mask_s, size=(h, w), mode='bilinear', align_corners=self.align_corners)
-            if self.dataset_on_gpu in self.weakly_supervised_datasets:
-                prior_mask, prior_label, _ = self._weak_sample(seg_mask_s, seg_label)
-            else:
-                prior_mask, prior_label, _ = self._sample(seg_mask_s, seg_label)
-            # no valid label
-            if prior_mask is None:
-                loss['loss_prior_s'] = seg_mask_s.sum() * 0.0
-            else:
-                assert prior_label is not None
-                loss['loss_prior_s'] = self.loss_decode(
-                    prior_mask, prior_label, weight=None, ignore_index=self.ignore_index
-                ) * self.prior_loss_weight
-        # auxiliary loss for classification task
-        if self.use_auxiliary_prior_loss:
-            for lid, aux_seg_mask in enumerate(aux_seg_mask_list):
-                aux_seg_mask = resize(aux_seg_mask, size=(h, w), mode='bilinear', align_corners=self.align_corners)
-                if self.dataset_on_gpu in self.weakly_supervised_datasets:
-                    prior_mask, prior_label, _ = self._weak_sample(aux_seg_mask, seg_label)
-                else:
-                    prior_mask, prior_label, _ = self._sample(aux_seg_mask, seg_label)
-                # no valid label
-                if prior_mask is None:
-                    loss[f'loss_prior_{lid}'] = aux_seg_mask.sum() * 0.0
-                else:
-                    assert prior_label is not None
-                    loss[f'loss_prior_{lid}'] = self.loss_decode(
-                        prior_mask, prior_label, weight=None, ignore_index=self.ignore_index
-                    ) * self.prior_loss_weight
+            loss['loss_classification_s'] = self.loss_classification(
+                seg_mask_s, seg_label
+            ) * self.prior_loss_weight
         # log accuracy
+        B, N, H, W = seg_mask.shape
         seg_label = seg_label.flatten()
         seg_mask = seg_mask.permute(0, 2, 3, 1).reshape(B * H * W, N)
         imagenet_in_batch = any(["in" in x for x in self.mix_batch_datasets])
@@ -432,15 +371,9 @@ class MaskTransformerLargeVocPropagationHead(BaseDecodeHead):
         loss['acc_seg'] = accuracy(seg_mask, seg_label)
 
         ########## structuring task ##########
-        loss_structure = self.loss_structure(
-            seg_embed, seg_label, prior_inds
+        loss['loss_structuring'] = self.loss_structuring(
+            seg_embed, seg_label
         ) * self.structure_loss_weight
-        if self.dataset_on_gpu in self.weakly_supervised_datasets:
-            loss['loss_structure'] = loss_structure * 0.0
-            loss['loss_structure_weak'] = loss_structure * 2.0
-        else:
-            loss['loss_structure'] = loss_structure * 2.0
-            loss['loss_structure_weak'] = loss_structure * 0.0
         return loss
     
     def _sample(self, seg_mask, seg_label, min_kept=1):
@@ -481,7 +414,7 @@ class MaskTransformerLargeVocPropagationHead(BaseDecodeHead):
         seg_label = seg_label.reshape(B * H * W)
         prior_mask = seg_mask[prior_inds]
         prior_label = seg_label[prior_inds]
-        return prior_mask, prior_label, prior_inds
+        return prior_mask, prior_label
 
     def _weak_sample(self, seg_mask, seg_label):
         """
@@ -489,13 +422,13 @@ class MaskTransformerLargeVocPropagationHead(BaseDecodeHead):
         i.e. a pixel could be assigned to more than one categories
         """
         B, N, H, W = seg_mask.size()
-        prior_mask, prior_label, prior_inds = [], [], []
-        for mask, label in zip(seg_mask, seg_label):
+        prior_mask, prior_label = [], []
+        prior_ind_bucket = {}
+        for b, (mask, label) in enumerate(zip(seg_mask, seg_label)):
             mask = mask.reshape(N, H * W).permute(1, 0)
             label = label.reshape(H * W)
             unique_label = torch.unique(label)
             unique_label = unique_label[unique_label != self.ignore_index]
-            prior_ind = []
             for l in unique_label:
                 inds = (mask[:, l] > self.weakly_prior_thresh).nonzero(as_tuple=False).flatten()
                 if inds.numel() < self.weakly_min_kept:
@@ -504,94 +437,77 @@ class MaskTransformerLargeVocPropagationHead(BaseDecodeHead):
                     inds = mask[:, l].topk(self.weakly_max_kept).indices
                 prior_mask.append(mask[inds])
                 prior_label.append(torch.ones_like(label[inds]) * l)
-                prior_ind.append(inds)
-            prior_inds.append(prior_ind)
+                prior_ind = inds + b * H * W
+                if l not in prior_ind_bucket:
+                    prior_ind_bucket[l] = []
+                prior_ind_bucket[l].append(prior_ind)
         prior_mask = torch.cat(prior_mask, dim=0)
         prior_label = torch.cat(prior_label, dim=0)
-        return prior_mask, prior_label, prior_inds
+        self.prior_ind_bucket = {k: torch.cat(v, dim=0) for k, v in prior_ind_bucket.items()}
+        return prior_mask, prior_label
+
+    def loss_classification(self, seg_mask, seg_label):
+        if self.dataset_on_gpu in self.weakly_supervised_datasets:
+            prior_mask, prior_label = self._weak_sample(seg_mask, seg_label)
+        else:
+            prior_mask, prior_label = self._sample(seg_mask, seg_label)
+        # no valid label
+        if prior_mask is None:
+            return seg_mask.sum() * 0.0
+        else:
+            assert prior_label is not None
+            return self.loss_decode(
+                prior_mask, prior_label, weight=None, ignore_index=self.ignore_index
+            )
     
-    def loss_structure(self, seg_embed, seg_label, prior_inds):
+    def loss_structuring(self, seg_embed, seg_label):
         # turn off weakly structure loss
         if self.structure_loss_weight == 0.0:
             return seg_embed.sum() * 0.0
-        B, C, H, W = seg_embed.size()
+        # bucket for each class in the batch
+        B, C, H, W = seg_embed.shape
+        seg_embed = seg_embed.permute(0, 2, 3, 1).reshape(B * H * W, C)
+        seg_label = seg_label.reshape(B * H * W)
+        unique_label = torch.unique(seg_label)
+        unique_label = unique_label[unique_label != self.ignore_index]
         if self.dataset_on_gpu in self.weakly_supervised_datasets:
-            assert isinstance(prior_inds, list) and len(prior_inds) == B
-            seg_embed = seg_embed.permute(0, 2, 3, 1).reshape(B, H * W, C)
-            seg_label = seg_label.reshape(B, H * W)
-            loss, num_devide = 0.0, 0
-            for feat, label, prior_ind in zip(seg_embed, seg_label, prior_inds):
-                pos_bucket = [torch.arange(len(label))]
-                pos_inds = self._sample_random_points(pos_bucket)
-                sample_feat = torch.cat([feat[i] for i in pos_inds], dim=0)
-                for ind in prior_ind:
-                    prior_feat = feat[ind]
-                    loss += self.loss_similarity(sample_feat, None, prior_feat)
-                    num_devide += 1
-            loss = loss / num_devide
+            bucket = [self.prior_ind_bucket[int(l)] for l in unique_label]
         else:
-            seg_embed = seg_embed.permute(0, 2, 3, 1).reshape(B * H * W, C)
-            seg_label = seg_label.reshape(B * H * W)
-            unique_label = torch.unique(seg_label)
-            pos_bucket = [
-                torch.nonzero(seg_label == l)[:, 0]
-                for l in unique_label
-                if l != self.ignore_index
-            ]
-            if len(pos_bucket) == 0:
-                return seg_embed[seg_label != self.ignore_index].sum()
-            pos_inds = self._sample_random_points(pos_bucket)
-            sample_cls = torch.cat([seg_label[[i]] for i in pos_inds], dim=0).to(seg_embed.device)
-            sample_feat = torch.cat([seg_embed[i] for i in pos_inds], dim=0)
-            loss = self.loss_similarity(sample_feat, sample_cls)
-        return loss
+            bucket = [torch.nonzero(seg_label == l)[:, 0] for l in unique_label]
+        if len(bucket) == 0:
+            return seg_embed[seg_label != self.ignore_index].sum()
+        inds = self._sample_random_points(bucket)
+        # positive and negative samples
+        loss = 0
+        for l, ind in zip(unique_label, inds):
+            l_ind = self.cls_index[int(l)]
+            embed = seg_embed[ind]
+            pos_embed = eval("self.queue"+str(l_ind)).clone().detach()
+            class_inds = list(range(self.all_num_classes))
+            class_inds.remove(l_ind)
+            neg_inds = np.random.choice(class_inds, size=50, replace=False)
+            neg_embed_list = []
+            for neg_ind in neg_inds:
+                neg_embed_list.append(eval("self.queue"+str(neg_ind)).clone().detach())
+            neg_embed = torch.cat(neg_embed_list, dim=0)
+            # calculate loss
+            embed = embed / embed.norm(dim=-1, keepdim=True)
+            pos_embed = pos_embed / pos_embed.norm(dim=-1, keepdim=True)
+            neg_embed = neg_embed / neg_embed.norm(dim=-1, keepdim=True)
+            # assert False, f"{embed.shape} {torch.cat([pos_embed, neg_embed], dim=0).shape}"
+            cos_mat = embed @ torch.cat([pos_embed, neg_embed], dim=0).transpose(0, 1)
 
-    def loss_similarity(self, feat, label, prior_feat=None):
-        """Compute the similarity loss
-        Args:
-            feat (torch.Tensor): [N, C]
-            label (torch.Tensor): [N]
-            prior_feat (torch.Tensor): [Np, C]
-        """
-        feat = feat / feat.norm(dim=-1, keepdim=True)
-        if self.dataset_on_gpu in self.weakly_supervised_datasets:
-            assert prior_feat is not None
-            prior_feat = prior_feat / prior_feat.norm(dim=-1, keepdim=True)
-            prior_cos_sim = feat @ prior_feat.T
-            # neg_inds = prior_cos_sim.max(dim=-1).values < self.weakly_structure_neg_thresh
-            # if neg_inds.sum() == 0:
-            #     neg_inds = prior_cos_sim.max(dim=-1).values.topk(self.weakly_neg_sample_num, largest=False).indices
-            pos_inds = prior_cos_sim.max(dim=-1).values > self.weakly_structure_pos_thresh
-            # pos_inds[neg_inds] = False
-            if pos_inds.sum() == 0:
-                pos_inds = prior_cos_sim.max(dim=-1).values.topk(self.weakly_pos_sample_num).indices
-            # neg_feat = feat[neg_inds]
-            feat = feat[pos_inds]
-            cos_sim = feat @ feat.T
-            label_sim = torch.ones_like(cos_sim)
-        else:
-            assert label is not None
-            cos_sim = feat @ feat.T
-            label_sim = (label[None, :] == label[:, None]).int().float()
-        valid_mask = torch.ones_like(cos_sim)
-        valid_mask[
-            torch.arange(len(valid_mask)).to(valid_mask.device),
-            torch.arange(len(valid_mask)).to(valid_mask.device),
-        ] = 0
-        cos_sim = cos_sim[valid_mask.bool()]
-        label_sim = label_sim[valid_mask.bool()]
-        # if self.dataset_on_gpu in self.weakly_supervised_datasets:
-        #     neg_cos_sim = feat @ neg_feat.T
-        #     neg_label_sim = torch.zeros_like(neg_cos_sim)
-        #     cos_sim = torch.cat([cos_sim.flatten(), neg_cos_sim.flatten()])
-        #     label_sim = torch.cat([label_sim.flatten(), neg_label_sim.flatten()])
-        # NOTE: for negative samples, don't add loss if they are lower than the thresh
-        _mask = (cos_sim > self.structure_loss_thresh) | (label_sim == 1)
-        if _mask.sum() == 0:
-            return cos_sim.sum() * 0.0
-        cos_sim = cos_sim[_mask]
-        label_sim = label_sim[_mask]
-        return torch.pow(cos_sim - label_sim, 2).mean()
+            label = torch.ones_like(embed[:, 0])
+            pos_label = torch.ones_like(pos_embed[:, 0])
+            neg_label = torch.zeros_like(neg_embed[:, 0])
+            label_mat = (label[:, None] == torch.cat([pos_label, neg_label])[None, :]).int().float()
+
+            loss += torch.pow(cos_mat - label_mat, 2).mean()
+        # dequeue and enqueue
+        for l, ind in zip(unique_label, inds):
+            i = int(ind[int(np.random.choice(range(len(ind)), size=1))])
+            self._dequeue_and_enqueue(seg_embed[i], int(l))
+        return loss
     
     def _sample_random_points(self, buckets):
         """Sample points from each buckets
