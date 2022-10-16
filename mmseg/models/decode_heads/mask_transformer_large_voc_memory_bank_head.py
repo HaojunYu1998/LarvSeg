@@ -197,6 +197,7 @@ class MaskTransformerLargeVocMemoryBankHead(BaseDecodeHead):
         eval("self.queue"+str(cls_ind))[ptr] = feat
         ptr = (ptr + 1) % self.structure_memory_bank_size
         eval("self.ptr"+str(cls_ind))[0] = ptr
+        # print("cls", cls, "ptr", ptr)
 
     def _update(self, training):
         rank, _ = get_dist_info()
@@ -308,37 +309,6 @@ class MaskTransformerLargeVocMemoryBankHead(BaseDecodeHead):
             assert gt_semantic_seg is not None
             masks_c = self.oracle_propagation(embeds, gt_semantic_seg)
         return masks_c
-    
-    def oracle_propagation(self, seg_embed, seg_label):
-        device = seg_embed.device
-        # seg_label = torch.tensor(seg_label, dtype=torch.int64, device=device)
-        B, C, H, W = seg_embed.shape
-        h = seg_label.shape[-2] // self.oracle_downsample_rate
-        w = seg_label.shape[-1] // self.oracle_downsample_rate
-        seg_embed = resize(
-            input=seg_embed, size=(h, w), mode='bilinear', align_corners=self.align_corners
-        )
-        seg_label = resize(
-            input=seg_label.float(), size=(h, w), mode='nearest'
-        ).long()[0, 0]
-        if self.dataset_on_gpu == "ade150":
-            seg_label = seg_label - 1
-            seg_label[seg_label == -1] = self.ignore_index
-        seg_embed = seg_embed.permute(0, 2, 3, 1)
-        seg_label_per_image = seg_label.reshape(h * w)
-        seg_embed_per_image = seg_embed.reshape(h * w, C)
-        seg_embed_per_image = seg_embed_per_image / seg_embed_per_image.norm(dim=-1, keepdim=True)
-        unique_label = torch.unique(seg_label_per_image)
-        unique_label = unique_label[unique_label != self.ignore_index]
-        masks = torch.zeros((B, self.num_classes, h, w), device=device)
-        for l in unique_label:
-            pos_inds = (seg_label_per_image == l).nonzero(as_tuple=False)[:, 0]
-            inds = torch.randperm(len(pos_inds))[:self.num_oracle_points]
-            prior_inds = pos_inds[inds]
-            cos_mat = seg_embed_per_image[prior_inds] @ seg_embed_per_image.T
-            score_mat = cos_mat.max(dim=0).values.reshape(h, w)
-            masks[0, l] = score_mat
-        return masks
 
     @force_fp32(apply_to=('seg_mask', 'seg_mask_s'))
     def losses(self, seg_mask, seg_mask_s, seg_embed, seg_label):
@@ -430,6 +400,7 @@ class MaskTransformerLargeVocMemoryBankHead(BaseDecodeHead):
             unique_label = torch.unique(label)
             unique_label = unique_label[unique_label != self.ignore_index]
             for l in unique_label:
+                l = int(l)
                 inds = (mask[:, l] > self.weakly_prior_thresh).nonzero(as_tuple=False).flatten()
                 if inds.numel() < self.weakly_min_kept:
                     inds = mask[:, l].topk(self.weakly_min_kept).indices
@@ -471,6 +442,7 @@ class MaskTransformerLargeVocMemoryBankHead(BaseDecodeHead):
         unique_label = torch.unique(seg_label)
         unique_label = unique_label[unique_label != self.ignore_index]
         if self.dataset_on_gpu in self.weakly_supervised_datasets:
+            # assert False, f"{self.prior_ind_bucket}, {unique_label}"
             bucket = [self.prior_ind_bucket[int(l)] for l in unique_label]
         else:
             bucket = [torch.nonzero(seg_label == l)[:, 0] for l in unique_label]
@@ -494,7 +466,6 @@ class MaskTransformerLargeVocMemoryBankHead(BaseDecodeHead):
             embed = embed / embed.norm(dim=-1, keepdim=True)
             pos_embed = pos_embed / pos_embed.norm(dim=-1, keepdim=True)
             neg_embed = neg_embed / neg_embed.norm(dim=-1, keepdim=True)
-            # assert False, f"{embed.shape} {torch.cat([pos_embed, neg_embed], dim=0).shape}"
             cos_mat = embed @ torch.cat([pos_embed, neg_embed], dim=0).transpose(0, 1)
 
             label = torch.ones_like(embed[:, 0])
@@ -502,7 +473,9 @@ class MaskTransformerLargeVocMemoryBankHead(BaseDecodeHead):
             neg_label = torch.zeros_like(neg_embed[:, 0])
             label_mat = (label[:, None] == torch.cat([pos_label, neg_label])[None, :]).int().float()
 
-            loss += torch.pow(cos_mat - label_mat, 2).mean()
+            # print("pos", cos_mat[(label_mat == 1)].mean(), "neg", cos_mat[(label_mat == 0)].mean())
+            mask_ = (cos_mat > self.structure_loss_thresh) | (label_mat == 1)
+            loss += torch.pow(cos_mat[mask_] - label_mat[mask_], 2).mean()
         # dequeue and enqueue
         for l, ind in zip(unique_label, inds):
             i = int(ind[int(np.random.choice(range(len(ind)), size=1))])
@@ -525,6 +498,37 @@ class MaskTransformerLargeVocMemoryBankHead(BaseDecodeHead):
             for i, p in enumerate(buckets)
         ]
         return samples
+
+    def oracle_propagation(self, seg_embed, seg_label):
+        device = seg_embed.device
+        # seg_label = torch.tensor(seg_label, dtype=torch.int64, device=device)
+        B, C, H, W = seg_embed.shape
+        h = seg_label.shape[-2] // self.oracle_downsample_rate
+        w = seg_label.shape[-1] // self.oracle_downsample_rate
+        seg_embed = resize(
+            input=seg_embed, size=(h, w), mode='bilinear', align_corners=self.align_corners
+        )
+        seg_label = resize(
+            input=seg_label.float(), size=(h, w), mode='nearest'
+        ).long()[0, 0]
+        if self.dataset_on_gpu == "ade150":
+            seg_label = seg_label - 1
+            seg_label[seg_label == -1] = self.ignore_index
+        seg_embed = seg_embed.permute(0, 2, 3, 1)
+        seg_label_per_image = seg_label.reshape(h * w)
+        seg_embed_per_image = seg_embed.reshape(h * w, C)
+        seg_embed_per_image = seg_embed_per_image / seg_embed_per_image.norm(dim=-1, keepdim=True)
+        unique_label = torch.unique(seg_label_per_image)
+        unique_label = unique_label[unique_label != self.ignore_index]
+        masks = torch.zeros((B, self.num_classes, h, w), device=device)
+        for l in unique_label:
+            pos_inds = (seg_label_per_image == l).nonzero(as_tuple=False)[:, 0]
+            inds = torch.randperm(len(pos_inds))[:self.num_oracle_points]
+            prior_inds = pos_inds[inds]
+            cos_mat = seg_embed_per_image[prior_inds] @ seg_embed_per_image.T
+            score_mat = cos_mat.max(dim=0).values.reshape(h, w)
+            masks[0, l] = score_mat
+        return masks
 
     @staticmethod
     def _get_batch_hist_vector(target, nclass):

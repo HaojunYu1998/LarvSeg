@@ -78,7 +78,7 @@ class EncoderDecoderOracle(BaseSegmentor):
         else:
             img, targets = img
             x = (self.extract_feat(img), targets)
-        out = self._decode_head_forward_test(x, img_metas, gt_semantic_seg)
+        out = self._decode_head_forward_test(x, img_metas, gt_semantic_seg, img)
         out = resize(
             input=out,
             size=img.shape[2:],
@@ -97,11 +97,11 @@ class EncoderDecoderOracle(BaseSegmentor):
         losses.update(add_prefix(loss_decode, 'decode'))
         return losses
 
-    def _decode_head_forward_test(self, x, img_metas, gt_semantic_seg):
+    def _decode_head_forward_test(self, x, img_metas, gt_semantic_seg, img):
         """Run forward function and calculate loss for decode head in
         inference."""
         seg_logits = self.decode_head.forward_test(
-            x, img_metas, test_cfg=self.test_cfg, gt_semantic_seg=gt_semantic_seg
+            x, img_metas, test_cfg=self.test_cfg, gt_semantic_seg=gt_semantic_seg, img=img
         )
         return seg_logits
 

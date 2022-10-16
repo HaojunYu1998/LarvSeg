@@ -83,8 +83,7 @@ class MaskTransformerLargeVocPropagationHead(BaseDecodeHead):
         structure_branch_detach=False,
         structure_gamma_initial_value=1.0,
         structure_qk_cosine=False,
-        structure_use_memory_bank=False,
-        structure_memory_bank_size=10,
+        structure_inference=False,
         # oracle experiment
         oracle_inference=False,
         num_oracle_points=10,
@@ -138,8 +137,7 @@ class MaskTransformerLargeVocPropagationHead(BaseDecodeHead):
         self.structure_loss_weight = structure_loss_weight
         self.structure_loss_thresh = structure_loss_thresh
         self.structure_loss_no_negative = structure_loss_no_negative
-        self.structure_use_memory_bank = structure_use_memory_bank
-        self.structure_memory_bank_size = structure_memory_bank_size
+        self.structure_inference = structure_inference
         # oracle experiment
         self.oracle_inference = oracle_inference
         self.num_oracle_points = num_oracle_points
@@ -330,11 +328,12 @@ class MaskTransformerLargeVocPropagationHead(BaseDecodeHead):
 
     def forward_test(self, inputs, img_metas, test_cfg, gt_semantic_seg=None):
         self._update(training=False)
-        masks_c, _, embeds, _ = self.forward(inputs, img_metas)
+        masks_c, masks_s, embeds, _ = self.forward(inputs, img_metas)
+        masks = masks_s if self.structure_inference else masks_c
         if self.oracle_inference:
             assert gt_semantic_seg is not None
-            masks_c = self.oracle_propagation(embeds, gt_semantic_seg)
-        return masks_c
+            masks = self.oracle_propagation(embeds, gt_semantic_seg)
+        return masks
     
     def oracle_propagation(self, seg_embed, seg_label):
         device = seg_embed.device

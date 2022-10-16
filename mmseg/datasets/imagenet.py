@@ -1,17 +1,18 @@
 # Copyright (c) OpenMMLab. All rights reserved.
+import mmcv
+import numpy as np
+import os.path as osp
+import random
 import torch
 from genericpath import exists
+from mmcv.parallel import DataContainer as DC
+from mmcv.utils import print_log
+from PIL import Image
+
+from mmseg.core import eval_metrics, intersect_and_union, pre_eval_to_metrics
+from mmseg.utils import get_root_logger
 from .builder import DATASETS
 from .custom import CustomDataset
-
-import random
-import os.path as osp
-from PIL import Image
-import numpy as np
-import mmcv
-from mmcv.utils import print_log
-from mmcv.parallel import DataContainer as DC
-from mmseg.utils import get_root_logger
 
 
 @DATASETS.register_module()
@@ -287,6 +288,71 @@ class ImageNet130(ImageNet21K):
                 except:
                     continue
         return results
+
+    def prepare_test_img(self, idx):
+        """Get testing data after pipeline.
+
+        Args:
+            idx (int): Index of data.
+
+        Returns:
+            dict: Testing data after pipeline with new keys introduced by
+                pipeline.
+        """
+        img_info = self.img_infos[idx]
+        ann_info = self.get_ann_info(idx)
+        results = dict(img_info=img_info, ann_info=ann_info)
+        self.pre_pipeline(results)
+        results = self.pipeline(results)
+        # prepare
+        filename = img_info["filename"]
+        if "/" in filename:
+            img_id = filename.split("/")[0]
+        else:
+            img_id = filename.rstrip(self.img_suffix)
+        _class = self.IMAGE_IDS.index(img_id)
+        results["gt_semantic_seg"] = [
+            DC(torch.zeros_like(gt.data) + _class, stack=True) 
+            for gt in results["gt_semantic_seg"]
+        ]
+        if "gt_semantic_seg" in results.keys() and not self.oracle_inference:
+            results.pop("gt_semantic_seg")
+        return results
+    
+    def pre_eval(self, preds, indices):
+        """Collect eval result from each iteration.
+
+        Args:
+            preds (list[torch.Tensor] | torch.Tensor): the segmentation logit
+                after argmax, shape (N, H, W).
+            indices (list[int] | int): the prediction related ground truth
+                indices.
+
+        Returns:
+            list[torch.Tensor]: (area_intersect, area_union, area_prediction,
+                area_ground_truth).
+        """
+        # In order to compat with batch inference
+        if not isinstance(indices, list):
+            indices = [indices]
+        if not isinstance(preds, list):
+            preds = [preds]
+
+        pre_eval_results = []
+        for pred, index in zip(preds, indices):
+            seg_map = self.get_gt_seg_map_by_idx(index)
+            pre_eval_results.append(
+                intersect_and_union(
+                    seg_map,
+                    seg_map,
+                    len(self.CLASSES),
+                    self.ignore_index,
+                    self.label_map,
+                    self.reduce_zero_label,
+                    self.int16,
+                )
+            )
+        return pre_eval_results
 
 
 @DATASETS.register_module()

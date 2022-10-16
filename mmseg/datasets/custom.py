@@ -1,15 +1,14 @@
 # Copyright (c) OpenMMLab. All rights reserved.
-import os.path as osp
-import warnings
-from collections import OrderedDict
-import random
-
 import mmcv
 import numpy as np
+import os.path as osp
+import random
+import warnings
+from collections import OrderedDict
 from mmcv.utils import print_log
+from PIL import Image
 from prettytable import PrettyTable
 from torch.utils.data import Dataset
-from PIL import Image
 
 from mmseg.core import eval_metrics, intersect_and_union, pre_eval_to_metrics
 from mmseg.utils import get_root_logger

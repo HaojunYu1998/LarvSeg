@@ -1,0 +1,75 @@
+description: CVPR2023
+target:
+  service: sing
+  name: msroctovc
+  # name: msrresrchvc
+
+environment:
+  image: zeliu98/pytorch:superbench-nvcr21.05-fixfusedlamb-itp-mmcv-msrest
+
+storage:
+  output:
+    storage_account_name: zeliuwestus2
+    container_name: v-miazhang
+    mount_dir: /zeliuwestus2
+
+code:
+  local_dir: $CONFIG_DIR/../
+
+jobs:
+
+  # - name: fix_bug_20221016_large_voc_vitb16_prop3_cosine_160k_bs16_coco171_in130_eval_ade130_thre0.2_structure_weight1.0_memory_bank10_sample50
+  #   sku: G8
+  #   sla_tier: basic
+  #   execution_mode: basic
+  #   priority: high
+  #   command:
+  #     - set -x; set -e
+  #     - pwd; ls; nvidia-smi
+  #     - sudo bash aml_setup_sing.sh
+  #     - /opt/conda/bin/python -m torch.distributed.launch
+  #       --nproc_per_node=8
+  #       --master_port=$$MASTER_PORT
+  #       tools/train.py
+  #       configs/large_voc/vit/prop3_cosine_in130/large_voc_vitb16_prop_head_cosine_160k_bs16_coco171_in130_eval_ade130_thre0.2_structure_weight1.0_memory_bank10_sample50.py
+  #       --launcher pytorch
+  #       --auto-resume
+  #       --work-dir /zeliuwestus2/output_svlseg/fix_bug_20221016_large_voc_vitb16_prop3_cosine_160k_bs16_coco171_in130_eval_ade130_thre0.2_structure_weight1.0_memory_bank10_sample50
+
+  # - name: fix_bug_20221016_large_voc_vitb16_prop3_cosine_160k_bs16_coco171_in130_eval_ade130_thre0.2_detach_structure_weight1.0_weak_weight1.0_memory_bank10_sample50
+  #   sku: G8
+  #   sla_tier: basic
+  #   execution_mode: basic
+  #   priority: high
+  #   command:
+  #     - set -x; set -e
+  #     - pwd; ls; nvidia-smi
+  #     - sudo bash aml_setup_sing.sh
+  #     - /opt/conda/bin/python -m torch.distributed.launch
+  #       --nproc_per_node=8
+  #       --master_port=$$MASTER_PORT
+  #       tools/train.py
+  #       configs/large_voc/vit/prop3_cosine_in130/large_voc_vitb16_prop_head_cosine_160k_bs16_coco171_in130_eval_ade130_thre0.2_detach_structure_weight1.0_weak_weight1.0_memory_bank10_sample50.py
+  #       --launcher pytorch
+  #       --auto-resume
+  #       --work-dir /zeliuwestus2/output_svlseg/fix_bug_20221016_large_voc_vitb16_prop3_cosine_160k_bs16_coco171_in130_eval_ade130_thre0.2_detach_structure_weight1.0_weak_weight1.0_memory_bank10_sample50
+
+  - name: fix_bug_20221016_large_voc_vitb16_prop3_baseline_cosine_160k_bs16_coco171_in130_eval_ade130_thre0.2_detach_structure_weight1.0_weak_weight1.0_memory_bank10_sample50
+    sku: G8
+    sla_tier: basic
+    execution_mode: basic
+    priority: high
+    command:
+      - set -x; set -e
+      - pwd; ls; nvidia-smi
+      - sudo bash aml_setup_sing.sh
+      - /opt/conda/bin/python -m torch.distributed.launch
+        --nproc_per_node=8
+        --master_port=$$MASTER_PORT
+        tools/train.py
+        configs/large_voc/vit/prop3_cosine_in130/large_voc_vitb16_prop_head_baseline_cosine_160k_bs16_coco171_in130_eval_ade130_thre0.2_detach_structure_weight1.0_weak_weight1.0_memory_bank10_sample50.py
+        --launcher pytorch
+        --auto-resume
+        --work-dir /zeliuwestus2/output_svlseg/fix_bug_20221016_large_voc_vitb16_prop3_baseline_cosine_160k_bs16_coco171_in130_eval_ade130_thre0.2_detach_structure_weight1.0_weak_weight1.0_memory_bank10_sample50
+  
+        
