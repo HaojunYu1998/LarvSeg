@@ -40,6 +40,7 @@ model = dict(
         weakly_min_kept=50,
         weakly_max_kept=10000,
         weakly_prior_loss_weight=0.05,
+        weakly_structure_loss_weight=1.0,
         # contrastive loss
         structure_loss_weight=10.0,
         structure_loss_thresh=0.0,

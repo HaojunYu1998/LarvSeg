@@ -15,36 +15,33 @@ model = dict(
         index=-1,
     ),
     decode_head=dict(
-        type="MaskTransformerLargeVocMemoryBankHead",
+        type="MaskTransformerLargeVocHead",
         n_cls=130, # train on 256 classes, eval 130 classes
         downsample_rate=2,
-        temperature=0.05,
         # datasets
         all_cls_path="notebook/ade130ucoco.json",
         mix_batch_datasets=["coco171", "in130"],
-        test_dataset="ade130", # not used
+        test_dataset="ade130",
         ignore_indices=[255, 255],
-        test_ignore_index=255, # used
-        # propagation head
+        test_ignore_index=255,
+        # attention head
         d_encoder=768,
-        n_layers=3,
+        n_layers=4,
         n_heads=12,
         d_model=768,
         d_ff=4 * 768,
         drop_path_rate=0.0,
         dropout=0.1,
-        structure_branch_use_prior_loss=True,
         # weakly supervised
         weakly_supervised_datasets=["in130"],
-        weakly_prior_thresh=0.9,
-        weakly_min_kept=10,
+        weakly_seed_thresh=0.3,
+        weakly_min_kept=1000,
         weakly_max_kept=10000,
-        weakly_prior_loss_weight=0.05,
+        weakly_seed_loss_weight=0.2,
         # contrastive loss
+        use_structure_loss=False,
         structure_loss_weight=1.0,
-        structure_loss_thresh=0.2,
-        structure_memory_bank_size=10,
-        structure_sample_neg_class=50,
+        structure_loss_thresh=0.0,
         # oracle experiment
         oracle_inference=False,
         num_oracle_points=1,

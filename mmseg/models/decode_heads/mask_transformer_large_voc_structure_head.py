@@ -1,3 +1,4 @@
+import copy
 import json
 import math
 import numpy as np
@@ -75,7 +76,6 @@ class MaskTransformerLargeVocStructureHead(BaseDecodeHead):
         # structure loss
         structure_loss_weight=1.0,
         structure_loss_thresh=0.2,
-        structure_loss_no_negative=False,
         structure_branch_use_prior_loss=True,
         structure_branch_detach=False,
         structure_memory_bank_size=10,
@@ -118,7 +118,7 @@ class MaskTransformerLargeVocStructureHead(BaseDecodeHead):
         self.prior_loss_weight = prior_loss_weight
         self.use_linear_classifier = use_linear_classifier
         self.use_auxiliary_loss = use_auxiliary_loss
-        self.auxiliary_loss_weight = auxiliary_loss_weight
+        self.auxiliary_loss_weight = auxiliary_loss_weight if use_auxiliary_loss else [1.0]
         # weakly supervised
         self.weakly_supervised_datasets = weakly_supervised_datasets
         self.weakly_prior_thresh = weakly_prior_thresh
@@ -131,7 +131,6 @@ class MaskTransformerLargeVocStructureHead(BaseDecodeHead):
         # structure loss
         self.structure_loss_weight = structure_loss_weight
         self.structure_loss_thresh = structure_loss_thresh
-        self.structure_loss_no_negative = structure_loss_no_negative
         self.structure_memory_bank_size = structure_memory_bank_size
         self.structure_sample_neg_class = structure_sample_neg_class
         # oracle experiment
@@ -241,7 +240,7 @@ class MaskTransformerLargeVocStructureHead(BaseDecodeHead):
 
     def get_mask(self, feat, cls_emb, proj_feat, proj_cls, gamma, beta, shape):
         B, C, H, W = shape
-        cls_emb = cls_emb[self.cls_index].expand(shape[0], -1, -1)
+        cls_emb = cls_emb.expand(shape[0], -1, -1)
         cls_emb = cls_emb @ proj_cls
         cls_emb = cls_emb / cls_emb.norm(dim=-1, keepdim=True)
         feat = feat @ proj_feat
@@ -252,8 +251,8 @@ class MaskTransformerLargeVocStructureHead(BaseDecodeHead):
             (masks - torch.mean(masks, dim=-1, keepdim=True))
             / torch.sqrt(torch.var(masks, dim=-1, keepdim=True, unbiased=False) + 1e-5)
         ) * gamma + beta
-        masks = masks.view(B, H, W, len(self.cls_index)).permute(0, 3, 1, 2)
-        cos_mat = cos_mat.view(B, H, W, len(self.cls_index)).permute(0, 3, 1, 2)
+        masks = masks.view(B, H, W, self.all_num_classes).permute(0, 3, 1, 2)
+        cos_mat = cos_mat.view(B, H, W, self.all_num_classes).permute(0, 3, 1, 2)
         return masks, cos_mat
     
     def forward(self, x, img_metas, img_labels=None):
@@ -314,7 +313,7 @@ class MaskTransformerLargeVocStructureHead(BaseDecodeHead):
     def forward_test(self, inputs, img_metas, test_cfg, gt_semantic_seg=None):
         self._update(training=False)
         masks_c, _, _, _, embeds = self.forward(inputs, img_metas)
-        masks_c = masks_c[-1]
+        masks_c = masks_c[-1][:, self.cls_index]
         if self.oracle_inference:
             assert gt_semantic_seg is not None
             masks_c = self.oracle_propagation(embeds, gt_semantic_seg)
@@ -344,19 +343,28 @@ class MaskTransformerLargeVocStructureHead(BaseDecodeHead):
                 seg_mask_s, cos_mat_s, seg_embed, seg_label
             ) * self.prior_loss_weight
         # log accuracy
-        B, N, H, W = seg_mask.shape
-        seg_label = seg_label.flatten()
-        seg_mask = seg_mask.permute(0, 2, 3, 1).reshape(B * H * W, N)
-        imagenet_in_batch = any(["in" in x for x in self.mix_batch_datasets])
-        acc_weight = 0.0 if "in" in self.dataset_on_gpu else 2.0
-        acc_weight = acc_weight if imagenet_in_batch else 1.0
-        loss['acc_seg'] = accuracy(seg_mask, seg_label)
+        loss['acc_seg'] = self.log_accuracy(seg_mask, seg_label)
 
         ########## structuring task ##########
         loss['loss_structuring'] = self.loss_structuring(
             seg_embed, seg_label
         ) * self.structure_loss_weight
         return loss
+    
+    def log_accuracy(self, seg_mask, seg_label):
+        B, N, H, W = seg_mask.shape
+        seg_label = seg_label.flatten()
+        seg_label_ = copy.deepcopy(seg_label)
+        unique_label = torch.unique(seg_label)
+        unique_label = unique_label[unique_label != self.ignore_index]
+        for l in unique_label:
+            seg_label_[seg_label == l] = self.cls_index[int(l)]
+        seg_mask = seg_mask.permute(0, 2, 3, 1).reshape(B * H * W, N)
+        imagenet_in_batch = any(["in" in x for x in self.mix_batch_datasets])
+        acc_weight = 0.0 if "in" in self.dataset_on_gpu else 2.0
+        acc_weight = acc_weight if imagenet_in_batch else 1.0
+        return accuracy(seg_mask, seg_label_)
+
     
     def _sample(self, seg_mask, seg_label, min_kept=1):
         """
@@ -372,7 +380,11 @@ class MaskTransformerLargeVocStructureHead(BaseDecodeHead):
         seg_label = seg_label.reshape(B * H * W)
         seg_mask = seg_mask.permute(0, 2, 3, 1).reshape(B * H * W, N)
         prior_mask = seg_mask
-        prior_label = seg_label
+        prior_label = copy.deepcopy(seg_label)
+        unique_label = torch.unique(seg_label)
+        unique_label = unique_label[unique_label != self.ignore_index]
+        for l in unique_label:
+            prior_label[seg_label == l] = self.cls_index[int(l)]
         return prior_mask, prior_label
 
     def _weak_sample(self, seg_mask, cos_mat, seg_embed, seg_label):
@@ -392,7 +404,7 @@ class MaskTransformerLargeVocStructureHead(BaseDecodeHead):
             unique_label = torch.unique(label)
             unique_label = unique_label[unique_label != self.ignore_index]
             for l in unique_label:
-                l = int(l)
+                l = self.cls_index[int(l)]
                 inds = (cos[:, l] > self.weakly_prior_thresh).nonzero(as_tuple=False).flatten()
                 if inds.numel() < self.weakly_min_kept:
                     inds = cos[:, l].topk(self.weakly_min_kept).indices
@@ -442,7 +454,7 @@ class MaskTransformerLargeVocStructureHead(BaseDecodeHead):
         unique_label = unique_label[unique_label != self.ignore_index]
         if self.dataset_on_gpu in self.weakly_supervised_datasets:
             # assert False, f"{self.prior_ind_bucket}, {unique_label}"
-            bucket = [self.prior_ind_bucket[int(l)] for l in unique_label]
+            bucket = [self.prior_ind_bucket[self.cls_index[int(l)]] for l in unique_label]
         else:
             bucket = [torch.nonzero(seg_label == l)[:, 0] for l in unique_label]
         if len(bucket) == 0:
@@ -454,6 +466,7 @@ class MaskTransformerLargeVocStructureHead(BaseDecodeHead):
             l_ind = self.cls_index[int(l)]
             embed = seg_embed[ind]
             pos_embed = eval("self.queue"+str(l_ind)).clone().detach()
+
             class_inds = list(range(self.all_num_classes))
             class_inds.remove(l_ind)
             neg_inds = np.random.choice(class_inds, size=50, replace=False)
@@ -461,6 +474,7 @@ class MaskTransformerLargeVocStructureHead(BaseDecodeHead):
             for neg_ind in neg_inds:
                 neg_embed_list.append(eval("self.queue"+str(neg_ind)).clone().detach())
             neg_embed = torch.cat(neg_embed_list, dim=0)
+
             # calculate loss
             embed = embed / embed.norm(dim=-1, keepdim=True)
             pos_embed = pos_embed / pos_embed.norm(dim=-1, keepdim=True)

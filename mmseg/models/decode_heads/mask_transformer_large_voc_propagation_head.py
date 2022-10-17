@@ -88,6 +88,9 @@ class MaskTransformerLargeVocPropagationHead(BaseDecodeHead):
         oracle_inference=False,
         num_oracle_points=10,
         oracle_downsample_rate=1,
+        # visualization
+        visualize_seed=False,
+        visualize_out_dir="",
         **kwargs,
     ):
         # in_channels & channels are dummy arguments to satisfy signature of
@@ -142,6 +145,9 @@ class MaskTransformerLargeVocPropagationHead(BaseDecodeHead):
         self.oracle_inference = oracle_inference
         self.num_oracle_points = num_oracle_points
         self.oracle_downsample_rate = oracle_downsample_rate
+        # visualization
+        self.visualize_seed = visualize_seed
+        self.visualize_out_dir = visualize_out_dir
 
         # self.proj_dec = nn.Linear(d_encoder, d_model)
         # propagation head
@@ -234,6 +240,7 @@ class MaskTransformerLargeVocPropagationHead(BaseDecodeHead):
         else:
             raise NotImplementedError(f"{self.dataset_on_gpu} is not supported")
 
+        self.cls_name = cls_name
         if self.all_cls is not None:
             self.cls_index = [self.all_cls.index(name) for name in cls_name]
         else:
@@ -326,15 +333,66 @@ class MaskTransformerLargeVocPropagationHead(BaseDecodeHead):
         losses = self.losses(masks_c, masks_s, embeds, aux_masks_c_list, gt_semantic_seg)
         return losses
 
-    def forward_test(self, inputs, img_metas, test_cfg, gt_semantic_seg=None):
+    def forward_test(self, inputs, img_metas, test_cfg, gt_semantic_seg=None, img=None):
         self._update(training=False)
         masks_c, masks_s, embeds, _ = self.forward(inputs, img_metas)
         masks = masks_s if self.structure_inference else masks_c
         if self.oracle_inference:
             assert gt_semantic_seg is not None
             masks = self.oracle_propagation(embeds, gt_semantic_seg)
+        if self.visualize_seed:
+            if "n02779435_19523" in img_metas[0]["ori_filename"]:
+                self.visualize_imagenet(img, masks, embeds, gt_semantic_seg, img_metas)
         return masks
-    
+
+    def visualize_imagenet(self, img, mask, embed, label, img_metas):
+        h = label.shape[-2]
+        w = label.shape[-1]
+        mask = resize(
+            mask, size=(h, w), mode='bilinear', align_corners=self.align_corners
+        )
+        embed = resize(
+            embed, size=(h, w), mode='bilinear', align_corners=self.align_corners
+        )
+        B, N, H, W = mask.shape
+        mask = mask.reshape(N, H * W).permute(1, 0)
+        label = label.reshape(H * W)
+        unique_label = torch.unique(label)
+        unique_label = unique_label[unique_label != self.ignore_index]
+        assert len(unique_label) == 1
+        l = int(unique_label)
+        png_name = self.cls_name[l]+"_"+img_metas[0]["ori_filename"].split("/")[-1].replace("JPEG", "png")
+        inds = (mask[:, l] > self.weakly_prior_thresh).nonzero(as_tuple=False).flatten()
+        if inds.numel() < self.weakly_min_kept:
+            inds = mask[:, l].topk(self.weakly_min_kept).indices
+        elif inds.numel() > self.weakly_max_kept:
+            inds = mask[:, l].topk(self.weakly_max_kept).indices
+        mask = torch.zeros_like(mask[:, l])
+        mask[inds] = 1
+        embed = embed / embed.norm(dim=-1, keepdim=True)
+        B, C, H, W = embed.shape
+        embed = embed.reshape(C, H * W).permute(1, 0)
+        img = img[0]
+        for i in range(3):
+            img[i] = (img[i] - img[i].min()) / (img[i].max() - img[i].min())
+        # (H, W, 3)
+        img = img.permute(1, 2, 0)
+        for k in range(10):
+            idx = int(np.random.choice(range(len(inds)), size=1))
+            cos_map = embed[int(inds[idx])] @ embed.T
+            cos_map = (cos_map - cos_map.min()) / (cos_map.max() - cos_map.min())
+            cos_map = cos_map.reshape(H, W)
+            cos_map_img = torch.stack([cos_map, torch.zeros_like(cos_map)*0.5, 1-cos_map], dim=-1)
+            img_ = img * 0.0 + cos_map_img * 1.0
+            h = int(inds[idx]) // H
+            w = int(inds[idx]) % H
+            img_[h-2: h+2, w-2:w+2, 0] = 1.0
+            img_[h-2: h+2, w-2:w+2, 1] = 1.0
+            img_[h-2: h+2, w-2:w+2, 2] = 1.0
+            img_ = img_.cpu().numpy()
+            img_ = (img_ * 255).astype(np.uint8)
+            Image.fromarray(img_).save(os.path.join(f"structure_{k}_"+png_name), format="PNG")
+
     def oracle_propagation(self, seg_embed, seg_label):
         device = seg_embed.device
         # seg_label = torch.tensor(seg_label, dtype=torch.int64, device=device)
@@ -557,14 +615,9 @@ class MaskTransformerLargeVocPropagationHead(BaseDecodeHead):
             assert prior_feat is not None
             prior_feat = prior_feat / prior_feat.norm(dim=-1, keepdim=True)
             prior_cos_sim = feat @ prior_feat.T
-            # neg_inds = prior_cos_sim.max(dim=-1).values < self.weakly_structure_neg_thresh
-            # if neg_inds.sum() == 0:
-            #     neg_inds = prior_cos_sim.max(dim=-1).values.topk(self.weakly_neg_sample_num, largest=False).indices
             pos_inds = prior_cos_sim.max(dim=-1).values > self.weakly_structure_pos_thresh
-            # pos_inds[neg_inds] = False
             if pos_inds.sum() == 0:
                 pos_inds = prior_cos_sim.max(dim=-1).values.topk(self.weakly_pos_sample_num).indices
-            # neg_feat = feat[neg_inds]
             feat = feat[pos_inds]
             cos_sim = feat @ feat.T
             label_sim = torch.ones_like(cos_sim)
@@ -579,11 +632,6 @@ class MaskTransformerLargeVocPropagationHead(BaseDecodeHead):
         ] = 0
         cos_sim = cos_sim[valid_mask.bool()]
         label_sim = label_sim[valid_mask.bool()]
-        # if self.dataset_on_gpu in self.weakly_supervised_datasets:
-        #     neg_cos_sim = feat @ neg_feat.T
-        #     neg_label_sim = torch.zeros_like(neg_cos_sim)
-        #     cos_sim = torch.cat([cos_sim.flatten(), neg_cos_sim.flatten()])
-        #     label_sim = torch.cat([label_sim.flatten(), neg_label_sim.flatten()])
         # NOTE: for negative samples, don't add loss if they are lower than the thresh
         _mask = (cos_sim > self.structure_loss_thresh) | (label_sim == 1)
         if _mask.sum() == 0:

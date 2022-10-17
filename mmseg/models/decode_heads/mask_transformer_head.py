@@ -1,13 +1,13 @@
 import math
+import numpy as np
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-import numpy as np
+from timm.models.layers import DropPath
 from torch.nn.init import trunc_normal_
 
 from ..builder import HEADS
 from .decode_head import BaseDecodeHead
-from timm.models.layers import DropPath
 
 
 def init_weights(m):

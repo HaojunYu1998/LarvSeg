@@ -16,7 +16,7 @@ model = dict(
         index=-1,
     ),
     decode_head=dict(
-        type="MaskTransformerLargeVocHead",
+        type="MaskTransformerLargeVocPropagationHead",
         n_cls=130, # train on 256 classes, eval 130 classes
         downsample_rate=2,
         temperature=0.05,
@@ -35,7 +35,6 @@ model = dict(
         drop_path_rate=0.0,
         dropout=0.1,
         # prior loss
-        use_prior_loss=True,
         use_linear_classifier=False,
         # weakly supervised
         weakly_supervised_datasets=[],
@@ -44,7 +43,6 @@ model = dict(
         weakly_max_kept=10000,
         weakly_prior_loss_weight=0.05,
         # contrastive loss
-        use_structure_loss=False,
         structure_loss_weight=10.0,
         structure_loss_thresh=0.3,
         # oracle experiment

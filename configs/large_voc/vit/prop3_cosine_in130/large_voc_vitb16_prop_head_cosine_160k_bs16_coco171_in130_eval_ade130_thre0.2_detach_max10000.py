@@ -35,6 +35,7 @@ model = dict(
         dropout=0.1,
         structure_branch_use_prior_loss=True,
         structure_branch_detach=True,
+        structure_inference=True,
         # weakly supervised
         weakly_supervised_datasets=["in130"],
         weakly_prior_thresh=0.9,

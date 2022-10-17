@@ -79,6 +79,7 @@ class MaskTransformerLargeVocMemoryBankHead(BaseDecodeHead):
         structure_gamma_initial_value=1.0,
         structure_memory_bank_size=10,
         structure_sample_neg_class=50,
+        structure_inference=False,
         # oracle experiment
         oracle_inference=False,
         num_oracle_points=10,
@@ -129,6 +130,7 @@ class MaskTransformerLargeVocMemoryBankHead(BaseDecodeHead):
         self.structure_loss_no_negative = structure_loss_no_negative
         self.structure_memory_bank_size = structure_memory_bank_size
         self.structure_sample_neg_class = structure_sample_neg_class
+        self.structure_inference = structure_inference
         # oracle experiment
         self.oracle_inference = oracle_inference
         self.num_oracle_points = num_oracle_points
@@ -304,11 +306,12 @@ class MaskTransformerLargeVocMemoryBankHead(BaseDecodeHead):
 
     def forward_test(self, inputs, img_metas, test_cfg, gt_semantic_seg=None):
         self._update(training=False)
-        masks_c, _, embeds = self.forward(inputs, img_metas)
+        masks_c, masks_s, embeds = self.forward(inputs, img_metas)
+        masks = masks_s if self.structure_inference else masks_c
         if self.oracle_inference:
             assert gt_semantic_seg is not None
-            masks_c = self.oracle_propagation(embeds, gt_semantic_seg)
-        return masks_c
+            masks = self.oracle_propagation(embeds, gt_semantic_seg)
+        return masks
 
     @force_fp32(apply_to=('seg_mask', 'seg_mask_s'))
     def losses(self, seg_mask, seg_mask_s, seg_embed, seg_label):

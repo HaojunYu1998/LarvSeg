@@ -36,6 +36,7 @@ model = dict(
         use_linear_classifier=False,
         use_auxiliary_loss=True,
         auxiliary_loss_weight=[0.1,0.1,1.0],
+        weakly_structure_loss_weight=1.0,
         # weakly supervised
         weakly_supervised_datasets=["in130"],
         weakly_prior_thresh=0.9,

@@ -1,25 +1,23 @@
-from genericpath import exists
-import random
-import math
-import os
 import json
-from importlib_metadata import requires
+import math
+import numpy as np
+import os
+import random
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-import numpy as np
+from genericpath import exists
+from importlib_metadata import requires
+from mmcv.runner import force_fp32, get_dist_info
 from PIL import Image
+from random import sample
+from timm.models.layers import DropPath
 from torch.nn.init import trunc_normal_
 
-from ..builder import HEADS
-from .decode_head import BaseDecodeHead
-from ..losses.accuracy import accuracy
 from mmseg.ops import resize
-from mmcv.runner import force_fp32
-
-from timm.models.layers import DropPath
-from mmcv.runner import get_dist_info
-from random import sample
+from ..builder import HEADS
+from ..losses.accuracy import accuracy
+from .decode_head import BaseDecodeHead
 
 
 def init_weights(m):
