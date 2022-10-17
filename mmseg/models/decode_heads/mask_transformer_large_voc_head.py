@@ -378,7 +378,6 @@ class MaskTransformerLargeVocHead(BaseDecodeHead):
                     inds = label_score.topk(self.weakly_max_kept).indices
                 seed_mask.append(mask[inds])
                 seed_label.append(torch.ones_like(label[inds]) * l)
-                rank, _ = get_dist_info()
                 if self.use_memory_bank:
                     region_embed = embed2[inds].mean(dim=0).clone().detach()
                     self._dequeue_and_enqueue(feat=region_embed, cls=int(l))

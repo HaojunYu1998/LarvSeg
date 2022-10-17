@@ -3,7 +3,7 @@ export CUDA_VISIBLE_DEVICES=0,1,2,3
 # export CUDA_LAUNCH_BLOCKING=1
 
 bash tools/dist_train.sh \
-configs/large_voc_v2/vit/attn4_cosine_in130/vitb16_attn4_cosine_160k_bs16_coco171_in130_seed0.2_coseg50.py
+configs/large_voc_v2/vit/attn4_cosine_in585/vitb16_attn4_cosine_160k_bs16_coco171_in585_seed0.1.py
 
 
 
