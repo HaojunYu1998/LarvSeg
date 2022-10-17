@@ -66,10 +66,10 @@ class MaskTransformerLargeVocHead(BaseDecodeHead):
         use_structure_loss=False,
         structure_loss_weight=1.0,
         structure_loss_thresh=0.2,
-        structure_loss_no_negative=False,
-        # contrastive loss for class embedding
-        cls_structure_loss_weight=1.0,
-        cls_structure_loss_thresh=0.2,
+        # memory bank
+        use_memory_bank=False,
+        memory_bank_size=50,
+        coseg_weight=1.0,
         # oracle experiment
         oracle_inference=False,
         num_oracle_points=10,
@@ -115,10 +115,6 @@ class MaskTransformerLargeVocHead(BaseDecodeHead):
         self.use_structure_loss = use_structure_loss
         self.structure_loss_weight = structure_loss_weight
         self.structure_loss_thresh = structure_loss_thresh
-        self.structure_loss_no_negative = structure_loss_no_negative
-        # contrastive loss for classification embedding
-        self.cls_structure_loss_weight = cls_structure_loss_weight
-        self.cls_structure_loss_thresh = cls_structure_loss_thresh
         # oracle experiment
         self.oracle_inference = oracle_inference
         self.num_oracle_points = num_oracle_points
@@ -142,10 +138,31 @@ class MaskTransformerLargeVocHead(BaseDecodeHead):
         self.beta = nn.Parameter(torch.zeros([]))
         num_classes = self.num_classes if self.all_cls is None else len(self.all_cls)
         self.cls_emb = nn.Parameter(torch.randn(num_classes, d_model))
+        # memory bank
+        self.use_memory_bank = use_memory_bank
+        self.memory_bank_size = memory_bank_size
+        self.coseg_weight = coseg_weight
+        if self.use_memory_bank:
+            for i in range(num_classes):
+                self.register_buffer("queue"+str(i), torch.randn(self.memory_bank_size, d_model))
+                self.register_buffer("ptr"+str(i), torch.zeros(1, dtype=torch.long))
+                exec("self.queue"+str(i) + '=' + 'nn.functional.normalize(' + "self.queue"+str(i) + ',dim=0)')
 
     def init_weights(self):
         self.apply(init_weights)
         trunc_normal_(self.cls_emb, std=0.02)
+
+    def _dequeue_and_enqueue(self, feat, cls):
+        """
+        Params:
+            feat: torch.Tensor(d_model)
+            cls: int, class index of current dataset
+        """
+        cls_ind = self.cls_index[cls]
+        ptr = int(eval("self.ptr"+str(cls_ind)))
+        eval("self.queue"+str(cls_ind))[ptr] = feat
+        ptr = (ptr + 1) % self.memory_bank_size
+        eval("self.ptr"+str(cls_ind))[0] = ptr
 
     def _update(self, training):
         rank, _ = get_dist_info()
@@ -244,9 +261,6 @@ class MaskTransformerLargeVocHead(BaseDecodeHead):
         seg_score = resize(
             seg_score, size=(h, w), mode='bilinear', align_corners=self.align_corners
         )
-        seg_embed = resize(
-            seg_embed, size=(h, w), mode='bilinear', align_corners=self.align_corners
-        )
         seg_label = resize(
             seg_label.float(), size=(h, w), mode='nearest'
         ).long()
@@ -254,7 +268,7 @@ class MaskTransformerLargeVocHead(BaseDecodeHead):
         # classification task
         B, N, H, W = seg_mask.shape
         if self.dataset_on_gpu in self.weakly_supervised_datasets:
-            seed_mask, seed_label = self._weak_sample(seg_mask, seg_score, seg_label)
+            seed_mask, seed_label = self._weak_sample(seg_mask, seg_score, seg_embed, seg_label)
         else:
             seed_mask, seed_label = self._sample(seg_mask, seg_label)
         # no valid label
@@ -273,6 +287,9 @@ class MaskTransformerLargeVocHead(BaseDecodeHead):
 
         # localization task
         if self.use_structure_loss:
+            seg_embed = resize(
+                seg_embed, size=(h, w), mode='bilinear', align_corners=self.align_corners
+            )
             loss['loss_structure'] = self.loss_structure(
                 seg_embed, seg_label
             ) * self.structure_loss_weight
@@ -328,30 +345,60 @@ class MaskTransformerLargeVocHead(BaseDecodeHead):
         seed_label = seg_label[seed_inds]
         return seed_mask, seed_label
 
-    def _weak_sample(self, seg_mask, seg_score, seg_label):
+    def _weak_sample(self, seg_mask, seg_score, seg_embed, seg_label):
         """
         for each image, smaple each category separately
         i.e. a pixel could be assigned to more than one categories
         """
         B, N, H, W = seg_mask.size()
+        B, C, h, w = seg_embed.size()
+        seg_embed2 = resize(
+            seg_embed, size=(H, W), mode='bilinear', align_corners=self.align_corners
+        )
         seed_mask, seed_label = [], []
-        for mask, score, label in zip(seg_mask, seg_score, seg_label):
+        for mask, score, embed, embed2, label in zip(
+            seg_mask, seg_score, seg_embed, seg_embed2, seg_label
+        ):
             mask = mask.reshape(N, H * W).permute(1, 0)
             label = label.reshape(H * W)
             score = score.reshape(N, H * W).permute(1, 0)
+            embed = embed.reshape(C, h * w).permute(1, 0)
+            embed2 = embed2.reshape(C, H * W).permute(1, 0)
             unique_label = torch.unique(label)
             unique_label = unique_label[unique_label != self.ignore_index]
             for l in unique_label:
-                inds = (score[:, l] > self.weakly_seed_thresh).nonzero(as_tuple=False).flatten()
+                label_score = score[:, l]
+                if self.use_memory_bank:
+                    coseg_score = self.cross_image_score(embed, int(l), (h, w, H, W))
+                    label_score = label_score + coseg_score * self.coseg_weight
+                inds = (label_score > self.weakly_seed_thresh).nonzero(as_tuple=False).flatten()
                 if inds.numel() < self.weakly_min_kept:
-                    inds = score[:, l].topk(self.weakly_min_kept).indices
+                    inds = label_score.topk(self.weakly_min_kept).indices
                 elif inds.numel() > self.weakly_max_kept:
-                    inds = score[:, l].topk(self.weakly_max_kept).indices
+                    inds = label_score.topk(self.weakly_max_kept).indices
                 seed_mask.append(mask[inds])
                 seed_label.append(torch.ones_like(label[inds]) * l)
+                rank, _ = get_dist_info()
+                if self.use_memory_bank:
+                    region_embed = embed2[inds].mean(dim=0).clone().detach()
+                    self._dequeue_and_enqueue(feat=region_embed, cls=int(l))
+        
         seed_mask = torch.cat(seed_mask, dim=0)
         seed_label = torch.cat(seed_label, dim=0)
         return seed_mask, seed_label
+    
+    def cross_image_score(self, embed, label, shape):
+        h, w, H, W = shape
+        cross_embed = eval("self.queue"+str(label)).clone().detach()
+        cross_embed = cross_embed / cross_embed.norm(dim=-1, keepdim=True)
+        embed = embed / embed.norm(dim=-1, keepdim=True)
+        coseg_score = embed @ cross_embed.T
+        coseg_score = coseg_score.reshape(h, w, -1).permute(2, 0, 1)
+        coseg_score = resize(
+            coseg_score[None], size=(H, W), mode='bilinear', align_corners=self.align_corners
+        )[0].reshape(-1, H * W)
+        coseg_score = coseg_score.max(dim=0).values
+        return coseg_score
     
     def loss_structure(self, seg_feat, seg_label):
         if self.dataset_on_gpu in self.weakly_supervised_datasets:
@@ -393,13 +440,10 @@ class MaskTransformerLargeVocHead(BaseDecodeHead):
         ] = 0
         cos_sim = cos_sim[valid_mask.bool()]
         label_sim = label_sim[valid_mask.bool()]
-        if self.structure_loss_no_negative:
-            _mask = label_sim == 1
-        else:
-            # NOTE: for negative samples, don't add loss if they are lower than the thresh
-            _mask = (
-                (cos_sim > thresh) | (label_sim == 1)
-            )
+        # NOTE: for negative samples, don't add loss if they are lower than the thresh
+        _mask = (
+            (cos_sim > thresh) | (label_sim == 1)
+        )
         cos_sim = cos_sim[_mask]
         label_sim = label_sim[_mask]
         return torch.pow(cos_sim - label_sim, 2)
