@@ -127,3 +127,4 @@ cvpr_version
 files/
 
 third_party/detectron2/detectron2/model_zoo/configs
+notebook/embeddings

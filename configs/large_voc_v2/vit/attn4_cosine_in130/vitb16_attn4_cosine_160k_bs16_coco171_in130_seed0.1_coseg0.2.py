@@ -1,6 +1,6 @@
 _base_ = [
     "../../../_base_/models/large_voc_vitb16.py",
-    "../../../_base_/datasets/mix_batch_COCO171_IN130_eval_ADE130.py",
+    "../../../_base_/datasets/mix_batch_IN130_COCO171_eval_ADE130.py",
     "../../../_base_/default_runtime.py",
     "../../../_base_/schedules/schedule_160k.py",
 ]
@@ -20,7 +20,7 @@ model = dict(
         downsample_rate=2,
         # datasets
         all_cls_path="notebook/ade130ucoco.json",
-        mix_batch_datasets=["coco171", "in130"],
+        mix_batch_datasets=["in130", "coco171"],
         test_dataset="ade130",
         ignore_indices=[255, 255],
         test_ignore_index=255,
@@ -32,6 +32,7 @@ model = dict(
         d_ff=4 * 768,
         drop_path_rate=0.0,
         dropout=0.1,
+        use_attn_head=True,
         # weakly supervised
         weakly_supervised_datasets=["in130"],
         weakly_seed_thresh=0.1,

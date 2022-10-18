@@ -1,0 +1,32 @@
+description: CVPR2023
+target:
+  service: amlk8s
+  name: itplabrr1cl1
+
+environment:
+  image: zeliu98/pytorch:superbench-nvcr21.05-fixfusedlamb-itp-mmcv-msrest
+
+storage:
+  output:
+    storage_account_name: zeliuwestus2
+    container_name: v-miazhang
+    mount_dir: /zeliuwestus2
+
+code:
+  local_dir: $CONFIG_DIR/../
+
+jobs:
+
+  - name: 20221019_vitb16_cosine_160k_bs16_coco171_in130_avgpool
+    sku: G8
+    sla_tier: basic
+    execution_mode: basic
+    priority: high
+    command:
+      - set -x; set -e
+      - pwd; ls; nvidia-smi
+      - sudo bash aml_setup.sh
+      - bash tools/dist_train.sh
+        configs/large_voc_v2/vit/cosine_in130/vitb16_cosine_160k_bs16_coco171_in130_avgpool.py
+        --auto-resume
+        --work-dir /zeliuwestus2/output_svlseg/20221019_vitb16_cosine_160k_bs16_coco171_in130_avgpool

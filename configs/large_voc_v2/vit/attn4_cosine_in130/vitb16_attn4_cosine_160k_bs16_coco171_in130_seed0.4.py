@@ -32,6 +32,7 @@ model = dict(
         d_ff=4 * 768,
         drop_path_rate=0.0,
         dropout=0.1,
+        use_attn_head=True,
         # weakly supervised
         weakly_supervised_datasets=["in130"],
         weakly_seed_thresh=0.4,

@@ -18,7 +18,7 @@ code:
 
 jobs:
 
-  - name: 20221018_vitb16_attn4_cosine_160k_bs16_coco171_in585_seed0.1
+  - name: 20221018_vitb16_attn4_cosine_160k_bs16_coco171_in130_seed0.1_coseg0.6_mean
     sku: G8
     sla_tier: basic
     execution_mode: basic
@@ -31,12 +31,12 @@ jobs:
         --nproc_per_node=8
         --master_port=$$MASTER_PORT
         tools/train.py
-        configs/large_voc_v2/vit/attn4_cosine_in585/vitb16_attn4_cosine_160k_bs16_coco171_in585_seed0.1.py
+        configs/large_voc_v2/vit/attn4_cosine_in130/vitb16_attn4_cosine_160k_bs16_coco171_in130_seed0.1_coseg0.6_mean.py
         --launcher pytorch
         --auto-resume
-        --work-dir /zeliuwestus2/output_svlseg/20221018_vitb16_attn4_cosine_160k_bs16_coco171_in585_seed0.1
+        --work-dir /zeliuwestus2/output_svlseg/20221018_vitb16_attn4_cosine_160k_bs16_coco171_in130_seed0.1_coseg0.6_mean
 
-  - name: 20221018_vitb16_attn4_cosine_160k_bs16_coco171_in585_seed0.2
+  - name: 20221018_vitb16_attn4_cosine_160k_bs16_coco171_in130_seed0.1_coseg0.8_mean
     sku: G8
     sla_tier: basic
     execution_mode: basic
@@ -49,10 +49,334 @@ jobs:
         --nproc_per_node=8
         --master_port=$$MASTER_PORT
         tools/train.py
-        configs/large_voc_v2/vit/attn4_cosine_in585/vitb16_attn4_cosine_160k_bs16_coco171_in585_seed0.2.py
+        configs/large_voc_v2/vit/attn4_cosine_in130/vitb16_attn4_cosine_160k_bs16_coco171_in130_seed0.1_coseg0.8_mean.py
         --launcher pytorch
         --auto-resume
-        --work-dir /zeliuwestus2/output_svlseg/20221018_vitb16_attn4_cosine_160k_bs16_coco171_in585_seed0.2
+        --work-dir /zeliuwestus2/output_svlseg/20221018_vitb16_attn4_cosine_160k_bs16_coco171_in130_seed0.1_coseg0.8_mean
+
+  - name: 20221018_vitb16_attn4_cosine_160k_bs16_coco171_in130_seed0.1_coseg1.0_mean
+    sku: G8
+    sla_tier: basic
+    execution_mode: basic
+    priority: high
+    command:
+      - set -x; set -e
+      - pwd; ls; nvidia-smi
+      - sudo bash aml_setup_sing.sh
+      - /opt/conda/bin/python -m torch.distributed.launch
+        --nproc_per_node=8
+        --master_port=$$MASTER_PORT
+        tools/train.py
+        configs/large_voc_v2/vit/attn4_cosine_in130/vitb16_attn4_cosine_160k_bs16_coco171_in130_seed0.1_coseg1.0_mean.py
+        --launcher pytorch
+        --auto-resume
+        --work-dir /zeliuwestus2/output_svlseg/20221018_vitb16_attn4_cosine_160k_bs16_coco171_in130_seed0.1_coseg1.0_mean
+
+  - name: 20221018_vitb16_attn4_cosine_160k_bs16_coco171_in130_seed0.2_coseg0.2_mean
+    sku: G8
+    sla_tier: basic
+    execution_mode: basic
+    priority: high
+    command:
+      - set -x; set -e
+      - pwd; ls; nvidia-smi
+      - sudo bash aml_setup_sing.sh
+      - /opt/conda/bin/python -m torch.distributed.launch
+        --nproc_per_node=8
+        --master_port=$$MASTER_PORT
+        tools/train.py
+        configs/large_voc_v2/vit/attn4_cosine_in130/vitb16_attn4_cosine_160k_bs16_coco171_in130_seed0.2_coseg0.2_mean.py
+        --launcher pytorch
+        --auto-resume
+        --work-dir /zeliuwestus2/output_svlseg/20221018_vitb16_attn4_cosine_160k_bs16_coco171_in130_seed0.2_coseg0.2_mean
+
+  - name: 20221018_vitb16_attn4_cosine_160k_bs16_coco171_in130_seed0.2_coseg0.4_mean
+    sku: G8
+    sla_tier: basic
+    execution_mode: basic
+    priority: high
+    command:
+      - set -x; set -e
+      - pwd; ls; nvidia-smi
+      - sudo bash aml_setup_sing.sh
+      - /opt/conda/bin/python -m torch.distributed.launch
+        --nproc_per_node=8
+        --master_port=$$MASTER_PORT
+        tools/train.py
+        configs/large_voc_v2/vit/attn4_cosine_in130/vitb16_attn4_cosine_160k_bs16_coco171_in130_seed0.2_coseg0.4_mean.py
+        --launcher pytorch
+        --auto-resume
+        --work-dir /zeliuwestus2/output_svlseg/20221018_vitb16_attn4_cosine_160k_bs16_coco171_in130_seed0.2_coseg0.4_mean
+
+  - name: 20221018_vitb16_attn4_cosine_160k_bs16_coco171_in130_seed0.2_coseg0.6_mean
+    sku: G8
+    sla_tier: basic
+    execution_mode: basic
+    priority: high
+    command:
+      - set -x; set -e
+      - pwd; ls; nvidia-smi
+      - sudo bash aml_setup_sing.sh
+      - /opt/conda/bin/python -m torch.distributed.launch
+        --nproc_per_node=8
+        --master_port=$$MASTER_PORT
+        tools/train.py
+        configs/large_voc_v2/vit/attn4_cosine_in130/vitb16_attn4_cosine_160k_bs16_coco171_in130_seed0.2_coseg0.6_mean.py
+        --launcher pytorch
+        --auto-resume
+        --work-dir /zeliuwestus2/output_svlseg/20221018_vitb16_attn4_cosine_160k_bs16_coco171_in130_seed0.2_coseg0.6_mean
+
+  - name: 20221018_vitb16_attn4_cosine_160k_bs16_coco171_in130_seed0.2_coseg0.8_mean
+    sku: G8
+    sla_tier: basic
+    execution_mode: basic
+    priority: high
+    command:
+      - set -x; set -e
+      - pwd; ls; nvidia-smi
+      - sudo bash aml_setup_sing.sh
+      - /opt/conda/bin/python -m torch.distributed.launch
+        --nproc_per_node=8
+        --master_port=$$MASTER_PORT
+        tools/train.py
+        configs/large_voc_v2/vit/attn4_cosine_in130/vitb16_attn4_cosine_160k_bs16_coco171_in130_seed0.2_coseg0.8_mean.py
+        --launcher pytorch
+        --auto-resume
+        --work-dir /zeliuwestus2/output_svlseg/20221018_vitb16_attn4_cosine_160k_bs16_coco171_in130_seed0.2_coseg0.8_mean
+
+  - name: 20221018_vitb16_attn4_cosine_160k_bs16_coco171_in130_seed0.2_coseg1.0_mean
+    sku: G8
+    sla_tier: basic
+    execution_mode: basic
+    priority: high
+    command:
+      - set -x; set -e
+      - pwd; ls; nvidia-smi
+      - sudo bash aml_setup_sing.sh
+      - /opt/conda/bin/python -m torch.distributed.launch
+        --nproc_per_node=8
+        --master_port=$$MASTER_PORT
+        tools/train.py
+        configs/large_voc_v2/vit/attn4_cosine_in130/vitb16_attn4_cosine_160k_bs16_coco171_in130_seed0.2_coseg1.0_mean.py
+        --launcher pytorch
+        --auto-resume
+        --work-dir /zeliuwestus2/output_svlseg/20221018_vitb16_attn4_cosine_160k_bs16_coco171_in130_seed0.2_coseg1.0_mean
+
+  - name: 20221018_vitb16_attn4_cosine_160k_bs16_coco171_in130_seed0.4_coseg0.2_mean
+    sku: G8
+    sla_tier: basic
+    execution_mode: basic
+    priority: high
+    command:
+      - set -x; set -e
+      - pwd; ls; nvidia-smi
+      - sudo bash aml_setup_sing.sh
+      - /opt/conda/bin/python -m torch.distributed.launch
+        --nproc_per_node=8
+        --master_port=$$MASTER_PORT
+        tools/train.py
+        configs/large_voc_v2/vit/attn4_cosine_in130/vitb16_attn4_cosine_160k_bs16_coco171_in130_seed0.4_coseg0.2_mean.py
+        --launcher pytorch
+        --auto-resume
+        --work-dir /zeliuwestus2/output_svlseg/20221018_vitb16_attn4_cosine_160k_bs16_coco171_in130_seed0.4_coseg0.2_mean
+
+  - name: 20221018_vitb16_attn4_cosine_160k_bs16_coco171_in130_seed0.4_coseg0.4_mean
+    sku: G8
+    sla_tier: basic
+    execution_mode: basic
+    priority: high
+    command:
+      - set -x; set -e
+      - pwd; ls; nvidia-smi
+      - sudo bash aml_setup_sing.sh
+      - /opt/conda/bin/python -m torch.distributed.launch
+        --nproc_per_node=8
+        --master_port=$$MASTER_PORT
+        tools/train.py
+        configs/large_voc_v2/vit/attn4_cosine_in130/vitb16_attn4_cosine_160k_bs16_coco171_in130_seed0.4_coseg0.4_mean.py
+        --launcher pytorch
+        --auto-resume
+        --work-dir /zeliuwestus2/output_svlseg/20221018_vitb16_attn4_cosine_160k_bs16_coco171_in130_seed0.4_coseg0.4_mean
+
+  - name: 20221018_vitb16_attn4_cosine_160k_bs16_coco171_in130_seed0.4_coseg0.6_mean
+    sku: G8
+    sla_tier: basic
+    execution_mode: basic
+    priority: high
+    command:
+      - set -x; set -e
+      - pwd; ls; nvidia-smi
+      - sudo bash aml_setup_sing.sh
+      - /opt/conda/bin/python -m torch.distributed.launch
+        --nproc_per_node=8
+        --master_port=$$MASTER_PORT
+        tools/train.py
+        configs/large_voc_v2/vit/attn4_cosine_in130/vitb16_attn4_cosine_160k_bs16_coco171_in130_seed0.4_coseg0.6_mean.py
+        --launcher pytorch
+        --auto-resume
+        --work-dir /zeliuwestus2/output_svlseg/20221018_vitb16_attn4_cosine_160k_bs16_coco171_in130_seed0.4_coseg0.6_mean
+
+  - name: 20221018_vitb16_attn4_cosine_160k_bs16_coco171_in130_seed0.4_coseg0.8_mean
+    sku: G8
+    sla_tier: basic
+    execution_mode: basic
+    priority: high
+    command:
+      - set -x; set -e
+      - pwd; ls; nvidia-smi
+      - sudo bash aml_setup_sing.sh
+      - /opt/conda/bin/python -m torch.distributed.launch
+        --nproc_per_node=8
+        --master_port=$$MASTER_PORT
+        tools/train.py
+        configs/large_voc_v2/vit/attn4_cosine_in130/vitb16_attn4_cosine_160k_bs16_coco171_in130_seed0.4_coseg0.8_mean.py
+        --launcher pytorch
+        --auto-resume
+        --work-dir /zeliuwestus2/output_svlseg/20221018_vitb16_attn4_cosine_160k_bs16_coco171_in130_seed0.4_coseg0.8_mean
+
+  - name: 20221018_vitb16_attn4_cosine_160k_bs16_coco171_in130_seed0.4_coseg1.0_mean
+    sku: G8
+    sla_tier: basic
+    execution_mode: basic
+    priority: high
+    command:
+      - set -x; set -e
+      - pwd; ls; nvidia-smi
+      - sudo bash aml_setup_sing.sh
+      - /opt/conda/bin/python -m torch.distributed.launch
+        --nproc_per_node=8
+        --master_port=$$MASTER_PORT
+        tools/train.py
+        configs/large_voc_v2/vit/attn4_cosine_in130/vitb16_attn4_cosine_160k_bs16_coco171_in130_seed0.4_coseg1.0_mean.py
+        --launcher pytorch
+        --auto-resume
+        --work-dir /zeliuwestus2/output_svlseg/20221018_vitb16_attn4_cosine_160k_bs16_coco171_in130_seed0.4_coseg1.0_mean
+
+  # - name: 20221018_vitb16_attn4_cosine_160k_bs16_coco171_in130_seed0.1_coseg0.2
+  #   sku: G8
+  #   sla_tier: basic
+  #   execution_mode: basic
+  #   priority: high
+  #   command:
+  #     - set -x; set -e
+  #     - pwd; ls; nvidia-smi
+  #     - sudo bash aml_setup_sing.sh
+  #     - /opt/conda/bin/python -m torch.distributed.launch
+  #       --nproc_per_node=8
+  #       --master_port=$$MASTER_PORT
+  #       tools/train.py
+  #       configs/large_voc_v2/vit/attn4_cosine_in130/vitb16_attn4_cosine_160k_bs16_coco171_in130_seed0.1_coseg0.2.py
+  #       --launcher pytorch
+  #       --auto-resume
+  #       --work-dir /zeliuwestus2/output_svlseg/20221018_vitb16_attn4_cosine_160k_bs16_coco171_in130_seed0.1_coseg0.2
+
+  # - name: 20221018_vitb16_attn4_cosine_160k_bs16_coco171_in130_seed0.1_coseg0.4
+  #   sku: G8
+  #   sla_tier: basic
+  #   execution_mode: basic
+  #   priority: high
+  #   command:
+  #     - set -x; set -e
+  #     - pwd; ls; nvidia-smi
+  #     - sudo bash aml_setup_sing.sh
+  #     - /opt/conda/bin/python -m torch.distributed.launch
+  #       --nproc_per_node=8
+  #       --master_port=$$MASTER_PORT
+  #       tools/train.py
+  #       configs/large_voc_v2/vit/attn4_cosine_in130/vitb16_attn4_cosine_160k_bs16_coco171_in130_seed0.1_coseg0.4.py
+  #       --launcher pytorch
+  #       --auto-resume
+  #       --work-dir /zeliuwestus2/output_svlseg/20221018_vitb16_attn4_cosine_160k_bs16_coco171_in130_seed0.1_coseg0.4
+
+  # - name: 20221018_vitb16_attn4_cosine_160k_bs16_coco171_in130_seed0.1_coseg0.6
+  #   sku: G8
+  #   sla_tier: basic
+  #   execution_mode: basic
+  #   priority: high
+  #   command:
+  #     - set -x; set -e
+  #     - pwd; ls; nvidia-smi
+  #     - sudo bash aml_setup_sing.sh
+  #     - /opt/conda/bin/python -m torch.distributed.launch
+  #       --nproc_per_node=8
+  #       --master_port=$$MASTER_PORT
+  #       tools/train.py
+  #       configs/large_voc_v2/vit/attn4_cosine_in130/vitb16_attn4_cosine_160k_bs16_coco171_in130_seed0.1_coseg0.6.py
+  #       --launcher pytorch
+  #       --auto-resume
+  #       --work-dir /zeliuwestus2/output_svlseg/20221018_vitb16_attn4_cosine_160k_bs16_coco171_in130_seed0.1_coseg0.6
+
+  # - name: 20221018_vitb16_attn4_cosine_160k_bs16_coco171_in130_seed0.1_coseg0.8
+  #   sku: G8
+  #   sla_tier: basic
+  #   execution_mode: basic
+  #   priority: high
+  #   command:
+  #     - set -x; set -e
+  #     - pwd; ls; nvidia-smi
+  #     - sudo bash aml_setup_sing.sh
+  #     - /opt/conda/bin/python -m torch.distributed.launch
+  #       --nproc_per_node=8
+  #       --master_port=$$MASTER_PORT
+  #       tools/train.py
+  #       configs/large_voc_v2/vit/attn4_cosine_in130/vitb16_attn4_cosine_160k_bs16_coco171_in130_seed0.1_coseg0.8.py
+  #       --launcher pytorch
+  #       --auto-resume
+  #       --work-dir /zeliuwestus2/output_svlseg/20221018_vitb16_attn4_cosine_160k_bs16_coco171_in130_seed0.1_coseg0.8
+
+  # - name: 20221018_vitb16_attn4_cosine_160k_bs16_coco171_in130_seed0.1_coseg1.0
+  #   sku: G8
+  #   sla_tier: basic
+  #   execution_mode: basic
+  #   priority: high
+  #   command:
+  #     - set -x; set -e
+  #     - pwd; ls; nvidia-smi
+  #     - sudo bash aml_setup_sing.sh
+  #     - /opt/conda/bin/python -m torch.distributed.launch
+  #       --nproc_per_node=8
+  #       --master_port=$$MASTER_PORT
+  #       tools/train.py
+  #       configs/large_voc_v2/vit/attn4_cosine_in130/vitb16_attn4_cosine_160k_bs16_coco171_in130_seed0.1_coseg1.0.py
+  #       --launcher pytorch
+  #       --auto-resume
+  #       --work-dir /zeliuwestus2/output_svlseg/20221018_vitb16_attn4_cosine_160k_bs16_coco171_in130_seed0.1_coseg1.0
+
+  # - name: 20221018_vitb16_attn4_cosine_160k_bs16_coco171_in585_seed0.1
+  #   sku: G8
+  #   sla_tier: basic
+  #   execution_mode: basic
+  #   priority: high
+  #   command:
+  #     - set -x; set -e
+  #     - pwd; ls; nvidia-smi
+  #     - sudo bash aml_setup_sing.sh
+  #     - /opt/conda/bin/python -m torch.distributed.launch
+  #       --nproc_per_node=8
+  #       --master_port=$$MASTER_PORT
+  #       tools/train.py
+  #       configs/large_voc_v2/vit/attn4_cosine_in585/vitb16_attn4_cosine_160k_bs16_coco171_in585_seed0.1.py
+  #       --launcher pytorch
+  #       --auto-resume
+  #       --work-dir /zeliuwestus2/output_svlseg/20221018_vitb16_attn4_cosine_160k_bs16_coco171_in585_seed0.1
+
+  # - name: 20221018_vitb16_attn4_cosine_160k_bs16_coco171_in585_seed0.2
+  #   sku: G8
+  #   sla_tier: basic
+  #   execution_mode: basic
+  #   priority: high
+  #   command:
+  #     - set -x; set -e
+  #     - pwd; ls; nvidia-smi
+  #     - sudo bash aml_setup_sing.sh
+  #     - /opt/conda/bin/python -m torch.distributed.launch
+  #       --nproc_per_node=8
+  #       --master_port=$$MASTER_PORT
+  #       tools/train.py
+  #       configs/large_voc_v2/vit/attn4_cosine_in585/vitb16_attn4_cosine_160k_bs16_coco171_in585_seed0.2.py
+  #       --launcher pytorch
+  #       --auto-resume
+  #       --work-dir /zeliuwestus2/output_svlseg/20221018_vitb16_attn4_cosine_160k_bs16_coco171_in585_seed0.2
 
   # - name: 20221018_vitb16_attn4_cosine_160k_bs16_coco171_in130_seed0.2_coseg0.2
   #   sku: G8

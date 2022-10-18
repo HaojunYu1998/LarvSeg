@@ -54,7 +54,6 @@ class MaskTransformerLargeVocHead(BaseDecodeHead):
         test_dataset="ade847",
         ignore_indices=[255, -1],
         test_ignore_index=-1,
-        # separate heads
         use_attn_head=False,
         # weakly supervised
         weakly_supervised_datasets=["ade847"],
@@ -62,6 +61,7 @@ class MaskTransformerLargeVocHead(BaseDecodeHead):
         weakly_min_kept=1,
         weakly_max_kept=100,
         weakly_seed_loss_weight=1.0,
+        weakly_use_avgpool=False,
         # contrastive loss
         use_structure_loss=False,
         structure_loss_weight=1.0,
@@ -70,6 +70,7 @@ class MaskTransformerLargeVocHead(BaseDecodeHead):
         use_memory_bank=False,
         memory_bank_size=50,
         coseg_weight=1.0,
+        coseg_use_mean=False,
         # oracle experiment
         oracle_inference=False,
         num_oracle_points=10,
@@ -111,6 +112,7 @@ class MaskTransformerLargeVocHead(BaseDecodeHead):
         self.weakly_min_kept = weakly_min_kept
         self.weakly_max_kept = weakly_max_kept
         self.weakly_seed_loss_weight = weakly_seed_loss_weight
+        self.weakly_use_avgpool = weakly_use_avgpool
         # contrastive loss
         self.use_structure_loss = use_structure_loss
         self.structure_loss_weight = structure_loss_weight
@@ -123,30 +125,31 @@ class MaskTransformerLargeVocHead(BaseDecodeHead):
         self.visualize_seed = visualize_seed
         self.visualize_out_dir = visualize_out_dir
 
-        self.proj_dec = nn.Linear(d_encoder, d_model)
+        # self.proj_dec = nn.Linear(d_encoder, d_model)
         self.proj_patch = nn.Parameter(self.scale * torch.randn(d_model, d_model))
         self.proj_classes = nn.Parameter(self.scale * torch.randn(d_model, d_model))
         # attention head
-        dpr = [x.item() for x in torch.linspace(0, drop_path_rate, n_layers)]
-        self.blocks = nn.ModuleList([
-            Block(dim=d_model, heads=n_heads, mlp_dim=d_ff, dropout=dropout, drop_path=dpr[i])
-            for i in range(n_layers)
-        ])
-        self.decoder_norm = nn.LayerNorm(d_model)
+        if self.use_attn_head:
+            dpr = [x.item() for x in torch.linspace(0, drop_path_rate, n_layers)]
+            self.blocks = nn.ModuleList([
+                Block(dim=d_model, heads=n_heads, mlp_dim=d_ff, dropout=dropout, drop_path=dpr[i])
+                for i in range(n_layers)
+            ])
+            self.decoder_norm = nn.LayerNorm(d_model)
         # cosine classifier
         self.gamma = nn.Parameter(torch.ones([]))
         self.beta = nn.Parameter(torch.zeros([]))
-        num_classes = self.num_classes if self.all_cls is None else len(self.all_cls)
-        self.cls_emb = nn.Parameter(torch.randn(num_classes, d_model))
+        self.all_classes = self.num_classes if self.all_cls is None else len(self.all_cls)
+        self.cls_emb = nn.Parameter(torch.randn(self.all_classes, d_model))
         # memory bank
         self.use_memory_bank = use_memory_bank
         self.memory_bank_size = memory_bank_size
         self.coseg_weight = coseg_weight
+        self.coseg_use_mean = coseg_use_mean
         if self.use_memory_bank:
-            for i in range(num_classes):
-                self.register_buffer("queue"+str(i), torch.randn(self.memory_bank_size, d_model))
-                self.register_buffer("ptr"+str(i), torch.zeros(1, dtype=torch.long))
-                exec("self.queue"+str(i) + '=' + 'nn.functional.normalize(' + "self.queue"+str(i) + ',dim=0)')
+            self.register_buffer(f"queue", torch.randn(self.all_classes, self.memory_bank_size, self.d_model))
+            self.register_buffer(f"ptr", torch.zeros(self.all_classes, dtype=torch.long))
+            self.queue = self.queue / self.queue.norm(dim=-1, keepdim=True)
 
     def init_weights(self):
         self.apply(init_weights)
@@ -159,10 +162,10 @@ class MaskTransformerLargeVocHead(BaseDecodeHead):
             cls: int, class index of current dataset
         """
         cls_ind = self.cls_index[cls]
-        ptr = int(eval("self.ptr"+str(cls_ind)))
-        eval("self.queue"+str(cls_ind))[ptr] = feat
+        ptr = int(self.ptr[cls_ind])
+        self.queue[cls_ind, ptr] = feat
         ptr = (ptr + 1) % self.memory_bank_size
-        eval("self.ptr"+str(cls_ind))[0] = ptr
+        self.ptr[cls_ind] = ptr
 
     def _update(self, training):
         rank, _ = get_dist_info()
@@ -210,12 +213,15 @@ class MaskTransformerLargeVocHead(BaseDecodeHead):
         x = self._transform_inputs(x)
         B, C, H, W = x.size()
         x = x.view(B, C, -1).permute(0, 2, 1)
-        x = self.proj_dec(x)
+        # x = self.proj_dec(x)
         cls_emb = self.cls_emb[self.cls_index]
         cls_emb = cls_emb.expand(x.size(0), -1, -1)
-        for blk in self.blocks:
-            x = blk(x)
-        patches = self.decoder_norm(x)
+        if self.use_attn_head:
+            for blk in self.blocks:
+                x = blk(x)
+            patches = self.decoder_norm(x)
+        else:
+            patches = x
         patches = patches @ self.proj_patch
         cls_emb = cls_emb @ self.proj_classes
         patches = patches / patches.norm(dim=-1, keepdim=True)
@@ -247,6 +253,13 @@ class MaskTransformerLargeVocHead(BaseDecodeHead):
         if self.oracle_inference:
             assert gt_semantic_seg is not None
             masks = self.oracle_propagation(embeds, gt_semantic_seg)
+        # save embeddings
+        # unique_label = torch.unique(gt_semantic_seg)
+        # unique_label = unique_label[unique_label != self.ignore_index]
+        # assert len(unique_label) == 1
+        # l = int(unique_label)
+        # save_name = self.cls_name[l]+"_"+img_metas[0]["ori_filename"].split("/")[-1].replace("JPEG", "pth")
+        # torch.save(embeds, os.path.join("notebook/embeddings", save_name))
         return masks
 
     @force_fp32(apply_to=('seg_mask', ))
@@ -299,9 +312,9 @@ class MaskTransformerLargeVocHead(BaseDecodeHead):
         B, N, H, W = seg_mask.shape
         seg_label = seg_label.flatten()
         seg_mask = seg_mask.permute(0, 2, 3, 1).reshape(B * H * W, N)
-        imagenet_in_batch = any(["in" in x for x in self.mix_batch_datasets])
-        acc_weight = 0.0 if "in" in self.dataset_on_gpu else 2.0
-        acc_weight = acc_weight if imagenet_in_batch else 1.0
+        weak_in_batch = len(self.weakly_supervised_datasets) > 0
+        acc_weight = 0.0 if self.dataset_on_gpu in self.weakly_supervised_datasets else 2.0
+        acc_weight = acc_weight if weak_in_batch else 1.0
         return accuracy(seg_mask, seg_label)
     
     def _sample(self, seg_mask, seg_label, min_kept=1):
@@ -354,8 +367,9 @@ class MaskTransformerLargeVocHead(BaseDecodeHead):
         B, C, h, w = seg_embed.size()
         seg_embed2 = resize(
             seg_embed, size=(H, W), mode='bilinear', align_corners=self.align_corners
-        )
+        ).clone().detach()
         seed_mask, seed_label = [], []
+        # assert False, f"{seg_label.unique()}"
         for mask, score, embed, embed2, label in zip(
             seg_mask, seg_score, seg_embed, seg_embed2, seg_label
         ):
@@ -366,10 +380,16 @@ class MaskTransformerLargeVocHead(BaseDecodeHead):
             embed2 = embed2.reshape(C, H * W).permute(1, 0)
             unique_label = torch.unique(label)
             unique_label = unique_label[unique_label != self.ignore_index]
+            if self.weakly_use_avgpool:
+                assert len(unique_label) == 1
+                seed_mask.append(mask.mean(dim=0, keepdim=True))
+                seed_label.append(torch.ones_like(label[[0]]) * int(unique_label))
+                continue
             for l in unique_label:
+                l = int(l)
                 label_score = score[:, l]
                 if self.use_memory_bank:
-                    coseg_score = self.cross_image_score(embed, int(l), (h, w, H, W))
+                    coseg_score = self.cross_image_score(embed, l, (h, w, H, W))
                     label_score = label_score + coseg_score * self.coseg_weight
                 inds = (label_score > self.weakly_seed_thresh).nonzero(as_tuple=False).flatten()
                 if inds.numel() < self.weakly_min_kept:
@@ -380,15 +400,19 @@ class MaskTransformerLargeVocHead(BaseDecodeHead):
                 seed_label.append(torch.ones_like(label[inds]) * l)
                 if self.use_memory_bank:
                     region_embed = embed2[inds].mean(dim=0).clone().detach()
-                    self._dequeue_and_enqueue(feat=region_embed, cls=int(l))
+                    region_embed = region_embed / region_embed.norm(dim=-1, keepdim=True)
+                    self._dequeue_and_enqueue(feat=region_embed, cls=l)
         
         seed_mask = torch.cat(seed_mask, dim=0)
         seed_label = torch.cat(seed_label, dim=0)
         return seed_mask, seed_label
     
     def cross_image_score(self, embed, label, shape):
+        # NOTE: we should use global label index to fetch the correct feature
+        # This line fix a bug!
+        label = self.cls_index[label]
         h, w, H, W = shape
-        cross_embed = eval("self.queue"+str(label)).clone().detach()
+        cross_embed = self.queue[label].clone().detach()
         cross_embed = cross_embed / cross_embed.norm(dim=-1, keepdim=True)
         embed = embed / embed.norm(dim=-1, keepdim=True)
         coseg_score = embed @ cross_embed.T
@@ -396,7 +420,11 @@ class MaskTransformerLargeVocHead(BaseDecodeHead):
         coseg_score = resize(
             coseg_score[None], size=(H, W), mode='bilinear', align_corners=self.align_corners
         )[0].reshape(-1, H * W)
-        coseg_score = coseg_score.max(dim=0).values
+        # NOTE: should we change this to mean?
+        if self.coseg_use_mean:
+            coseg_score = coseg_score.mean(dim=0)
+        else:
+            coseg_score = coseg_score.max(dim=0).values
         return coseg_score
     
     def loss_structure(self, seg_feat, seg_label):
