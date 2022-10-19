@@ -69,6 +69,7 @@ class MaskTransformerLargeVocHead(BaseDecodeHead):
         # memory bank
         use_memory_bank=False,
         memory_bank_size=50,
+        memory_bank_only_valid=False,
         coseg_weight=1.0,
         coseg_use_mean=False,
         # oracle experiment
@@ -144,11 +145,13 @@ class MaskTransformerLargeVocHead(BaseDecodeHead):
         # memory bank
         self.use_memory_bank = use_memory_bank
         self.memory_bank_size = memory_bank_size
+        self.memory_bank_only_valid = memory_bank_only_valid
         self.coseg_weight = coseg_weight
         self.coseg_use_mean = coseg_use_mean
         if self.use_memory_bank:
             self.register_buffer(f"queue", torch.randn(self.all_classes, self.memory_bank_size, self.d_model))
             self.register_buffer(f"ptr", torch.zeros(self.all_classes, dtype=torch.long))
+            self.register_buffer(f"full", torch.zeros(self.all_classes, dtype=torch.bool))
             self.queue = self.queue / self.queue.norm(dim=-1, keepdim=True)
 
     def init_weights(self):
@@ -164,6 +167,8 @@ class MaskTransformerLargeVocHead(BaseDecodeHead):
         cls_ind = self.cls_index[cls]
         ptr = int(self.ptr[cls_ind])
         self.queue[cls_ind, ptr] = feat
+        if ptr + 1 >= self.memory_bank_size:
+            self.full[cls_ind] = True
         ptr = (ptr + 1) % self.memory_bank_size
         self.ptr[cls_ind] = ptr
 
@@ -381,7 +386,7 @@ class MaskTransformerLargeVocHead(BaseDecodeHead):
             unique_label = torch.unique(label)
             unique_label = unique_label[unique_label != self.ignore_index]
             if self.weakly_use_avgpool:
-                assert len(unique_label) == 1
+                assert len(unique_label) == 1, f"{unique_label}"
                 seed_mask.append(mask.mean(dim=0, keepdim=True))
                 seed_label.append(torch.ones_like(label[[0]]) * int(unique_label))
                 continue
@@ -413,6 +418,10 @@ class MaskTransformerLargeVocHead(BaseDecodeHead):
         label = self.cls_index[label]
         h, w, H, W = shape
         cross_embed = self.queue[label].clone().detach()
+        if self.memory_bank_only_valid and int(self.ptr[label]) == 0:
+            return torch.zeros(H * W).to(cross_embed.device)
+        if self.memory_bank_only_valid and not bool(self.full[label]):
+            cross_embed = cross_embed[:self.ptr[label]]
         cross_embed = cross_embed / cross_embed.norm(dim=-1, keepdim=True)
         embed = embed / embed.norm(dim=-1, keepdim=True)
         coseg_score = embed @ cross_embed.T

@@ -1,6 +1,6 @@
 _base_ = [
     "../../../_base_/models/large_voc_vitb16.py",
-    "../../../_base_/datasets/mix_batch_COCO171_IN585_eval_ADE585.py",
+    "../../../_base_/datasets/mix_batch_IN585_COCO171_eval_ADE585.py",
     "../../../_base_/default_runtime.py",
     "../../../_base_/schedules/schedule_160k.py",
 ]
@@ -20,10 +20,10 @@ model = dict(
         downsample_rate=2,
         # datasets
         all_cls_path="notebook/ade585ucoco.json",
-        mix_batch_datasets=["coco171", "in585"],
+        mix_batch_datasets=["in585", "coco171"],
         test_dataset="ade585",
-        ignore_indices=[255, 255],
-        test_ignore_index=255,
+        ignore_indices=[-1, 255],
+        test_ignore_index=-1,
         # attention head
         d_encoder=768,
         n_layers=4,
@@ -42,6 +42,11 @@ model = dict(
         use_structure_loss=False,
         structure_loss_weight=1.0,
         structure_loss_thresh=0.0,
+        # memory bank
+        use_memory_bank=True,
+        memory_bank_size=50,
+        memory_bank_only_valid=True,
+        coseg_weight=0.2,
         # oracle experiment
         oracle_inference=False,
         num_oracle_points=1,
