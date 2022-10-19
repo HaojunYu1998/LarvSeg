@@ -36,6 +36,7 @@ from .mask_transformer_prompt_learning_head import \
     MaskTransformerPromptLearningHead
 from .mask_transformer_propagation_head import MaskTransformerPropagationHead
 from .mask_transformer_structure_head import MaskTransformerStructureHead
+from .mask_transformer_large_voc_avgpool_head import MaskTransformerLargeVocAvgPoolHead
 from .mask_transformer_weak_head import MaskTransformerWeakHead
 from .mlseg_decoder_head import MLSegDecoderHead
 from .mlseg_encoder_head import MLSegEncoderHead
@@ -65,5 +66,6 @@ __all__ = [
     'MaskTransformerContrastiveHead', 'MaskTransformerPromptLearningHead',
     'MaskTransformerStructureHead', 'MaskTransformerLinearHead', 'MaskTransformerCosHead',
     'MaskTransformerLargeVocHead', 'MaskTransformerLargeVocPropagationHead',
-    'MaskTransformerLargeVocMemoryBankHead', 'MaskTransformerLargeVocStructureHead'
+    'MaskTransformerLargeVocMemoryBankHead', 'MaskTransformerLargeVocStructureHead',
+    'MaskTransformerLargeVocAvgPoolHead'
 ]
