@@ -47,14 +47,14 @@ class MaskTransformerLargeVocHead(BaseDecodeHead):
         drop_path_rate,
         dropout,
         downsample_rate=8,
-        disable_sup_sample=False,
+        use_attn_head=False,
+        seed_rate=1.0,
         # datasets
         all_cls_path="",
         mix_batch_datasets=["coco", "ade847"],
         test_dataset="ade847",
         ignore_indices=[255, -1],
         test_ignore_index=-1,
-        use_attn_head=False,
         # weakly supervised
         weakly_supervised_datasets=["ade847"],
         weakly_seed_thresh=0.8,
@@ -69,7 +69,6 @@ class MaskTransformerLargeVocHead(BaseDecodeHead):
         # memory bank
         use_memory_bank=False,
         memory_bank_size=50,
-        memory_bank_only_valid=False,
         coseg_weight=1.0,
         coseg_use_mean=False,
         # oracle experiment
@@ -95,7 +94,6 @@ class MaskTransformerLargeVocHead(BaseDecodeHead):
         self.d_model = d_model
         self.scale = d_model**-0.5
         self.downsample_rate = downsample_rate
-        self.disable_sup_sample = disable_sup_sample
         # process datasets, valid for only one dataset
         if os.path.exists(all_cls_path):
             self.all_cls = json.load(open(all_cls_path))
@@ -106,6 +104,7 @@ class MaskTransformerLargeVocHead(BaseDecodeHead):
         self.ignore_indices = ignore_indices
         self.test_ignore_index = test_ignore_index
         self.seed_loss_weight = 1.0
+        self.seed_rate = seed_rate
         self.use_attn_head = use_attn_head
         # weakly supervised
         self.weakly_supervised_datasets = weakly_supervised_datasets
@@ -145,13 +144,11 @@ class MaskTransformerLargeVocHead(BaseDecodeHead):
         # memory bank
         self.use_memory_bank = use_memory_bank
         self.memory_bank_size = memory_bank_size
-        self.memory_bank_only_valid = memory_bank_only_valid
         self.coseg_weight = coseg_weight
         self.coseg_use_mean = coseg_use_mean
         if self.use_memory_bank:
             self.register_buffer(f"queue", torch.randn(self.all_classes, self.memory_bank_size, self.d_model))
             self.register_buffer(f"ptr", torch.zeros(self.all_classes, dtype=torch.long))
-            self.register_buffer(f"full", torch.zeros(self.all_classes, dtype=torch.bool))
             self.queue = self.queue / self.queue.norm(dim=-1, keepdim=True)
 
     def init_weights(self):
@@ -167,8 +164,6 @@ class MaskTransformerLargeVocHead(BaseDecodeHead):
         cls_ind = self.cls_index[cls]
         ptr = int(self.ptr[cls_ind])
         self.queue[cls_ind, ptr] = feat
-        if ptr + 1 >= self.memory_bank_size:
-            self.full[cls_ind] = True
         ptr = (ptr + 1) % self.memory_bank_size
         self.ptr[cls_ind] = ptr
 
@@ -327,9 +322,6 @@ class MaskTransformerLargeVocHead(BaseDecodeHead):
         """
         B, N, H, W = seg_mask.size()
         seg_label = seg_label.reshape(B * H * W)
-        seg_mask = seg_mask.permute(0, 2, 3, 1).reshape(B * H * W, N)
-        if self.disable_sup_sample:
-            return seg_mask, seg_label
         unique_label = torch.unique(seg_label)
         unique_label = unique_label[unique_label != self.ignore_index]
         pos_bucket = []
@@ -339,10 +331,10 @@ class MaskTransformerLargeVocHead(BaseDecodeHead):
             )
         if len(pos_bucket) == 0:
             return None, None
-        
+        seg_mask = seg_mask.permute(0, 2, 3, 1).reshape(B * H * W, N)
         num_per_bucket = []
         for p in pos_bucket:
-            k = len(p)
+            k = int(len(p) * self.seed_rate)
             if k < min_kept:
                 k = min(min_kept, len(p))
             num_per_bucket.append(k)
@@ -381,8 +373,9 @@ class MaskTransformerLargeVocHead(BaseDecodeHead):
             embed2 = embed2.reshape(C, H * W).permute(1, 0)
             unique_label = torch.unique(label)
             unique_label = unique_label[unique_label != self.ignore_index]
+            # NOTE: only support imagenet now
             if self.weakly_use_avgpool:
-                assert len(unique_label) == 1, f"{unique_label}"
+                assert len(unique_label) == 1
                 seed_mask.append(mask.mean(dim=0, keepdim=True))
                 seed_label.append(torch.ones_like(label[[0]]) * int(unique_label))
                 continue
@@ -414,10 +407,6 @@ class MaskTransformerLargeVocHead(BaseDecodeHead):
         label = self.cls_index[label]
         h, w, H, W = shape
         cross_embed = self.queue[label].clone().detach()
-        if self.memory_bank_only_valid and int(self.ptr[label]) == 0:
-            return torch.zeros(H * W).to(cross_embed.device)
-        if self.memory_bank_only_valid and not bool(self.full[label]):
-            cross_embed = cross_embed[:self.ptr[label]]
         cross_embed = cross_embed / cross_embed.norm(dim=-1, keepdim=True)
         embed = embed / embed.norm(dim=-1, keepdim=True)
         coseg_score = embed @ cross_embed.T
@@ -430,6 +419,9 @@ class MaskTransformerLargeVocHead(BaseDecodeHead):
             coseg_score = coseg_score.mean(dim=0)
         else:
             coseg_score = coseg_score.max(dim=0).values
+        # rank, _ = get_dist_info()
+        # if rank == 0:
+        #     print("coseg_score", coseg_score.mean())
         return coseg_score
     
     def loss_structure(self, seg_feat, seg_label):
