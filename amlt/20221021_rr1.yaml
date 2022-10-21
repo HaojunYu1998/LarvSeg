@@ -17,7 +17,7 @@ code:
 
 jobs:
 
-  - name: 20221021_vitb16_cosine_160k_bs16_ade847
+  - name: 20221021_vitb16_cosine_160k_bs16_coco171_in130_update_img
     sku: G8
     sla_tier: basic
     execution_mode: basic
@@ -27,6 +27,20 @@ jobs:
       - pwd; ls; nvidia-smi
       - sudo bash aml_setup.sh
       - bash tools/dist_train.sh
-        configs/large_voc_attn/vit/cosine_ade847/vitb16_cosine_160k_bs16_ade847.py
+        configs/large_voc_attn/vit/cosine_in130/vitb16_cosine_160k_bs16_coco171_in130_update_img.py
         --auto-resume
-        --work-dir /zeliuwestus2/output_svlseg/20221021_vitb16_cosine_160k_bs16_ade847
+        --work-dir /zeliuwestus2/output_svlseg/20221021_vitb16_cosine_160k_bs16_coco171_in130_update_img
+
+  # - name: 20221021_vitb16_cosine_160k_bs16_ade847
+  #   sku: G8
+  #   sla_tier: basic
+  #   execution_mode: basic
+  #   priority: high
+  #   command:
+  #     - set -x; set -e
+  #     - pwd; ls; nvidia-smi
+  #     - sudo bash aml_setup.sh
+  #     - bash tools/dist_train.sh
+  #       configs/large_voc_attn/vit/cosine_ade847/vitb16_cosine_160k_bs16_ade847.py
+  #       --auto-resume
+  #       --work-dir /zeliuwestus2/output_svlseg/20221021_vitb16_cosine_160k_bs16_ade847

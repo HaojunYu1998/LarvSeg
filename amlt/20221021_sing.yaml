@@ -18,6 +18,96 @@ code:
 
 jobs:
 
+  - name: 20221021_vitb16_cosine_160k_bs16_coco171_in130_crop240_avgpool
+    sku: G8
+    sla_tier: basic
+    execution_mode: basic
+    priority: high
+    command:
+      - set -x; set -e
+      - pwd; ls; nvidia-smi
+      - sudo bash aml_setup_sing.sh
+      - /opt/conda/bin/python -m torch.distributed.launch
+        --nproc_per_node=8
+        --master_port=$$MASTER_PORT
+        tools/train.py
+        configs/large_voc_v2/vit/cosine_in130/vitb16_cosine_160k_bs16_coco171_in130_crop240_avgpool.py
+        --launcher pytorch
+        --auto-resume
+        --work-dir /zeliuwestus2/output_svlseg/20221021_vitb16_cosine_160k_bs16_coco171_in130_crop240_avgpool
+
+  - name: 20221021_vitb16_cosine_160k_bs16_coco171_in130_crop512_avgpool
+    sku: G8
+    sla_tier: basic
+    execution_mode: basic
+    priority: high
+    command:
+      - set -x; set -e
+      - pwd; ls; nvidia-smi
+      - sudo bash aml_setup_sing.sh
+      - /opt/conda/bin/python -m torch.distributed.launch
+        --nproc_per_node=8
+        --master_port=$$MASTER_PORT
+        tools/train.py
+        configs/large_voc_v2/vit/cosine_in130/vitb16_cosine_160k_bs16_coco171_in130_crop512_avgpool.py
+        --launcher pytorch
+        --auto-resume
+        --work-dir /zeliuwestus2/output_svlseg/20221021_vitb16_cosine_160k_bs16_coco171_in130_crop512_avgpool
+
+  - name: 20221021_vitb16_cosine_160k_bs16_coco171_in130_resize0.3_avgpool
+    sku: G8
+    sla_tier: basic
+    execution_mode: basic
+    priority: high
+    command:
+      - set -x; set -e
+      - pwd; ls; nvidia-smi
+      - sudo bash aml_setup_sing.sh
+      - /opt/conda/bin/python -m torch.distributed.launch
+        --nproc_per_node=8
+        --master_port=$$MASTER_PORT
+        tools/train.py
+        configs/large_voc_v2/vit/cosine_in130/vitb16_cosine_160k_bs16_coco171_in130_resize0.3_avgpool.py
+        --launcher pytorch
+        --auto-resume
+        --work-dir /zeliuwestus2/output_svlseg/20221021_vitb16_cosine_160k_bs16_coco171_in130_resize0.3_avgpool
+
+  # - name: 20221021_vitb16_cosine_160k_bs16_coco171_in130_avgpool
+  #   sku: G8
+  #   sla_tier: basic
+  #   execution_mode: basic
+  #   priority: high
+  #   command:
+  #     - set -x; set -e
+  #     - pwd; ls; nvidia-smi
+  #     - sudo bash aml_setup_sing.sh
+  #     - /opt/conda/bin/python -m torch.distributed.launch
+  #       --nproc_per_node=8
+  #       --master_port=$$MASTER_PORT
+  #       tools/train.py
+  #       configs/large_voc_v2/vit/cosine_in130/vitb16_cosine_160k_bs16_coco171_in130_avgpool.py
+  #       --launcher pytorch
+  #       --auto-resume
+  #       --work-dir /zeliuwestus2/output_svlseg/20221021_vitb16_cosine_160k_bs16_coco171_in130_avgpool
+
+  # - name: 20221021_vitb16_cosine_160k_bs16_coco171_in130_avgpool_rerun
+  #   sku: G8
+  #   sla_tier: basic
+  #   execution_mode: basic
+  #   priority: high
+  #   command:
+  #     - set -x; set -e
+  #     - pwd; ls; nvidia-smi
+  #     - sudo bash aml_setup_sing.sh
+  #     - /opt/conda/bin/python -m torch.distributed.launch
+  #       --nproc_per_node=8
+  #       --master_port=$$MASTER_PORT
+  #       tools/train.py
+  #       configs/large_voc_v2/vit/cosine_in130/vitb16_cosine_160k_bs16_coco171_in130_avgpool.py
+  #       --launcher pytorch
+  #       --auto-resume
+  #       --work-dir /zeliuwestus2/output_svlseg/20221021_vitb16_cosine_160k_bs16_coco171_in130_avgpool_rerun
+
   # - name: 20221021_vitb16_cosine_160k_bs16_coco171_in130_update_img
   #   sku: G8
   #   sla_tier: basic
