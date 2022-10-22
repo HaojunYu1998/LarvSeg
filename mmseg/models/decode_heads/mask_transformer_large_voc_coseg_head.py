@@ -206,6 +206,19 @@ class MaskTransformerLargeVocCoSegHead(BaseDecodeHead):
         ptr = (ptr + 1) % self.memory_bank_size
         self.ptr[cls_ind] = ptr
 
+    def _coseg_score(self, embed, cls):
+        _, D, h, w = embed.size()
+        cls_ind = self.cls_index[cls]
+        fg_embed = self.queue[cls_ind] # (20, 400, 768)
+        if not bool(self.full[cls_ind]):
+            return None
+        embed = embed.reshape(D, h * w).permute(1, 0)
+        fg_embed = fg_embed.reshape(-1, D)
+        cross_score = fg_embed @ embed.T
+        cross_score = cross_score.reshape(self.memory_bank_size, self.size**2, h * w)
+        coseg_score = cross_score.mean(dim=1).mean(dim=0)
+        return coseg_score
+
     def _remap_score(self, embed, cls):
         """
         Args:

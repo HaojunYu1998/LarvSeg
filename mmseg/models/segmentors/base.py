@@ -232,13 +232,17 @@ class BaseSegmentor(BaseModule, metaclass=ABCMeta):
             else:
                 palette = self.PALETTE
         palette = np.array(palette)
-        assert palette.shape[0] == len(self.CLASSES)
+        assert palette.shape[0] == len(self.CLASSES), f"{palette.shape}, {self.CLASSES}"
         assert palette.shape[1] == 3
         assert len(palette.shape) == 2
         assert 0 < opacity <= 1.0
         color_seg = np.zeros((seg.shape[0], seg.shape[1], 3), dtype=np.uint8)
+        patches = []
+        import matplotlib.patches as mpatches
         for label, color in enumerate(palette):
             color_seg[seg == label, :] = color
+            if int((seg == label).sum()) > 0:
+                patches.append(mpatches.Patch(color=[c / 255.0 for c in color[::-1]], label=self.CLASSES[label]))
         # convert to BGR
         color_seg = color_seg[..., ::-1]
 
@@ -251,7 +255,13 @@ class BaseSegmentor(BaseModule, metaclass=ABCMeta):
         if show:
             mmcv.imshow(img, win_name, wait_time)
         if out_file is not None:
-            mmcv.imwrite(img, out_file)
+            import matplotlib.pyplot as plt
+            plt.figure()
+            plt.legend(handles=patches, loc='upper right', bbox_to_anchor=(1.15, 1), prop={'size': 8})
+            plt.axis('off')
+            plt.imshow(img)
+            plt.savefig(out_file)
+            # mmcv.imwrite(img, out_file)
 
         if not (show or out_file):
             warnings.warn('show==False and out_file is not specified, only '

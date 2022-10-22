@@ -541,34 +541,34 @@ class MaskTransformerLargeVocHead(BaseDecodeHead):
         return masks
 
     def visualize_imagenet(self, img, mask, score, embed, label, img_metas):
-        # h = label.shape[-2]
-        # w = label.shape[-1]
+        h = label.shape[-2]
+        w = label.shape[-1]
         img = img[0]
-        # mask = resize(
-        #     mask, size=(h, w), mode='bilinear', align_corners=self.align_corners
-        # )[0]
-        # score = resize(
-        #     score, size=(h, w), mode='bilinear', align_corners=self.align_corners
-        # )[0]
-        # embed = resize(
-        #     embed, size=(h, w), mode='bilinear', align_corners=self.align_corners
-        # )[0]
-        # # self._weak_sample()
-        # N, H, W = mask.shape
-        # mask = mask.reshape(N, H * W).permute(1, 0)
-        # label = label.reshape(H * W)
+        mask = resize(
+            mask, size=(h, w), mode='bilinear', align_corners=self.align_corners
+        )[0]
+        score = resize(
+            score, size=(h, w), mode='bilinear', align_corners=self.align_corners
+        )[0]
+        embed = resize(
+            embed, size=(h, w), mode='bilinear', align_corners=self.align_corners
+        )[0]
+        # self._weak_sample()
+        N, H, W = mask.shape
+        mask = mask.reshape(N, H * W).permute(1, 0)
+        label = label.reshape(H * W)
         unique_label = torch.unique(label)
         unique_label = unique_label[unique_label != self.ignore_index]
         assert len(unique_label) == 1
         l = int(unique_label)
         png_name = self.cls_name[l]+"_"+img_metas[0]["ori_filename"].split("/")[-1].replace("JPEG", "png")   
         pth_name = self.cls_name[l]+"_"+img_metas[0]["ori_filename"].split("/")[-1].replace("JPEG", "pth")
-        os.makedirs(self.visualize_out_dir, exist_ok=True)
-        torch.save(embed, os.path.join(self.visualize_out_dir, pth_name))
-        # for i in range(3):
-        #     img[i] = (img[i] - img[i].min()) / (img[i].max() - img[i].min())
-        # # (H, W, 3)
-        # img = img.permute(1, 2, 0)
+        # os.makedirs(self.visualize_out_dir, exist_ok=True)
+        # torch.save(embed, os.path.join(self.visualize_out_dir, pth_name))
+        for i in range(3):
+            img[i] = (img[i] - img[i].min()) / (img[i].max() - img[i].min())
+        # (H, W, 3)
+        img = img.permute(1, 2, 0)
         # thresh_fg = score[l].flatten().topk(5000).values.min()
         # thresh_bg = score[l].flatten().topk(5000, largest=False).values.min()
         # print((score[l] >= thresh_fg).sum())
@@ -590,7 +590,7 @@ class MaskTransformerLargeVocHead(BaseDecodeHead):
         # elif inds.numel() > max_kept:
         #     inds = coseg_score.topk(max_kept).indices
         # print(len(inds))
-        # score = score[l].flatten()
+        score = score[l].flatten()
         # import seaborn as sns
         # import matplotlib.pyplot as plt
         # os.makedirs(self.visualize_out_dir, exist_ok=True)
@@ -600,14 +600,14 @@ class MaskTransformerLargeVocHead(BaseDecodeHead):
         # plt.savefig(os.path.join(self.visualize_out_dir, png_name))
         # plt.close()
         # score = score[l].flatten()
-        # inds = (score > (score.mean() + score.std())).nonzero(as_tuple=False).flatten()
-        # min_kept = 4000
-        # max_kept = 40000
-        # if inds.numel() < min_kept:
-        #     inds = score.topk(min_kept).indices
-        # elif inds.numel() > max_kept:
-        #     inds = score.topk(max_kept).indices
-        # print(len(inds))
+        inds = (score > (score.mean() + score.std())).nonzero(as_tuple=False).flatten()
+        min_kept = 4000
+        max_kept = 40000
+        if inds.numel() < min_kept:
+            inds = score.topk(min_kept).indices
+        elif inds.numel() > max_kept:
+            inds = score.topk(max_kept).indices
+        print(len(inds))
         # coseg_thresh = coseg_score.flatten().topk(40000).values.min()
         # print(cos_mat.shape)
         # background_cos_mat = embed[bg_mask] @ embed.T
@@ -616,17 +616,17 @@ class MaskTransformerLargeVocHead(BaseDecodeHead):
         # print(foreground_score.shape, background_score.shape)
         
         # print(score.max(), score.min(), score.std())
-        # score_img = torch.zeros_like(img).flatten(0,1)
-        # score_img[inds] = 1.0
-        # score_img = score_img.reshape(*img.shape)
-        # # score_img[foreground_score > 0.6] = 1.0
-        # # score_img[:,:,1] = score
-        # # score_img[:,:,2] = score
-        # img = img #* 0.5 + score_img * 0.5
-        # img = img.cpu().numpy()
-        # img = (img * 255).astype(np.uint8)
-        # os.makedirs(self.visualize_out_dir, exist_ok=True)
-        # Image.fromarray(img).save(os.path.join(self.visualize_out_dir, png_name), format="PNG")
+        score_img = torch.zeros_like(img).flatten(0,1)
+        score_img[inds] = 1.0
+        score_img = score_img.reshape(*img.shape)
+        # score_img[foreground_score > 0.6] = 1.0
+        # score_img[:,:,1] = score
+        # score_img[:,:,2] = score
+        img = img * 0.5 + score_img * 0.5
+        img = img.cpu().numpy()
+        img = (img * 255).astype(np.uint8)
+        os.makedirs(self.visualize_out_dir, exist_ok=True)
+        Image.fromarray(img).save(os.path.join(self.visualize_out_dir, png_name), format="PNG")
     
     @staticmethod
     def _get_batch_hist_vector(target, nclass):
