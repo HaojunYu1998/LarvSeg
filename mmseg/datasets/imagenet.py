@@ -356,6 +356,61 @@ class ImageNet130(ImageNet21K):
 
 
 @DATASETS.register_module()
+class ImageNet124(ImageNet130):
+
+    CLASSES = (
+        "lamp", "van", "flag", "sconce", "fence", "railing", "vase", "radiator", 
+        "fan", "monitor", "bus", "column", "flower", "hill", "runway", "light", 
+        "bannister", "rug", "fountain", "ship", "mountain", "towel", "stove", 
+        "chest of drawers", "sidewalk", "bed", "person", "floor", "microwave", 
+        "wardrobe", "blind", "dishwasher", "pier", "sky", "sand", "field", 
+        "trade name", "bench", "plant", "glass", "traffic light", "counter", 
+        "bathtub", "conveyer belt", "chair", "stairs", "airplane", "food", 
+        "fireplace", "minibike", "bicycle", "chandelier", "sink", "boat", "sofa", 
+        "shelf", "cradle", "house", "bridge", "ottoman", "pole", "water", "curtain", 
+        "clock", "television receiver", "refrigerator", "grass", "tree", "desk", 
+        "basket", "stool", "animal", "mirror", "swivel chair", "cushion", 
+        "streetlight", "arcade machine", "awning", "car", "bottle", "road", 
+        "sculpture", "windowpane", "stage", "dirt track", "tray", "bar", "bag", 
+        "palm", "case", "wall", "computer", "pool table", "crt screen", "book", 
+        "skyscraper", "toilet", "box", "apparel", "ashcan", "building", "ceiling", 
+        "coffee table", "tent", "shower", "tank", "kitchen island", "rock", "plate", 
+        "table", "river", "truck", "bookcase", "washer", "pot", "cabinet", "ball", 
+        "buffet", "booth", "door", "tower", "armchair", "oven", "hovel")
+
+    IMAGE_IDS = (
+        "n03636248", "n04520170", "n03354903", "n04148703", "n03327234", 
+        "n04047401", "n04522168", "n04041069", "n03320046", "n03782190", 
+        "n02924116", "n03073977", "n11669921", "n09303008", "n04120842", 
+        "n03665366", "n02788148", "n04118021", "n03388043", "n04194289", 
+        "n09359803", "n04459362", "n04330267", "n03015254", "n04215402", 
+        "n02818832", "n00007846", "n03365592", "n03761084", "n04550184", 
+        "n02851099", "n03207941", "n03934042", "n09436708", "n15019030", 
+        "n08659446", "n04217882", "n02828884", "n00017222", "n03438661", 
+        "n06874185", "n03116530", "n02808440", "n03100897", "n03002096", 
+        "n04314914", "n02691156", "n00021265", "n03346455", "n03790512", 
+        "n02834778", "n03005285", "n02998563", "n02858304", "n04256520", 
+        "n04190052", "n03125729", "n03544360", "n02898711", "n03858418", 
+        "n03976657", "n07935504", "n03151077", "n03046257", "n04405907", 
+        "n04070727", "n08598301", "n13104059", "n03179701", "n02801938", 
+        "n04326896", "n00015388", "n03773035", "n04373704", "n03938244", 
+        "n04335886", "n02706806", "n02763901", "n02958343", "n02876657", 
+        "n04096066", "n04157320", "n04587648", "n04296562", "n14844693", 
+        "n04476259", "n02789487", "n02774152", "n12582231", "n02975212", 
+        "n04547592", "n03082979", "n03982430", "n03085602", "n02870526", 
+        "n04233124", "n04446276", "n02883344", "n02728440", "n02747177", 
+        "n02913152", "n02990373", "n03063968", "n04411264", "n04208936", 
+        "n04388743", "n03619890", "n09416076", "n03960490", "n04379243", 
+        "n09415584", "n04490091", "n02870880", "n04554684", "n03991062", 
+        "n02933112", "n02779435", "n02912065", "n02874086", "n03221720", 
+        "n04460130", "n02738535", "n03862676", "n03547054")
+
+    PALETTE = None
+
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+
+@DATASETS.register_module()
 class ImageNet585(ImageNet21K):
 
     CLASSES = (

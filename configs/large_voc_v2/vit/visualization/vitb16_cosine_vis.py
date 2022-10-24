@@ -50,7 +50,7 @@ model = dict(
         oracle_downsample_rate=1,
         # visualization
         visualize_seed=True,
-        visualize_out_dir="work_dirs/20221019_vitb16_cosine_160k_bs16_coco171_in130_avgpool/cls_score20",
+        visualize_out_dir="work_dirs/20221019_vitb16_cosine_160k_bs16_coco171_in130_avgpool/cls_score_map_all20",
     ),
     test_cfg=dict(mode="whole"),
 )

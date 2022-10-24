@@ -204,6 +204,41 @@ class ADE20K130Dataset(ADE20KDataset):
             **kwargs)
 
 @DATASETS.register_module()
+class ADE20K124Dataset(ADE20KDataset):
+    """ADE20K dataset with 130 IN21K classes.
+
+    In segmentation map annotation for ADE20K, 0 stands for background, which
+    is not included in 150 categories. ``reduce_zero_label`` is fixed to True.
+    The ``img_suffix`` is fixed to '.jpg' and ``seg_map_suffix`` is fixed to
+    '.png'.
+    """
+    CLASSES124 = (
+        "lamp", "van", "flag", "sconce", "fence", "railing", "vase", "radiator", 
+        "fan", "monitor", "bus", "column", "flower", "hill", "runway", "light", 
+        "bannister", "rug", "fountain", "ship", "mountain", "towel", "stove", 
+        "chest of drawers", "sidewalk", "bed", "person", "floor", "microwave", 
+        "wardrobe", "blind", "dishwasher", "pier", "sky", "sand", "field", 
+        "trade name", "bench", "plant", "glass", "traffic light", "counter", 
+        "bathtub", "conveyer belt", "chair", "stairs", "airplane", "food", 
+        "fireplace", "minibike", "bicycle", "chandelier", "sink", "boat", "sofa", 
+        "shelf", "cradle", "house", "bridge", "ottoman", "pole", "water", "curtain", 
+        "clock", "television receiver", "refrigerator", "grass", "tree", "desk", 
+        "basket", "stool", "animal", "mirror", "swivel chair", "cushion", 
+        "streetlight", "arcade machine", "awning", "car", "bottle", "road", 
+        "sculpture", "windowpane", "stage", "dirt track", "tray", "bar", "bag", 
+        "palm", "case", "wall", "computer", "pool table", "crt screen", "book", 
+        "skyscraper", "toilet", "box", "apparel", "ashcan", "building", "ceiling", 
+        "coffee table", "tent", "shower", "tank", "kitchen island", "rock", "plate", 
+        "table", "river", "truck", "bookcase", "washer", "pot", "cabinet", "ball", 
+        "buffet", "booth", "door", "tower", "armchair", "oven", "hovel"
+    )
+
+    def __init__(self, **kwargs):
+        super(ADE20K124Dataset, self).__init__(
+            classes=self.CLASSES124, 
+            **kwargs)
+            
+@DATASETS.register_module()
 class ADE20KFULLDataset(CustomDataset):
     """ADE20KFULL dataset.
 

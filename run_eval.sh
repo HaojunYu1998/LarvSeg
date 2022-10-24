@@ -1,47 +1,33 @@
 export OMP_NUM_THREADS=1
 export CUDA_VISIBLE_DEVICES=0,1,2,3
-bash tools/dist_test.sh configs/large_voc/vit/oracle/large_voc_vitb16_cosine_eval_coco171_oracle1.py work_dirs/20221006_large_voc_vitb16_cosine_80k_bs16_ade150_prior_structure_loss/iter_80000.pth 4 --eval mIoU > 11coco171_prior_structure_point1_v0.txt
-bash tools/dist_test.sh configs/large_voc/vit/oracle/large_voc_vitb16_cosine_eval_coco171_oracle1.py work_dirs/20221006_large_voc_vitb16_cosine_80k_bs16_ade150_prior_structure_loss/iter_80000.pth 4 --eval mIoU > 11coco171_prior_structure_point1_v1.txt
-bash tools/dist_test.sh configs/large_voc/vit/oracle/large_voc_vitb16_cosine_eval_coco171_oracle1.py work_dirs/20221006_large_voc_vitb16_cosine_80k_bs16_ade150_prior_structure_loss/iter_80000.pth 4 --eval mIoU > 11coco171_prior_structure_point1_v2.txt
-bash tools/dist_test.sh configs/large_voc/vit/oracle/large_voc_vitb16_cosine_eval_coco171_oracle1.py work_dirs/20221006_large_voc_vitb16_cosine_80k_bs16_ade150_prior_structure_loss/iter_80000.pth 4 --eval mIoU > 11coco171_prior_structure_point1_v3.txt
-bash tools/dist_test.sh configs/large_voc/vit/oracle/large_voc_vitb16_cosine_eval_coco171_oracle1.py work_dirs/20221006_large_voc_vitb16_cosine_80k_bs16_ade150_prior_structure_loss/iter_80000.pth 4 --eval mIoU > 11coco171_prior_structure_point1_v4.txt
-bash tools/dist_test.sh configs/large_voc/vit/oracle/large_voc_vitb16_cosine_eval_coco171_oracle3.py work_dirs/20221006_large_voc_vitb16_cosine_80k_bs16_ade150_prior_structure_loss/iter_80000.pth 4 --eval mIoU > 11coco171_prior_structure_point3_v0.txt
-bash tools/dist_test.sh configs/large_voc/vit/oracle/large_voc_vitb16_cosine_eval_coco171_oracle3.py work_dirs/20221006_large_voc_vitb16_cosine_80k_bs16_ade150_prior_structure_loss/iter_80000.pth 4 --eval mIoU > 11coco171_prior_structure_point3_v1.txt
-bash tools/dist_test.sh configs/large_voc/vit/oracle/large_voc_vitb16_cosine_eval_coco171_oracle3.py work_dirs/20221006_large_voc_vitb16_cosine_80k_bs16_ade150_prior_structure_loss/iter_80000.pth 4 --eval mIoU > 11coco171_prior_structure_point3_v2.txt
-bash tools/dist_test.sh configs/large_voc/vit/oracle/large_voc_vitb16_cosine_eval_coco171_oracle3.py work_dirs/20221006_large_voc_vitb16_cosine_80k_bs16_ade150_prior_structure_loss/iter_80000.pth 4 --eval mIoU > 11coco171_prior_structure_point3_v3.txt
-bash tools/dist_test.sh configs/large_voc/vit/oracle/large_voc_vitb16_cosine_eval_coco171_oracle3.py work_dirs/20221006_large_voc_vitb16_cosine_80k_bs16_ade150_prior_structure_loss/iter_80000.pth 4 --eval mIoU > 11coco171_prior_structure_point3_v4.txt
-bash tools/dist_test.sh configs/large_voc/vit/oracle/large_voc_vitb16_cosine_eval_coco171_oracle10.py work_dirs/20221006_large_voc_vitb16_cosine_80k_bs16_ade150_prior_structure_loss/iter_80000.pth 4 --eval mIoU > 11coco171_prior_structure_point10_v0.txt
-bash tools/dist_test.sh configs/large_voc/vit/oracle/large_voc_vitb16_cosine_eval_coco171_oracle10.py work_dirs/20221006_large_voc_vitb16_cosine_80k_bs16_ade150_prior_structure_loss/iter_80000.pth 4 --eval mIoU > 11coco171_prior_structure_point10_v1.txt
-bash tools/dist_test.sh configs/large_voc/vit/oracle/large_voc_vitb16_cosine_eval_coco171_oracle10.py work_dirs/20221006_large_voc_vitb16_cosine_80k_bs16_ade150_prior_structure_loss/iter_80000.pth 4 --eval mIoU > 11coco171_prior_structure_point10_v2.txt
-bash tools/dist_test.sh configs/large_voc/vit/oracle/large_voc_vitb16_cosine_eval_coco171_oracle10.py work_dirs/20221006_large_voc_vitb16_cosine_80k_bs16_ade150_prior_structure_loss/iter_80000.pth 4 --eval mIoU > 11coco171_prior_structure_point10_v3.txt
-bash tools/dist_test.sh configs/large_voc/vit/oracle/large_voc_vitb16_cosine_eval_coco171_oracle10.py work_dirs/20221006_large_voc_vitb16_cosine_80k_bs16_ade150_prior_structure_loss/iter_80000.pth 4 --eval mIoU > 11coco171_prior_structure_point10_v4.txt
-bash tools/dist_test.sh configs/large_voc/vit/oracle/large_voc_vitb16_cosine_eval_ade150_oracle1.py work_dirs/20221006_large_voc_vitb16_cosine_80k_bs16_ade150_prior_structure_loss/iter_80000.pth 4 --eval mIoU > 11ade150_prior_structure_point1_v0.txt
-bash tools/dist_test.sh configs/large_voc/vit/oracle/large_voc_vitb16_cosine_eval_ade150_oracle1.py work_dirs/20221006_large_voc_vitb16_cosine_80k_bs16_ade150_prior_structure_loss/iter_80000.pth 4 --eval mIoU > 11ade150_prior_structure_point1_v1.txt
-bash tools/dist_test.sh configs/large_voc/vit/oracle/large_voc_vitb16_cosine_eval_ade150_oracle1.py work_dirs/20221006_large_voc_vitb16_cosine_80k_bs16_ade150_prior_structure_loss/iter_80000.pth 4 --eval mIoU > 11ade150_prior_structure_point1_v2.txt
-bash tools/dist_test.sh configs/large_voc/vit/oracle/large_voc_vitb16_cosine_eval_ade150_oracle1.py work_dirs/20221006_large_voc_vitb16_cosine_80k_bs16_ade150_prior_structure_loss/iter_80000.pth 4 --eval mIoU > 11ade150_prior_structure_point1_v3.txt
-bash tools/dist_test.sh configs/large_voc/vit/oracle/large_voc_vitb16_cosine_eval_ade150_oracle1.py work_dirs/20221006_large_voc_vitb16_cosine_80k_bs16_ade150_prior_structure_loss/iter_80000.pth 4 --eval mIoU > 11ade150_prior_structure_point1_v4.txt
-bash tools/dist_test.sh configs/large_voc/vit/oracle/large_voc_vitb16_cosine_eval_ade150_oracle3.py work_dirs/20221006_large_voc_vitb16_cosine_80k_bs16_ade150_prior_structure_loss/iter_80000.pth 4 --eval mIoU > 11ade150_prior_structure_point3_v0.txt
-bash tools/dist_test.sh configs/large_voc/vit/oracle/large_voc_vitb16_cosine_eval_ade150_oracle3.py work_dirs/20221006_large_voc_vitb16_cosine_80k_bs16_ade150_prior_structure_loss/iter_80000.pth 4 --eval mIoU > 11ade150_prior_structure_point3_v1.txt
-bash tools/dist_test.sh configs/large_voc/vit/oracle/large_voc_vitb16_cosine_eval_ade150_oracle3.py work_dirs/20221006_large_voc_vitb16_cosine_80k_bs16_ade150_prior_structure_loss/iter_80000.pth 4 --eval mIoU > 11ade150_prior_structure_point3_v2.txt
-bash tools/dist_test.sh configs/large_voc/vit/oracle/large_voc_vitb16_cosine_eval_ade150_oracle3.py work_dirs/20221006_large_voc_vitb16_cosine_80k_bs16_ade150_prior_structure_loss/iter_80000.pth 4 --eval mIoU > 11ade150_prior_structure_point3_v3.txt
-bash tools/dist_test.sh configs/large_voc/vit/oracle/large_voc_vitb16_cosine_eval_ade150_oracle3.py work_dirs/20221006_large_voc_vitb16_cosine_80k_bs16_ade150_prior_structure_loss/iter_80000.pth 4 --eval mIoU > 11ade150_prior_structure_point3_v4.txt
-bash tools/dist_test.sh configs/large_voc/vit/oracle/large_voc_vitb16_cosine_eval_ade150_oracle10.py work_dirs/20221006_large_voc_vitb16_cosine_80k_bs16_ade150_prior_structure_loss/iter_80000.pth 4 --eval mIoU > 11ade150_prior_structure_point10_v0.txt
-bash tools/dist_test.sh configs/large_voc/vit/oracle/large_voc_vitb16_cosine_eval_ade150_oracle10.py work_dirs/20221006_large_voc_vitb16_cosine_80k_bs16_ade150_prior_structure_loss/iter_80000.pth 4 --eval mIoU > 11ade150_prior_structure_point10_v1.txt
-bash tools/dist_test.sh configs/large_voc/vit/oracle/large_voc_vitb16_cosine_eval_ade150_oracle10.py work_dirs/20221006_large_voc_vitb16_cosine_80k_bs16_ade150_prior_structure_loss/iter_80000.pth 4 --eval mIoU > 11ade150_prior_structure_point10_v2.txt
-bash tools/dist_test.sh configs/large_voc/vit/oracle/large_voc_vitb16_cosine_eval_ade150_oracle10.py work_dirs/20221006_large_voc_vitb16_cosine_80k_bs16_ade150_prior_structure_loss/iter_80000.pth 4 --eval mIoU > 11ade150_prior_structure_point10_v3.txt
-bash tools/dist_test.sh configs/large_voc/vit/oracle/large_voc_vitb16_cosine_eval_ade150_oracle10.py work_dirs/20221006_large_voc_vitb16_cosine_80k_bs16_ade150_prior_structure_loss/iter_80000.pth 4 --eval mIoU > 11ade150_prior_structure_point10_v4.txt
-bash tools/dist_test.sh configs/large_voc/vit/oracle/large_voc_vitb16_cosine_eval_ade847_oracle1.py work_dirs/20221006_large_voc_vitb16_cosine_80k_bs16_ade150_prior_structure_loss/iter_80000.pth 4 --eval mIoU > 11ade847_prior_structure_point1_v0.txt
-bash tools/dist_test.sh configs/large_voc/vit/oracle/large_voc_vitb16_cosine_eval_ade847_oracle1.py work_dirs/20221006_large_voc_vitb16_cosine_80k_bs16_ade150_prior_structure_loss/iter_80000.pth 4 --eval mIoU > 11ade847_prior_structure_point1_v1.txt
-bash tools/dist_test.sh configs/large_voc/vit/oracle/large_voc_vitb16_cosine_eval_ade847_oracle1.py work_dirs/20221006_large_voc_vitb16_cosine_80k_bs16_ade150_prior_structure_loss/iter_80000.pth 4 --eval mIoU > 11ade847_prior_structure_point1_v2.txt
-bash tools/dist_test.sh configs/large_voc/vit/oracle/large_voc_vitb16_cosine_eval_ade847_oracle1.py work_dirs/20221006_large_voc_vitb16_cosine_80k_bs16_ade150_prior_structure_loss/iter_80000.pth 4 --eval mIoU > 11ade847_prior_structure_point1_v3.txt
-bash tools/dist_test.sh configs/large_voc/vit/oracle/large_voc_vitb16_cosine_eval_ade847_oracle1.py work_dirs/20221006_large_voc_vitb16_cosine_80k_bs16_ade150_prior_structure_loss/iter_80000.pth 4 --eval mIoU > 11ade847_prior_structure_point1_v4.txt
-bash tools/dist_test.sh configs/large_voc/vit/oracle/large_voc_vitb16_cosine_eval_ade847_oracle3.py work_dirs/20221006_large_voc_vitb16_cosine_80k_bs16_ade150_prior_structure_loss/iter_80000.pth 4 --eval mIoU > 11ade847_prior_structure_point3_v0.txt
-bash tools/dist_test.sh configs/large_voc/vit/oracle/large_voc_vitb16_cosine_eval_ade847_oracle3.py work_dirs/20221006_large_voc_vitb16_cosine_80k_bs16_ade150_prior_structure_loss/iter_80000.pth 4 --eval mIoU > 11ade847_prior_structure_point3_v1.txt
-bash tools/dist_test.sh configs/large_voc/vit/oracle/large_voc_vitb16_cosine_eval_ade847_oracle3.py work_dirs/20221006_large_voc_vitb16_cosine_80k_bs16_ade150_prior_structure_loss/iter_80000.pth 4 --eval mIoU > 11ade847_prior_structure_point3_v2.txt
-bash tools/dist_test.sh configs/large_voc/vit/oracle/large_voc_vitb16_cosine_eval_ade847_oracle3.py work_dirs/20221006_large_voc_vitb16_cosine_80k_bs16_ade150_prior_structure_loss/iter_80000.pth 4 --eval mIoU > 11ade847_prior_structure_point3_v3.txt
-bash tools/dist_test.sh configs/large_voc/vit/oracle/large_voc_vitb16_cosine_eval_ade847_oracle3.py work_dirs/20221006_large_voc_vitb16_cosine_80k_bs16_ade150_prior_structure_loss/iter_80000.pth 4 --eval mIoU > 11ade847_prior_structure_point3_v4.txt
-bash tools/dist_test.sh configs/large_voc/vit/oracle/large_voc_vitb16_cosine_eval_ade847_oracle10.py work_dirs/20221006_large_voc_vitb16_cosine_80k_bs16_ade150_prior_structure_loss/iter_80000.pth 4 --eval mIoU > 11ade847_prior_structure_point10_v0.txt
-bash tools/dist_test.sh configs/large_voc/vit/oracle/large_voc_vitb16_cosine_eval_ade847_oracle10.py work_dirs/20221006_large_voc_vitb16_cosine_80k_bs16_ade150_prior_structure_loss/iter_80000.pth 4 --eval mIoU > 11ade847_prior_structure_point10_v1.txt
-bash tools/dist_test.sh configs/large_voc/vit/oracle/large_voc_vitb16_cosine_eval_ade847_oracle10.py work_dirs/20221006_large_voc_vitb16_cosine_80k_bs16_ade150_prior_structure_loss/iter_80000.pth 4 --eval mIoU > 11ade847_prior_structure_point10_v2.txt
-bash tools/dist_test.sh configs/large_voc/vit/oracle/large_voc_vitb16_cosine_eval_ade847_oracle10.py work_dirs/20221006_large_voc_vitb16_cosine_80k_bs16_ade150_prior_structure_loss/iter_80000.pth 4 --eval mIoU > 11ade847_prior_structure_point10_v3.txt
-bash tools/dist_test.sh configs/large_voc/vit/oracle/large_voc_vitb16_cosine_eval_ade847_oracle10.py work_dirs/20221006_large_voc_vitb16_cosine_80k_bs16_ade150_prior_structure_loss/iter_80000.pth 4 --eval mIoU > 11ade847_prior_structure_point10_v4.txt
+# bash tools/dist_test.sh configs/large_voc/vit/oracle/large_voc_vitb16_cosine_eval_coco171_oracle1.py work_dirs/20221006_large_voc_vitb16_cosine_80k_bs16_cocostuff_prior_loss/iter_80000.pth 4 --eval mIoU > 12coco171_prior_point1_v0.txt
+
+# bash tools/dist_test.sh configs/large_voc/vit/oracle/large_voc_vitb16_cosine_eval_coco171_oracle1.py work_dirs/20221006_large_voc_vitb16_cosine_80k_bs16_cocostuff_prior_loss/iter_80000.pth 4 --eval mIoU > 12coco171_prior_point1_v1.txt
+
+# bash tools/dist_test.sh configs/large_voc/vit/oracle/large_voc_vitb16_cosine_eval_coco171_oracle1.py work_dirs/20221006_large_voc_vitb16_cosine_80k_bs16_cocostuff_prior_loss/iter_80000.pth 4 --eval mIoU > 12coco171_prior_point1_v2.txt
+
+# bash tools/dist_test.sh configs/large_voc/vit/oracle/large_voc_vitb16_cosine_eval_coco171_oracle1.py work_dirs/20221006_large_voc_vitb16_cosine_80k_bs16_cocostuff_prior_loss/iter_80000.pth 4 --eval mIoU > 12coco171_prior_point1_v3.txt
+
+# bash tools/dist_test.sh configs/large_voc/vit/oracle/large_voc_vitb16_cosine_eval_coco171_oracle1.py work_dirs/20221006_large_voc_vitb16_cosine_80k_bs16_cocostuff_prior_loss/iter_80000.pth 4 --eval mIoU > 12coco171_prior_point1_v4.txt
+
+# bash tools/dist_test.sh configs/large_voc/vit/oracle/large_voc_vitb16_cosine_eval_coco171_oracle1.py work_dirs/20221006_large_voc_vitb16_cosine_80k_bs16_ade150_prior_loss/iter_80000.pth 4 --eval mIoU > 13coco171_prior_point1_v0.txt
+
+# bash tools/dist_test.sh configs/large_voc/vit/oracle/large_voc_vitb16_cosine_eval_coco171_oracle1.py work_dirs/20221006_large_voc_vitb16_cosine_80k_bs16_ade150_prior_loss/iter_80000.pth 4 --eval mIoU > 13coco171_prior_point1_v1.txt
+
+# bash tools/dist_test.sh configs/large_voc/vit/oracle/large_voc_vitb16_cosine_eval_coco171_oracle1.py work_dirs/20221006_large_voc_vitb16_cosine_80k_bs16_ade150_prior_loss/iter_80000.pth 4 --eval mIoU > 13coco171_prior_point1_v2.txt
+
+# bash tools/dist_test.sh configs/large_voc/vit/oracle/large_voc_vitb16_cosine_eval_coco171_oracle1.py work_dirs/20221006_large_voc_vitb16_cosine_80k_bs16_ade150_prior_loss/iter_80000.pth 4 --eval mIoU > 13coco171_prior_point1_v3.txt
+
+# bash tools/dist_test.sh configs/large_voc/vit/oracle/large_voc_vitb16_cosine_eval_coco171_oracle1.py work_dirs/20221006_large_voc_vitb16_cosine_80k_bs16_ade150_prior_loss/iter_80000.pth 4 --eval mIoU > 13coco171_prior_point1_v4.txt
+
+
+bash tools/dist_test.sh configs/large_voc/vit/oracle/large_voc_vitb16_cosine_eval_ade150_oracle1.py work_dirs/20221006_large_voc_vitb16_cosine_80k_bs16_ade150_prior_loss/iter_80000.pth 4 --eval mIoU > 14ade150_prior_point1_v0.txt
+
+bash tools/dist_test.sh configs/large_voc/vit/oracle/large_voc_vitb16_cosine_eval_ade150_oracle1.py work_dirs/20221006_large_voc_vitb16_cosine_80k_bs16_ade150_prior_loss/iter_80000.pth 4 --eval mIoU > 14ade150_prior_point1_v1.txt
+
+bash tools/dist_test.sh configs/large_voc/vit/oracle/large_voc_vitb16_cosine_eval_ade150_oracle1.py work_dirs/20221006_large_voc_vitb16_cosine_80k_bs16_ade150_prior_loss/iter_80000.pth 4 --eval mIoU > 14ade150_prior_point1_v2.txt
+
+bash tools/dist_test.sh configs/large_voc/vit/oracle/large_voc_vitb16_cosine_eval_ade150_oracle1.py work_dirs/20221006_large_voc_vitb16_cosine_80k_bs16_ade150_prior_loss/iter_80000.pth 4 --eval mIoU > 14ade150_prior_point1_v3.txt
+
+bash tools/dist_test.sh configs/large_voc/vit/oracle/large_voc_vitb16_cosine_eval_ade150_oracle1.py work_dirs/20221006_large_voc_vitb16_cosine_80k_bs16_ade150_prior_loss/iter_80000.pth 4 --eval mIoU > 14ade150_prior_point1_v4.txt
+

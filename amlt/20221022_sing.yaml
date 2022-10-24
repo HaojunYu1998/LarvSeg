@@ -18,110 +18,133 @@ code:
 
 jobs:
 
-  - name: 20221022_remap_vitb16_cosine_160k_bs16_coco171_in130_seed0.0
-    sku: G8
-    sla_tier: basic
-    execution_mode: basic
-    priority: high
-    command:
-      - set -x; set -e
-      - pwd; ls; nvidia-smi
-      - sudo bash aml_setup_sing.sh
-      - /opt/conda/bin/python -m torch.distributed.launch
-        --nproc_per_node=8
-        --master_port=$$MASTER_PORT
-        tools/train.py
-        configs/large_voc_v3/vit/cosine_in130/vitb16_cosine_160k_bs16_coco171_in130_seed0.0.py
-        --launcher pytorch
-        --auto-resume
-        --work-dir /zeliuwestus2/output_svlseg/20221022_remap_vitb16_cosine_160k_bs16_coco171_in130_seed0.0
+configs/large_voc_v3/vit/cosine_in130/vitb16_cosine_160k_bs16_coco171_in130_seed0.2_full10.py
+configs/large_voc_v3/vit/cosine_in130/vitb16_cosine_160k_bs16_coco171_in130_seed0.2_full20.py
+configs/large_voc_v3/vit/cosine_in130_ade150w/vitb16_cosine_160k_bs16_coco171_in130_ade150w.py
+configs/large_voc_v3/vit/cosine_in585_ade847w/vitb16_cosine_160k_bs16_coco171_in585_ade847w.py
 
-  - name: 20221022_remap_vitb16_cosine_160k_bs16_coco171_in130_seed0.1
-    sku: G8
-    sla_tier: basic
-    execution_mode: basic
-    priority: high
-    command:
-      - set -x; set -e
-      - pwd; ls; nvidia-smi
-      - sudo bash aml_setup_sing.sh
-      - /opt/conda/bin/python -m torch.distributed.launch
-        --nproc_per_node=8
-        --master_port=$$MASTER_PORT
-        tools/train.py
-        configs/large_voc_v3/vit/cosine_in130/vitb16_cosine_160k_bs16_coco171_in130_seed0.1.py
-        --launcher pytorch
-        --auto-resume
-        --work-dir /zeliuwestus2/output_svlseg/20221022_remap_vitb16_cosine_160k_bs16_coco171_in130_seed0.1
+  # - name: 20221022_remap_vitb16_cosine_160k_bs16_coco171_in130_ade150w
+  #   sku: G8
+  #   sla_tier: basic
+  #   execution_mode: basic
+  #   priority: high
+  #   command:
+  #     - set -x; set -e
+  #     - pwd; ls; nvidia-smi
+  #     - sudo bash aml_setup_sing.sh
+  #     - /opt/conda/bin/python -m torch.distributed.launch
+  #       --nproc_per_node=8
+  #       --master_port=$$MASTER_PORT
+  #       tools/train.py
+  #       configs/large_voc_v3/vit/cosine_in130_ade150w/vitb16_cosine_160k_bs16_coco171_in130_ade150w.py
+  #       --launcher pytorch
+  #       --auto-resume
+  #       --work-dir /zeliuwestus2/output_svlseg/20221022_remap_vitb16_cosine_160k_bs16_coco171_in130_ade150w
 
-  - name: 20221022_remap_vitb16_cosine_160k_bs16_coco171_in130_seed0.2
-    sku: G8
-    sla_tier: basic
-    execution_mode: basic
-    priority: high
-    command:
-      - set -x; set -e
-      - pwd; ls; nvidia-smi
-      - sudo bash aml_setup_sing.sh
-      - /opt/conda/bin/python -m torch.distributed.launch
-        --nproc_per_node=8
-        --master_port=$$MASTER_PORT
-        tools/train.py
-        configs/large_voc_v3/vit/cosine_in130/vitb16_cosine_160k_bs16_coco171_in130_seed0.2.py
-        --launcher pytorch
-        --auto-resume
-        --work-dir /zeliuwestus2/output_svlseg/20221022_remap_vitb16_cosine_160k_bs16_coco171_in130_seed0.2
+  # - name: 20221022_remap_vitb16_cosine_160k_bs16_coco171_in130_seed0.0
+  #   sku: G8
+  #   sla_tier: basic
+  #   execution_mode: basic
+  #   priority: high
+  #   command:
+  #     - set -x; set -e
+  #     - pwd; ls; nvidia-smi
+  #     - sudo bash aml_setup_sing.sh
+  #     - /opt/conda/bin/python -m torch.distributed.launch
+  #       --nproc_per_node=8
+  #       --master_port=$$MASTER_PORT
+  #       tools/train.py
+  #       configs/large_voc_v3/vit/cosine_in130/vitb16_cosine_160k_bs16_coco171_in130_seed0.0.py
+  #       --launcher pytorch
+  #       --auto-resume
+  #       --work-dir /zeliuwestus2/output_svlseg/20221022_remap_vitb16_cosine_160k_bs16_coco171_in130_seed0.0
 
-  - name: 20221022_remap_vitb16_cosine_160k_bs16_coco171_in130_seed0.4
-    sku: G8
-    sla_tier: basic
-    execution_mode: basic
-    priority: high
-    command:
-      - set -x; set -e
-      - pwd; ls; nvidia-smi
-      - sudo bash aml_setup_sing.sh
-      - /opt/conda/bin/python -m torch.distributed.launch
-        --nproc_per_node=8
-        --master_port=$$MASTER_PORT
-        tools/train.py
-        configs/large_voc_v3/vit/cosine_in130/vitb16_cosine_160k_bs16_coco171_in130_seed0.4.py
-        --launcher pytorch
-        --auto-resume
-        --work-dir /zeliuwestus2/output_svlseg/20221022_remap_vitb16_cosine_160k_bs16_coco171_in130_seed0.4
+  # - name: 20221022_remap_vitb16_cosine_160k_bs16_coco171_in130_seed0.1
+  #   sku: G8
+  #   sla_tier: basic
+  #   execution_mode: basic
+  #   priority: high
+  #   command:
+  #     - set -x; set -e
+  #     - pwd; ls; nvidia-smi
+  #     - sudo bash aml_setup_sing.sh
+  #     - /opt/conda/bin/python -m torch.distributed.launch
+  #       --nproc_per_node=8
+  #       --master_port=$$MASTER_PORT
+  #       tools/train.py
+  #       configs/large_voc_v3/vit/cosine_in130/vitb16_cosine_160k_bs16_coco171_in130_seed0.1.py
+  #       --launcher pytorch
+  #       --auto-resume
+  #       --work-dir /zeliuwestus2/output_svlseg/20221022_remap_vitb16_cosine_160k_bs16_coco171_in130_seed0.1
 
-  - name: 20221022_remap_vitb16_cosine_160k_bs16_coco171_in130_seed0.6
-    sku: G8
-    sla_tier: basic
-    execution_mode: basic
-    priority: high
-    command:
-      - set -x; set -e
-      - pwd; ls; nvidia-smi
-      - sudo bash aml_setup_sing.sh
-      - /opt/conda/bin/python -m torch.distributed.launch
-        --nproc_per_node=8
-        --master_port=$$MASTER_PORT
-        tools/train.py
-        configs/large_voc_v3/vit/cosine_in130/vitb16_cosine_160k_bs16_coco171_in130_seed0.6.py
-        --launcher pytorch
-        --auto-resume
-        --work-dir /zeliuwestus2/output_svlseg/20221022_remap_vitb16_cosine_160k_bs16_coco171_in130_seed0.6
+  # - name: 20221022_remap_vitb16_cosine_160k_bs16_coco171_in130_seed0.2
+  #   sku: G8
+  #   sla_tier: basic
+  #   execution_mode: basic
+  #   priority: high
+  #   command:
+  #     - set -x; set -e
+  #     - pwd; ls; nvidia-smi
+  #     - sudo bash aml_setup_sing.sh
+  #     - /opt/conda/bin/python -m torch.distributed.launch
+  #       --nproc_per_node=8
+  #       --master_port=$$MASTER_PORT
+  #       tools/train.py
+  #       configs/large_voc_v3/vit/cosine_in130/vitb16_cosine_160k_bs16_coco171_in130_seed0.2.py
+  #       --launcher pytorch
+  #       --auto-resume
+  #       --work-dir /zeliuwestus2/output_svlseg/20221022_remap_vitb16_cosine_160k_bs16_coco171_in130_seed0.2
 
-  - name: 20221022_remap_vitb16_cosine_160k_bs16_coco171_in130_seed0.8
-    sku: G8
-    sla_tier: basic
-    execution_mode: basic
-    priority: high
-    command:
-      - set -x; set -e
-      - pwd; ls; nvidia-smi
-      - sudo bash aml_setup_sing.sh
-      - /opt/conda/bin/python -m torch.distributed.launch
-        --nproc_per_node=8
-        --master_port=$$MASTER_PORT
-        tools/train.py
-        configs/large_voc_v3/vit/cosine_in130/vitb16_cosine_160k_bs16_coco171_in130_seed0.8.py
-        --launcher pytorch
-        --auto-resume
-        --work-dir /zeliuwestus2/output_svlseg/20221022_remap_vitb16_cosine_160k_bs16_coco171_in130_seed0.8
+  # - name: 20221022_remap_vitb16_cosine_160k_bs16_coco171_in130_seed0.4
+  #   sku: G8
+  #   sla_tier: basic
+  #   execution_mode: basic
+  #   priority: high
+  #   command:
+  #     - set -x; set -e
+  #     - pwd; ls; nvidia-smi
+  #     - sudo bash aml_setup_sing.sh
+  #     - /opt/conda/bin/python -m torch.distributed.launch
+  #       --nproc_per_node=8
+  #       --master_port=$$MASTER_PORT
+  #       tools/train.py
+  #       configs/large_voc_v3/vit/cosine_in130/vitb16_cosine_160k_bs16_coco171_in130_seed0.4.py
+  #       --launcher pytorch
+  #       --auto-resume
+  #       --work-dir /zeliuwestus2/output_svlseg/20221022_remap_vitb16_cosine_160k_bs16_coco171_in130_seed0.4
+
+  # - name: 20221022_remap_vitb16_cosine_160k_bs16_coco171_in130_seed0.6
+  #   sku: G8
+  #   sla_tier: basic
+  #   execution_mode: basic
+  #   priority: high
+  #   command:
+  #     - set -x; set -e
+  #     - pwd; ls; nvidia-smi
+  #     - sudo bash aml_setup_sing.sh
+  #     - /opt/conda/bin/python -m torch.distributed.launch
+  #       --nproc_per_node=8
+  #       --master_port=$$MASTER_PORT
+  #       tools/train.py
+  #       configs/large_voc_v3/vit/cosine_in130/vitb16_cosine_160k_bs16_coco171_in130_seed0.6.py
+  #       --launcher pytorch
+  #       --auto-resume
+  #       --work-dir /zeliuwestus2/output_svlseg/20221022_remap_vitb16_cosine_160k_bs16_coco171_in130_seed0.6
+
+  # - name: 20221022_remap_vitb16_cosine_160k_bs16_coco171_in130_seed0.8
+  #   sku: G8
+  #   sla_tier: basic
+  #   execution_mode: basic
+  #   priority: high
+  #   command:
+  #     - set -x; set -e
+  #     - pwd; ls; nvidia-smi
+  #     - sudo bash aml_setup_sing.sh
+  #     - /opt/conda/bin/python -m torch.distributed.launch
+  #       --nproc_per_node=8
+  #       --master_port=$$MASTER_PORT
+  #       tools/train.py
+  #       configs/large_voc_v3/vit/cosine_in130/vitb16_cosine_160k_bs16_coco171_in130_seed0.8.py
+  #       --launcher pytorch
+  #       --auto-resume
+  #       --work-dir /zeliuwestus2/output_svlseg/20221022_remap_vitb16_cosine_160k_bs16_coco171_in130_seed0.8

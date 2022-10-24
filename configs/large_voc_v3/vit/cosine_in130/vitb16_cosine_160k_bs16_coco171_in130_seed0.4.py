@@ -29,6 +29,7 @@ model = dict(
         weakly_basic_loss_weight=0.2,
         weakly_seed_loss_weight=0.4,
         # memory bank
+        use_memory_bank=True,
         memory_bank_size=20,
         memory_image_size=20,
     ),
