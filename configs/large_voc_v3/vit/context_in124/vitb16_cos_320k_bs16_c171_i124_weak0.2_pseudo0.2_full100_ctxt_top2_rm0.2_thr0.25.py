@@ -24,18 +24,20 @@ model = dict(
         test_dataset="ade124",
         ignore_indices=[255, 255],
         test_ignore_index=255,
+        basic_loss_weights=[0.2, 1.0],
         # weakly supervised
         weakly_supervised_datasets=["in124"],
-        weakly_basic_loss_weight=0.2,
         weakly_seed_loss_weight=0.2,
-        weakly_min_kept=100,
+        weakly_min_kept=1000,
         # memory bank
         use_memory_bank=True,
         memory_bank_size=20,
         memory_image_size=20,
-        memory_bank_full_time=40,
+        memory_bank_full_time=100,
         context_suppression=True,
-        context_thresh=0.24
+        context_thresh=0.25,
+        context_topk=2,
+        context_remove_thresh=0.2,
     ),
     test_cfg=dict(mode="slide", crop_size=(512, 512), stride=(512, 512)),
 )

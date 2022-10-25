@@ -28,7 +28,7 @@ model = dict(
         weakly_supervised_datasets=["in124"],
         weakly_basic_loss_weight=0.2,
         weakly_seed_loss_weight=0.2,
-        weakly_min_kept=100,
+        weakly_min_kept=1000,
         # memory bank
         use_memory_bank=False,
         memory_bank_size=20,

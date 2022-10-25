@@ -559,14 +559,18 @@ class MaskTransformerLargeVocHead(BaseDecodeHead):
         # N, H, W = mask.shape
         # mask = mask.reshape(N, H * W).permute(1, 0)
         # label = label.reshape(H * W)
-        unique_label = torch.unique(label)
-        unique_label = unique_label[unique_label != self.ignore_index]
-        assert len(unique_label) == 1
-        l = int(unique_label)
-        # png_name = self.cls_name[l]+"_"+img_metas[0]["ori_filename"].split("/")[-1].replace("JPEG", "png")   
-        pth_name = self.cls_name[l]+"_"+img_metas[0]["ori_filename"].split("/")[-1].replace("JPEG", "pth")
-        os.makedirs(self.visualize_out_dir, exist_ok=True)
-        torch.save(score[0], os.path.join(self.visualize_out_dir, pth_name))
+        rank, _ = get_dist_info()
+        if rank == 0:
+            unique_label = torch.unique(label)
+            unique_label = unique_label[unique_label != self.ignore_index]
+            assert len(unique_label) == 1
+            l = int(unique_label)
+            # png_name = self.cls_name[l]+"_"+img_metas[0]["ori_filename"].split("/")[-1].replace("JPEG", "png")   
+            # pth_name = self.cls_name[l]+"_"+img_metas[0]["ori_filename"].split("/")[-1].replace("JPEG", "pth")
+            pth_name = "notebook/cls_emb130.pth"
+            # os.makedirs(, exist_ok=True)
+            torch.save(self.cls_emb[self.cls_index], pth_name)
+        exit()
         # torch.save(embed, os.path.join(self.visualize_out_dir, pth_name))
         # for i in range(3):
         #     img[i] = (img[i] - img[i].min()) / (img[i].max() - img[i].min())

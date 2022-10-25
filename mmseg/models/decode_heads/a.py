@@ -68,8 +68,6 @@ class MaskTransformerLargeVocCoSegHead(BaseDecodeHead):
         # coseg_max_reduce=False,
         context_suppression=False,
         context_thresh=1.0,
-        context_topk=2,
-        context_remove_thresh=0.2,
         **kwargs,
     ):
         # in_channels & channels are dummy arguments to satisfy signature of
@@ -118,8 +116,6 @@ class MaskTransformerLargeVocCoSegHead(BaseDecodeHead):
         # self.coseg_max_reduce = coseg_max_reduce
         self.context_suppression = context_suppression
         self.context_thresh = context_thresh
-        self.context_topk = context_topk
-        self.context_remove_thresh = context_remove_thresh
         self.size = memory_image_size
         self.full_time = memory_bank_full_time
         if self.use_memory_bank:
@@ -127,7 +123,6 @@ class MaskTransformerLargeVocCoSegHead(BaseDecodeHead):
             self.register_buffer(f"ptr", torch.zeros(self.all_classes, dtype=torch.long))
             self.register_buffer(f"full", torch.zeros(self.all_classes, dtype=torch.long))
             self.queue = self.queue / self.queue.norm(dim=-1, keepdim=True)
-        self.rank, _ = get_dist_info()
 
     def init_weights(self):
         self.apply(init_weights)
@@ -384,23 +379,11 @@ class MaskTransformerLargeVocCoSegHead(BaseDecodeHead):
         remap_score = torch.stack(remap_score, dim=0).mean(dim=0).reshape(h, w)
         # context suppression 
         if self.context_suppression:
-            # NOTE: use topk to avoid outlier
-            topk_mean_scores = score.topk(self.context_topk, dim=0).values.mean(dim=0) 
-            context_mask = topk_mean_scores > self.context_thresh
-            context_classes = context_mask.nonzero(as_tuple=False).flatten().tolist()
-            # NOTE: remove similar classes to avoid suppress foreground classes
-            fg_cls_embed = self.cls_emb[cls_ind]
-            fg_cls_embed = fg_cls_embed / fg_cls_embed.norm(dim=-1, keepdim=True)
-            for bg_cls in context_classes:
-                bg_cls_embed = self.cls_emb[self.cls_index[bg_cls]]
-                bg_cls_embed = bg_cls_embed / bg_cls_embed.norm(dim=-1, keepdim=True)
-                cos_sim = float(fg_cls_embed @ bg_cls_embed.T)
-                if cos_sim > self.context_remove_thresh:
-                    context_classes.remove(bg_cls)
-                    # if self.rank == 0:
-                    #     print(f"remove {self.cls_name[bg_cls]} from {self.cls_name[cls]}")
-            if self.rank == 0:
-                print(f"find {[self.cls_name[bg_cls] for bg_cls in context_classes]} for bg of {self.cls_name[cls]}")
+            context_classes = score.max(dim=0).values > self.context_thresh
+            context_classes = context_classes.nonzero(as_tuple=False).flatten().tolist()
+            if cls in context_classes:
+                context_classes.remove(cls)
+            
             bg_scores = []
             for bg_cls in context_classes:
                 bg_ind = self.cls_index[bg_cls]
