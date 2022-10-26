@@ -66,13 +66,11 @@ data = dict(
         type='MixBatchDataset',
         dataset_list=[
             dict(
-                type='ImageNet124',
-                data_root=in21k_data_root,
-                img_dir='fall11_whole',
-                ann_dir='annotations_cam_new',
-                split="ImageNet124.txt",
-                img_suffix=".JPEG",
-                pipeline=in21k_train_pipeline),
+                type="ADE20KDataset",
+                data_root=ade_data_root,
+                img_dir='images/training',
+                ann_dir='annotations/training',
+                pipeline=ade_train_pipeline),
             dict(
                 type='COCOStuffDataset',
                 data_root=coco_data_root,
@@ -80,11 +78,13 @@ data = dict(
                 ann_dir='annotations/train2017',
                 pipeline=coco_train_pipeline),
             dict(
-                type="ADE20KDataset",
-                data_root=ade_data_root,
-                img_dir='images/training',
-                ann_dir='annotations/training',
-                pipeline=ade_train_pipeline),
+                type='ImageNet124',
+                data_root=in21k_data_root,
+                img_dir='fall11_whole',
+                ann_dir='annotations_cam_new',
+                split="ImageNet124.txt",
+                img_suffix=".JPEG",
+                pipeline=in21k_train_pipeline),
         ]
     ),
     val=dict(
