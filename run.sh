@@ -3,9 +3,18 @@ export CUDA_VISIBLE_DEVICES=0,1,2,3
 # export CUDA_LAUNCH_BLOCKING=1
 
 bash tools/dist_train.sh \
-configs/extend_voc/baseline_in585/vitb16_320k_i585_c171_ib0.2.py
+configs/extend_voc/coseg_in124/vitb16_320k_i124_c171_ib0.2_co_ic0.2_mbs20_wu1_fg40_bg5_bgt0.20_mse1.5.py
 
-
+# configs/extend_voc/coseg_in124/vitb16_320k_i124_c171_ib0.2_co_ic0.2_mbs20_wu1_fg40_bg5_bgt0.20_mse1.5.py
+# configs/extend_voc/coseg_in124/vitb16_320k_i124_c171_ib0.2_co_ic0.2_mbs20_wu1_fg40_bg5_bgt0.20_mse2.0.py
+# configs/extend_voc/coseg_in124/vitb16_320k_i124_c171_ib0.2_co_ic0.2_mbs20_wu1_fg40_bg5_bgt0.25_mse1.5.py
+# configs/extend_voc/coseg_in124/vitb16_320k_i124_c171_ib0.2_co_ic0.2_mbs20_wu1_fg40_bg5_bgt0.25_mse2.0.py
+# configs/extend_voc/coseg_in124/vitb16_320k_i124_c171_ib0.2_co_ic0.2_mbs20_wu1_fg40_bg5_bgt0.30_mse1.5.py
+# configs/extend_voc/coseg_in124/vitb16_320k_i124_c171_ib0.2_co_ic0.2_mbs20_wu1_fg40_bg5_bgt0.30_mse2.0.py
+# configs/extend_voc/coseg_in124/vitb16_320k_i124_c171_ib0.2_co_ic0.2_mbs20_wu1_fg40_bg5_bgt0.35_mse1.5.py
+# configs/extend_voc/coseg_in124/vitb16_320k_i124_c171_ib0.2_co_ic0.2_mbs20_wu1_fg40_bg5_bgt0.35_mse2.0.py
+# configs/extend_voc/coseg_in124/vitb16_320k_i124_c171_ib0.2_co_ic0.2_mbs20_wu1_fg40_bg5_bgt0.40_mse1.5.py
+# configs/extend_voc/coseg_in124/vitb16_320k_i124_c171_ib0.2_co_ic0.2_mbs20_wu1_fg40_bg5_bgt0.40_mse2.0.py
 
 # bash tools/dist_test.sh \
 # configs/large_voc_v2/vit/visualization/vitb16_cosine_vis.py \

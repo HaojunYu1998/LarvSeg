@@ -18,7 +18,7 @@ code:
 
 jobs:
 
-  - name: 20221027_vitb16_320k_wa150_c171_ab0.2
+  - name: 20221027_vitb16_320k_i124_c171_ib0.2_co_mbs20_wu5_fg40_bg5_bgt0.2_mse1.0
     sku: G8
     sla_tier: basic
     execution_mode: basic
@@ -31,12 +31,12 @@ jobs:
         --nproc_per_node=8
         --master_port=$$MASTER_PORT
         tools/train.py
-        configs/extend_voc/baseline_ade150w/vitb16_320k_wa150_c171_ab0.2.py
+        configs/extend_voc/coseg_in124/vitb16_320k_i124_c171_ib0.2_co_mbs20_wu5_fg40_bg5_bgt0.2_mse1.0.py
         --launcher pytorch
         --auto-resume
-        --work-dir /zeliuwestus2/output_svlseg/20221027_vitb16_320k_wa150_c171_ab0.2
+        --work-dir /zeliuwestus2/output_svlseg/20221027_vitb16_320k_i124_c171_ib0.2_co_mbs20_wu5_fg40_bg5_bgt0.2_mse1.0
 
-  - name: 20221027_vitb16_320k_wa150_c171_i124_ib0.2_ab0.2
+  - name: 20221027_vitb16_320k_i124_c171_ib0.2_co_mbs20_wu10_fg40_bg1_bgt0.2_mse1.0
     sku: G8
     sla_tier: basic
     execution_mode: basic
@@ -49,12 +49,12 @@ jobs:
         --nproc_per_node=8
         --master_port=$$MASTER_PORT
         tools/train.py
-        configs/extend_voc/baseline_ade150w_in124/vitb16_320k_wa150_c171_i124_ib0.2_ab0.2.py
+        configs/extend_voc/coseg_in124/vitb16_320k_i124_c171_ib0.2_co_mbs20_wu10_fg40_bg1_bgt0.2_mse1.0.py
         --launcher pytorch
         --auto-resume
-        --work-dir /zeliuwestus2/output_svlseg/20221027_vitb16_320k_wa150_c171_i124_ib0.2_ab0.2
+        --work-dir /zeliuwestus2/output_svlseg/20221027_vitb16_320k_i124_c171_ib0.2_co_mbs20_wu10_fg40_bg1_bgt0.2_mse1.0
 
-  - name: 20221027_vitb16_320k_i124_c171_ib0.2
+  - name: 20221027_vitb16_320k_i124_c171_ib0.2_co_mbs20_wu10_fg40_bg5_bgt0.2_mse1.0
     sku: G8
     sla_tier: basic
     execution_mode: basic
@@ -67,12 +67,12 @@ jobs:
         --nproc_per_node=8
         --master_port=$$MASTER_PORT
         tools/train.py
-        configs/extend_voc/baseline_in124/vitb16_320k_i124_c171_ib0.2.py
+        configs/extend_voc/coseg_in124/vitb16_320k_i124_c171_ib0.2_co_mbs20_wu10_fg40_bg5_bgt0.2_mse1.0.py
         --launcher pytorch
         --auto-resume
-        --work-dir /zeliuwestus2/output_svlseg/20221027_vitb16_320k_i124_c171_ib0.2
+        --work-dir /zeliuwestus2/output_svlseg/20221027_vitb16_320k_i124_c171_ib0.2_co_mbs20_wu10_fg40_bg5_bgt0.2_mse1.0
 
-  - name: 20221027_vitb16_320k_i585_c171_ib0.2
+  - name: 20221027_vitb16_320k_i124_c171_ib0.2_co_mbs20_wu10_fg40_bg10_bgt0.2_mse1.0
     sku: G8
     sla_tier: basic
     execution_mode: basic
@@ -85,7 +85,133 @@ jobs:
         --nproc_per_node=8
         --master_port=$$MASTER_PORT
         tools/train.py
-        configs/extend_voc/baseline_in585/vitb16_320k_i585_c171_ib0.2.py
+        configs/extend_voc/coseg_in124/vitb16_320k_i124_c171_ib0.2_co_mbs20_wu10_fg40_bg10_bgt0.2_mse1.0.py
         --launcher pytorch
         --auto-resume
-        --work-dir /zeliuwestus2/output_svlseg/20221027_vitb16_320k_i585_c171_ib0.2
+        --work-dir /zeliuwestus2/output_svlseg/20221027_vitb16_320k_i124_c171_ib0.2_co_mbs20_wu10_fg40_bg10_bgt0.2_mse1.0
+
+  - name: 20221027_vitb16_320k_i124_c171_ib0.2_co_mbs20_wu50_fg40_bg5_bgt0.2_mse1.0
+    sku: G8
+    sla_tier: basic
+    execution_mode: basic
+    priority: high
+    command:
+      - set -x; set -e
+      - pwd; ls; nvidia-smi
+      - sudo bash aml_setup_sing.sh
+      - /opt/conda/bin/python -m torch.distributed.launch
+        --nproc_per_node=8
+        --master_port=$$MASTER_PORT
+        tools/train.py
+        configs/extend_voc/coseg_in124/vitb16_320k_i124_c171_ib0.2_co_mbs20_wu50_fg40_bg5_bgt0.2_mse1.0.py
+        --launcher pytorch
+        --auto-resume
+        --work-dir /zeliuwestus2/output_svlseg/20221027_vitb16_320k_i124_c171_ib0.2_co_mbs20_wu50_fg40_bg5_bgt0.2_mse1.0
+
+  - name: 20221027_vitb16_320k_i124_c171_ib0.2_co_mbs40_wu5_fg40_bg5_bgt0.2_mse1.0
+    sku: G8
+    sla_tier: basic
+    execution_mode: basic
+    priority: high
+    command:
+      - set -x; set -e
+      - pwd; ls; nvidia-smi
+      - sudo bash aml_setup_sing.sh
+      - /opt/conda/bin/python -m torch.distributed.launch
+        --nproc_per_node=8
+        --master_port=$$MASTER_PORT
+        tools/train.py
+        configs/extend_voc/coseg_in124/vitb16_320k_i124_c171_ib0.2_co_mbs40_wu5_fg40_bg5_bgt0.2_mse1.0.py
+        --launcher pytorch
+        --auto-resume
+        --work-dir /zeliuwestus2/output_svlseg/20221027_vitb16_320k_i124_c171_ib0.2_co_mbs40_wu5_fg40_bg5_bgt0.2_mse1.0
+
+  - name: 20221027_vitb16_320k_i124_c171_ib0.2_co_mbs80_wu5_fg40_bg5_bgt0.2_mse1.0
+    sku: G8
+    sla_tier: basic
+    execution_mode: basic
+    priority: high
+    command:
+      - set -x; set -e
+      - pwd; ls; nvidia-smi
+      - sudo bash aml_setup_sing.sh
+      - /opt/conda/bin/python -m torch.distributed.launch
+        --nproc_per_node=8
+        --master_port=$$MASTER_PORT
+        tools/train.py
+        configs/extend_voc/coseg_in124/vitb16_320k_i124_c171_ib0.2_co_mbs80_wu5_fg40_bg5_bgt0.2_mse1.0.py
+        --launcher pytorch
+        --auto-resume
+        --work-dir /zeliuwestus2/output_svlseg/20221027_vitb16_320k_i124_c171_ib0.2_co_mbs80_wu5_fg40_bg5_bgt0.2_mse1.0
+
+  # - name: 20221027_vitb16_320k_i124_c171_ib0.2_co_mbs80_wu100_fg40
+  #   sku: G8
+  #   sla_tier: basic
+  #   execution_mode: basic
+  #   priority: high
+  #   command:
+  #     - set -x; set -e
+  #     - pwd; ls; nvidia-smi
+  #     - sudo bash aml_setup_sing.sh
+  #     - /opt/conda/bin/python -m torch.distributed.launch
+  #       --nproc_per_node=8
+  #       --master_port=$$MASTER_PORT
+  #       tools/train.py
+  #       configs/extend_voc/baseline_in124/vitb16_320k_i124_c171_ib0.2_co_mbs80_wu100_fg40.py
+  #       --launcher pytorch
+  #       --auto-resume
+  #       --work-dir /zeliuwestus2/output_svlseg/20221027_vitb16_320k_i124_c171_ib0.2_co_mbs80_wu100_fg40
+
+  # - name: 20221027_vitb16_320k_i124_c171_ib0.2_co_mbs80_wu100_fg40_bg5_bgt0.2_mse1.0
+  #   sku: G8
+  #   sla_tier: basic
+  #   execution_mode: basic
+  #   priority: high
+  #   command:
+  #     - set -x; set -e
+  #     - pwd; ls; nvidia-smi
+  #     - sudo bash aml_setup_sing.sh
+  #     - /opt/conda/bin/python -m torch.distributed.launch
+  #       --nproc_per_node=8
+  #       --master_port=$$MASTER_PORT
+  #       tools/train.py
+  #       configs/extend_voc/baseline_in124/vitb16_320k_i124_c171_ib0.2_co_mbs80_wu100_fg40_bg5_bgt0.2_mse1.0.py
+  #       --launcher pytorch
+  #       --auto-resume
+  #       --work-dir /zeliuwestus2/output_svlseg/20221027_vitb16_320k_i124_c171_ib0.2_co_mbs80_wu100_fg40_bg5_bgt0.2_mse1.0
+
+  # - name: 20221027_vitb16_320k_i124_c171_ib0.2
+  #   sku: G8
+  #   sla_tier: basic
+  #   execution_mode: basic
+  #   priority: high
+  #   command:
+  #     - set -x; set -e
+  #     - pwd; ls; nvidia-smi
+  #     - sudo bash aml_setup_sing.sh
+  #     - /opt/conda/bin/python -m torch.distributed.launch
+  #       --nproc_per_node=8
+  #       --master_port=$$MASTER_PORT
+  #       tools/train.py
+  #       configs/extend_voc/baseline_in124/vitb16_320k_i124_c171_ib0.2.py
+  #       --launcher pytorch
+  #       --auto-resume
+  #       --work-dir /zeliuwestus2/output_svlseg/20221027_vitb16_320k_i124_c171_ib0.2
+
+  # - name: 20221027_vitb16_320k_i585_c171_ib0.2
+  #   sku: G8
+  #   sla_tier: basic
+  #   execution_mode: basic
+  #   priority: high
+  #   command:
+  #     - set -x; set -e
+  #     - pwd; ls; nvidia-smi
+  #     - sudo bash aml_setup_sing.sh
+  #     - /opt/conda/bin/python -m torch.distributed.launch
+  #       --nproc_per_node=8
+  #       --master_port=$$MASTER_PORT
+  #       tools/train.py
+  #       configs/extend_voc/baseline_in585/vitb16_320k_i585_c171_ib0.2.py
+  #       --launcher pytorch
+  #       --auto-resume
+  #       --work-dir /zeliuwestus2/output_svlseg/20221027_vitb16_320k_i585_c171_ib0.2

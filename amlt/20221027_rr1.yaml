@@ -31,16 +31,16 @@ jobs:
         --auto-resume
         --work-dir /zeliuwestus2/output_svlseg/20221027_vitb16_320k_wa847_c171_ab0.2
 
-  - name: 20221027_vitb16_320k_wa847_c171_i585_ib0.2_ab0.2
-    sku: G8
-    sla_tier: basic
-    execution_mode: basic
-    priority: high
-    command:
-      - set -x; set -e
-      - pwd; ls; nvidia-smi
-      - sudo bash aml_setup.sh
-      - bash tools/dist_train.sh
-        configs/extend_voc/baseline_ade847w_in585/vitb16_320k_wa847_c171_i585_ib0.2_ab0.2.py
-        --auto-resume
-        --work-dir /zeliuwestus2/output_svlseg/20221027_vitb16_320k_wa847_c171_i585_ib0.2_ab0.2
+  # - name: 20221027_vitb16_320k_wa847_c171_i585_ib0.2_ab0.2
+  #   sku: G8
+  #   sla_tier: basic
+  #   execution_mode: basic
+  #   priority: high
+  #   command:
+  #     - set -x; set -e
+  #     - pwd; ls; nvidia-smi
+  #     - sudo bash aml_setup.sh
+  #     - bash tools/dist_train.sh
+  #       configs/extend_voc/baseline_ade847w_in585/vitb16_320k_wa847_c171_i585_ib0.2_ab0.2.py
+  #       --auto-resume
+  #       --work-dir /zeliuwestus2/output_svlseg/20221027_vitb16_320k_wa847_c171_i585_ib0.2_ab0.2
