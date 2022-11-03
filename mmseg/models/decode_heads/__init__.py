@@ -39,6 +39,8 @@ from .mask_transformer_prompt_learning_head import \
 from .mask_transformer_large_voc_attn_head import MaskTransformerLargeVocAttnHead
 from .mask_transformer_large_voc_coseg_head import MaskTransformerLargeVocCoSegHead
 from .mask_transformer_extend_voc_head import MaskTransformerExtendVocHead
+from .mask_transformer_extend_voc_bce_head import MaskTransformerExtendVocBCEHead
+from .mask_transformer_extend_voc_pseudo_head import MaskTransformerExtendVocPseudoHead
 from .mask_transformer_propagation_head import MaskTransformerPropagationHead
 from .mask_transformer_structure_head import MaskTransformerStructureHead
 from .mask_transformer_weak_head import MaskTransformerWeakHead
@@ -72,5 +74,6 @@ __all__ = [
     'MaskTransformerLargeVocHead', 'MaskTransformerLargeVocPropagationHead',
     'MaskTransformerLargeVocMemoryBankHead', 'MaskTransformerLargeVocStructureHead',
     'MaskTransformerLargeVocAvgPoolHead', 'MaskTransformerLargeVocAttnHead',
-    'MaskTransformerLargeVocCoSegHead', 'MaskTransformerExtendVocHead'
+    'MaskTransformerLargeVocCoSegHead', 'MaskTransformerExtendVocHead',
+    'MaskTransformerExtendVocBCEHead', 'MaskTransformerExtendVocPseudoHead'
 ]
