@@ -31,7 +31,77 @@ jobs:
   #       --auto-resume
   #       --work-dir /zeliuwestus2/output_svlseg/20221104_vitb16_320k_i11k_c171_s100_ib4.0_wbce
 
-  - name: 20221104_vitb16_1280k_i11k_c171_s100_ib4.0_wbce
+  # - name: 20221104_vitb16_1280k_i11k_c171_s100_ib4.0_wbce
+  #   sku: G8
+  #   sla_tier: basic
+  #   execution_mode: basic
+  #   priority: high
+  #   command:
+  #     - set -x; set -e
+  #     - pwd; ls; nvidia-smi
+  #     - sudo bash aml_setup.sh
+  #     - bash tools/dist_train.sh
+  #       configs/extend_voc_bce/bce_baseline_in11k/vitb16_1280k_i11k_c171_s100_ib4.0_wbce.py
+  #       --auto-resume
+  #       --work-dir /zeliuwestus2/output_svlseg/20221104_vitb16_1280k_i11k_c171_s100_ib4.0_wbce
+
+  # - name: 20221104_vitb16_2560k_i11k_c171_s100_ib4.0_wbce
+  #   sku: G8
+  #   sla_tier: basic
+  #   execution_mode: basic
+  #   priority: high
+  #   command:
+  #     - set -x; set -e
+  #     - pwd; ls; nvidia-smi
+  #     - sudo bash aml_setup.sh
+  #     - bash tools/dist_train.sh
+  #       configs/extend_voc_bce/bce_baseline_in11k/vitb16_2560k_i11k_c171_s100_ib4.0_wbce.py
+  #       --auto-resume
+  #       --work-dir /zeliuwestus2/output_svlseg/20221104_vitb16_2560k_i11k_c171_s100_ib4.0_wbce
+
+  # - name: 20221104_vitb16_2560k_i11k_c171_s100_ib8.0_wbce
+  #   sku: G8
+  #   sla_tier: basic
+  #   execution_mode: basic
+  #   priority: high
+  #   command:
+  #     - set -x; set -e
+  #     - pwd; ls; nvidia-smi
+  #     - sudo bash aml_setup.sh
+  #     - bash tools/dist_train.sh
+  #       configs/extend_voc_bce/bce_baseline_in11k/vitb16_2560k_i11k_c171_s100_ib8.0_wbce.py
+  #       --auto-resume
+  #       --work-dir /zeliuwestus2/output_svlseg/20221104_vitb16_2560k_i11k_c171_s100_ib8.0_wbce
+
+  # - name: 20221104_vitb16_1280k_i11k_c171_s100_ib8.0_wbce
+  #   sku: G8
+  #   sla_tier: basic
+  #   execution_mode: basic
+  #   priority: high
+  #   command:
+  #     - set -x; set -e
+  #     - pwd; ls; nvidia-smi
+  #     - sudo bash aml_setup.sh
+  #     - bash tools/dist_train.sh
+  #       configs/extend_voc_bce/bce_baseline_in11k/vitb16_1280k_i11k_c171_s100_ib8.0_wbce.py
+  #       --auto-resume
+  #       --work-dir /zeliuwestus2/output_svlseg/20221104_vitb16_1280k_i11k_c171_s100_ib8.0_wbce
+
+  # - name: 20221104_vitb16_640k_i11k_c171_s100_ib8.0_wbce
+  #   sku: G8
+  #   sla_tier: basic
+  #   execution_mode: basic
+  #   priority: high
+  #   command:
+  #     - set -x; set -e
+  #     - pwd; ls; nvidia-smi
+  #     - sudo bash aml_setup.sh
+  #     - bash tools/dist_train.sh
+  #       configs/extend_voc_bce/bce_baseline_in11k/vitb16_640k_i11k_c171_s100_ib8.0_wbce.py
+  #       --auto-resume
+  #       --work-dir /zeliuwestus2/output_svlseg/20221104_vitb16_640k_i11k_c171_s100_ib8.0_wbce
+
+  - name: 20221104_vitb16_1280k_i11k_c171_s100_ib0.2
     sku: G8
     sla_tier: basic
     execution_mode: basic
@@ -41,21 +111,6 @@ jobs:
       - pwd; ls; nvidia-smi
       - sudo bash aml_setup.sh
       - bash tools/dist_train.sh
-        configs/extend_voc_bce/bce_baseline_in11k/vitb16_1280k_i11k_c171_s100_ib4.0_wbce.py
+        configs/extend_voc/baseline_in11k/vitb16_1280k_i11k_c171_s100_ib0.2.py
         --auto-resume
-        --work-dir /zeliuwestus2/output_svlseg/20221104_vitb16_1280k_i11k_c171_s100_ib4.0_wbce
-
-  - name: 20221104_vitb16_2560k_i11k_c171_s100_ib4.0_wbce
-    sku: G8
-    sla_tier: basic
-    execution_mode: basic
-    priority: high
-    command:
-      - set -x; set -e
-      - pwd; ls; nvidia-smi
-      - sudo bash aml_setup.sh
-      - bash tools/dist_train.sh
-        configs/extend_voc_bce/bce_baseline_in11k/vitb16_2560k_i11k_c171_s100_ib4.0_wbce.py
-        --auto-resume
-        --work-dir /zeliuwestus2/output_svlseg/20221104_vitb16_2560k_i11k_c171_s100_ib4.0_wbce
-
+        --work-dir /zeliuwestus2/output_svlseg/20221104_vitb16_1280k_i11k_c171_s100_ib0.2

@@ -18,7 +18,7 @@ code:
 
 jobs:
 
-  - name: 20221104_vitb16_320k_wa150_c171_ab4.0_pl_ap2.0_wbce
+  - name: 20221104_vitb16_320k_wa150_c171_ab10.0_wbce
     sku: G8
     sla_tier: basic
     execution_mode: basic
@@ -31,10 +31,82 @@ jobs:
         --nproc_per_node=8
         --master_port=$$MASTER_PORT
         tools/train.py
-        configs/extend_voc_bce/bce_pseudo_ade150w/vitb16_320k_wa150_c171_ab4.0_pl_ap2.0_wbce.py
+        configs/extend_voc_bce/bce_baseline_ade150w/vitb16_320k_wa150_c171_ab10.0_wbce.py
         --launcher pytorch
         --auto-resume
-        --work-dir /zeliuwestus2/output_svlseg/20221104_vitb16_320k_wa150_c171_ab4.0_pl_ap2.0_wbce
+        --work-dir /zeliuwestus2/output_svlseg/20221104_vitb16_320k_wa150_c171_ab10.0_wbce
+
+  - name: 20221104_vitb16_320k_wa150_c171_ab12.0_wbce
+    sku: G8
+    sla_tier: basic
+    execution_mode: basic
+    priority: high
+    command:
+      - set -x; set -e
+      - pwd; ls; nvidia-smi
+      - sudo bash aml_setup_sing.sh
+      - /opt/conda/bin/python -m torch.distributed.launch
+        --nproc_per_node=8
+        --master_port=$$MASTER_PORT
+        tools/train.py
+        configs/extend_voc_bce/bce_baseline_ade150w/vitb16_320k_wa150_c171_ab12.0_wbce.py
+        --launcher pytorch
+        --auto-resume
+        --work-dir /zeliuwestus2/output_svlseg/20221104_vitb16_320k_wa150_c171_ab12.0_wbce
+
+  - name: 20221104_vitb16_320k_wa150_c171_ab14.0_wbce
+    sku: G8
+    sla_tier: basic
+    execution_mode: basic
+    priority: high
+    command:
+      - set -x; set -e
+      - pwd; ls; nvidia-smi
+      - sudo bash aml_setup_sing.sh
+      - /opt/conda/bin/python -m torch.distributed.launch
+        --nproc_per_node=8
+        --master_port=$$MASTER_PORT
+        tools/train.py
+        configs/extend_voc_bce/bce_baseline_ade150w/vitb16_320k_wa150_c171_ab14.0_wbce.py
+        --launcher pytorch
+        --auto-resume
+        --work-dir /zeliuwestus2/output_svlseg/20221104_vitb16_320k_wa150_c171_ab14.0_wbce
+
+  - name: 20221104_vitb16_320k_wa150_c171_ab16.0_wbce
+    sku: G8
+    sla_tier: basic
+    execution_mode: basic
+    priority: high
+    command:
+      - set -x; set -e
+      - pwd; ls; nvidia-smi
+      - sudo bash aml_setup_sing.sh
+      - /opt/conda/bin/python -m torch.distributed.launch
+        --nproc_per_node=8
+        --master_port=$$MASTER_PORT
+        tools/train.py
+        configs/extend_voc_bce/bce_baseline_ade150w/vitb16_320k_wa150_c171_ab16.0_wbce.py
+        --launcher pytorch
+        --auto-resume
+        --work-dir /zeliuwestus2/output_svlseg/20221104_vitb16_320k_wa150_c171_ab16.0_wbce
+
+  # - name: 20221104_vitb16_320k_wa150_c171_ab4.0_pl_ap2.0_wbce
+  #   sku: G8
+  #   sla_tier: basic
+  #   execution_mode: basic
+  #   priority: high
+  #   command:
+  #     - set -x; set -e
+  #     - pwd; ls; nvidia-smi
+  #     - sudo bash aml_setup_sing.sh
+  #     - /opt/conda/bin/python -m torch.distributed.launch
+  #       --nproc_per_node=8
+  #       --master_port=$$MASTER_PORT
+  #       tools/train.py
+  #       configs/extend_voc_bce/bce_pseudo_ade150w/vitb16_320k_wa150_c171_ab4.0_pl_ap2.0_wbce.py
+  #       --launcher pytorch
+  #       --auto-resume
+  #       --work-dir /zeliuwestus2/output_svlseg/20221104_vitb16_320k_wa150_c171_ab4.0_pl_ap2.0_wbce
 
   # - name: 20221104_vitb16_320k_wa150_c171_ab4.0_co_ac2.0_fg20_wbce
   #   sku: G8

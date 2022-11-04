@@ -81,6 +81,9 @@ class MaskTransformerExtendVocHead(BaseDecodeHead):
         test_dataset="ade124",
         ignore_indices=[255, 255],
         test_ignore_index=255,
+        use_lang_seg=False,
+        cls_emb_train="notebook/cls_emb_c171.pth",
+        cls_emb_test="notebook/cls_emb_a150.pth",
         use_sample_class=False,
         num_smaple_class=100,
         basic_loss_weights=[0.2, 1.0],
@@ -118,6 +121,9 @@ class MaskTransformerExtendVocHead(BaseDecodeHead):
         self.test_dataset = test_dataset
         self.ignore_indices = ignore_indices
         self.test_ignore_index = test_ignore_index
+        self.use_lang_seg = use_lang_seg
+        self.cls_emb_train = cls_emb_train
+        self.cls_emb_test = cls_emb_test
         self.use_sample_class = use_sample_class
         self.num_smaple_class = num_smaple_class
         self.basic_loss_weights = basic_loss_weights
@@ -139,7 +145,8 @@ class MaskTransformerExtendVocHead(BaseDecodeHead):
         self.gamma = nn.Parameter(torch.ones([]))
         self.beta = nn.Parameter(torch.zeros([]))
         self.all_classes = self.num_classes if self.all_cls is None else len(self.all_cls)
-        self.cls_emb = nn.Parameter(torch.randn(self.all_classes, d_model))
+        if not self.use_lang_seg:
+            self.cls_emb = nn.Parameter(torch.randn(self.all_classes, d_model))
         if self.use_coseg:
             self.register_buffer(f"queue", torch.randn(self.all_classes, memory_bank_size, foreground_topk, d_model))
             self.register_buffer(f"ptr", torch.zeros(self.all_classes, dtype=torch.long))
@@ -154,10 +161,15 @@ class MaskTransformerExtendVocHead(BaseDecodeHead):
 
     def init_weights(self):
         self.apply(init_weights)
-        trunc_normal_(self.cls_emb, std=0.02)
+        if not self.use_lang_seg:
+            trunc_normal_(self.cls_emb, std=0.02)
 
     def _update(self, training, label=None):
         rank, _ = get_dist_info()
+        if self.use_lang_seg:
+            cls_emb_path = self.cls_emb_train if training else self.cls_emb_test
+            self.cls_emb = torch.load(cls_emb_path, map_location="cpu")
+            self.cls_emb.requires_grad = False
         if training:
             self.dataset_on_gpu = self.mix_batch_datasets[rank % len(self.mix_batch_datasets)]
             self.ignore_index = self.ignore_indices[rank % len(self.mix_batch_datasets)]
@@ -235,6 +247,7 @@ class MaskTransformerExtendVocHead(BaseDecodeHead):
         x = x.view(B, D, -1).permute(0, 2, 1)
         cls_emb = self.cls_emb[self.cls_index]
         cls_emb = cls_emb.expand(x.size(0), -1, -1)
+        cls_emb = cls_emb.to(x.device)
         patches = x
         patches = patches @ self.proj_patch
         cls_emb = cls_emb @ self.proj_classes

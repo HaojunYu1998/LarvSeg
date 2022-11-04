@@ -507,12 +507,11 @@ class MaskTransformerLargeVocHead(BaseDecodeHead):
 
     def oracle_propagation(self, seg_embed, img_metas, seg_label):
         device = seg_embed.device
-        name = img_metas['ori_filename']
-        root = "/itpsea4data/OpenVocSeg/outputs/CLIP_RN50x64_embedding_ADE20K"
-        seg_embed = torch.load(os.path.join(root, name.replace(".jpg", ".pth")))
-        print(seg_embed.shape)
-        exit()
+        name = img_metas[0]['ori_filename']
+        root = "/itpsea4data/OpenVocSeg/outputs/CLIP_RN50x64_embedding_COCOStuff"
+        seg_embed = torch.load(os.path.join(root, name.replace(".jpg", ".pth"))).to(device)
         # seg_label = torch.tensor(seg_label, dtype=torch.int64, device=device)
+        seg_embed = seg_embed.permute(0, 3, 1, 2)
         B, C, H, W = seg_embed.shape
         h = seg_label.shape[-2] #// self.oracle_downsample_rate
         w = seg_label.shape[-1] #// self.oracle_downsample_rate
