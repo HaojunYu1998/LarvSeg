@@ -643,6 +643,66 @@ class ImageNet585(ImageNet21K):
         return results
 
 
+@DATASETS.register_module()
+class ImageNet11K(ImageNet21K):
+
+    import json
+    data = json.load(open("notebook/IN11K_IMAGE_IDS_to_CLASSES_dict.json"))
+    CLASSES = list(data.values())
+    IMAGE_IDS = list(data.keys())
+    PALETTE = None
+
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+
+    def load_annotations(self, img_dir, img_suffix, ann_dir, seg_map_suffix, split):
+        img_infos = []
+        assert split is not None
+        with open(split) as f:
+            for line in f:
+                img_name = line.strip()
+                if img_suffix == ".JPEG":
+                    img_name_ = img_name[:img_name.find("_")] + "/" + img_name
+                else:
+                    img_name_ = img_name
+                img_info = dict(filename=img_name_ + img_suffix)
+                if ann_dir is not None:
+                    seg_map = img_name_ + img_suffix
+                    img_info["ann"] = dict(seg_map=seg_map)
+                img_infos.append(img_info)
+        print_log(f"Loaded {len(img_infos)} images", logger=get_root_logger())
+        return img_infos
+
+    def pre_pipeline(self, results):
+        """Prepare results dict for pipeline."""
+        results["seg_fields"] = []
+        results["img_prefix"] = self.img_dir
+        results["seg_prefix"] = self.img_dir
+        if self.custom_classes:
+            results["label_map"] = self.label_map
+
+    def prepare_train_img(self, idx):
+        img_info = self.img_infos[idx]
+        ann_info = self.get_ann_info(idx)
+        results = dict(img_info=img_info, ann_info=ann_info)
+        self.pre_pipeline(results)
+        results = self.pipeline(results)
+        # prepare
+        filename = img_info["filename"]
+        if "/" in filename:
+            img_id = filename.split("/")[0]
+        else:
+            img_id = filename.rstrip(self.img_suffix)
+        if "_" in img_id:
+            img_id = img_id.split("_")[0]
+        _class = self.IMAGE_IDS.index(img_id)
+        # assert False, f"{results['img'].data.shape}"
+        results["gt_semantic_seg"] = DC(
+            torch.zeros_like(results['img'].data[[0]]).long() + _class
+        , stack=True)
+        return results
+
+
 def to_tensor(data):
     """Convert objects of various python types to :obj:`torch.Tensor`.
 

@@ -60,32 +60,32 @@ class LoadImageFromFile(object):
             filename = osp.join(results["img_prefix"], results["img_info"]["filename"])
         else:
             filename = results["img_info"]["filename"]
-        try:
-            img_bytes = self.file_client.get(filename)
-            img = mmcv.imfrombytes(
-                img_bytes, flag=self.color_type, backend=self.imdecode_backend
-            )
-            if self.to_float32:
-                img = img.astype(np.float32)
+        # try:
+        img_bytes = self.file_client.get(filename)
+        img = mmcv.imfrombytes(
+            img_bytes, flag=self.color_type, backend=self.imdecode_backend
+        )
+        if self.to_float32:
+            img = img.astype(np.float32)
 
-            results["filename"] = filename
-            results["ori_filename"] = results["img_info"]["filename"]
-            results["img"] = img
-            results["img_shape"] = img.shape
-            results["ori_shape"] = img.shape
-            # Set initial values for default meta_keys
-            results["pad_shape"] = img.shape
-            results["scale_factor"] = 1.0
-            num_channels = 1 if len(img.shape) < 3 else img.shape[2]
-            results["img_norm_cfg"] = dict(
-                mean=np.zeros(num_channels, dtype=np.float32),
-                std=np.ones(num_channels, dtype=np.float32),
-                to_rgb=False,
-            )
-            return results
-        except:
-            print(filename, "is invalid")
-            return None
+        results["filename"] = filename
+        results["ori_filename"] = results["img_info"]["filename"]
+        results["img"] = img
+        results["img_shape"] = img.shape
+        results["ori_shape"] = img.shape
+        # Set initial values for default meta_keys
+        results["pad_shape"] = img.shape
+        results["scale_factor"] = 1.0
+        num_channels = 1 if len(img.shape) < 3 else img.shape[2]
+        results["img_norm_cfg"] = dict(
+            mean=np.zeros(num_channels, dtype=np.float32),
+            std=np.ones(num_channels, dtype=np.float32),
+            to_rgb=False,
+        )
+        return results
+        # except:
+        #     print(filename, "is invalid")
+        #     return None
 
     def __repr__(self):
         repr_str = self.__class__.__name__

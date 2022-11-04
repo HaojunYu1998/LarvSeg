@@ -1,0 +1,109 @@
+description: CVPR2023
+target:
+  service: sing
+  # name: msroctovc
+  name: msrresrchvc
+
+environment:
+  image: zeliu98/pytorch:superbench-nvcr21.05-fixfusedlamb-itp-mmcv-msrest
+
+storage:
+  output:
+    storage_account_name: zeliuwestus2
+    container_name: v-miazhang
+    mount_dir: /zeliuwestus2
+
+code:
+  local_dir: $CONFIG_DIR/../
+
+jobs:
+
+  - name: 20221104_vitb16_320k_wa150_c171_ab4.0_pl_ap2.0_wbce
+    sku: G8
+    sla_tier: basic
+    execution_mode: basic
+    priority: high
+    command:
+      - set -x; set -e
+      - pwd; ls; nvidia-smi
+      - sudo bash aml_setup_sing.sh
+      - /opt/conda/bin/python -m torch.distributed.launch
+        --nproc_per_node=8
+        --master_port=$$MASTER_PORT
+        tools/train.py
+        configs/extend_voc_bce/bce_pseudo_ade150w/vitb16_320k_wa150_c171_ab4.0_pl_ap2.0_wbce.py
+        --launcher pytorch
+        --auto-resume
+        --work-dir /zeliuwestus2/output_svlseg/20221104_vitb16_320k_wa150_c171_ab4.0_pl_ap2.0_wbce
+
+  # - name: 20221104_vitb16_320k_wa150_c171_ab4.0_co_ac2.0_fg20_wbce
+  #   sku: G8
+  #   sla_tier: basic
+  #   execution_mode: basic
+  #   priority: high
+  #   command:
+  #     - set -x; set -e
+  #     - pwd; ls; nvidia-smi
+  #     - sudo bash aml_setup_sing.sh
+  #     - /opt/conda/bin/python -m torch.distributed.launch
+  #       --nproc_per_node=8
+  #       --master_port=$$MASTER_PORT
+  #       tools/train.py
+  #       configs/extend_voc_bce/bce_coseg_ade150w/vitb16_320k_wa150_c171_ab4.0_co_ac2.0_fg20_wbce.py
+  #       --launcher pytorch
+  #       --auto-resume
+  #       --work-dir /zeliuwestus2/output_svlseg/20221104_vitb16_320k_wa150_c171_ab4.0_co_ac2.0_fg20_wbce
+
+  # - name: 20221104_vitb16_320k_wa150_c171_ab4.0_co_ac2.0_fg80_wbce
+  #   sku: G8
+  #   sla_tier: basic
+  #   execution_mode: basic
+  #   priority: high
+  #   command:
+  #     - set -x; set -e
+  #     - pwd; ls; nvidia-smi
+  #     - sudo bash aml_setup_sing.sh
+  #     - /opt/conda/bin/python -m torch.distributed.launch
+  #       --nproc_per_node=8
+  #       --master_port=$$MASTER_PORT
+  #       tools/train.py
+  #       configs/extend_voc_bce/bce_coseg_ade150w/vitb16_320k_wa150_c171_ab4.0_co_ac2.0_fg80_wbce.py
+  #       --launcher pytorch
+  #       --auto-resume
+  #       --work-dir /zeliuwestus2/output_svlseg/20221104_vitb16_320k_wa150_c171_ab4.0_co_ac2.0_fg80_wbce
+
+  # - name: 20221104_vitb16_320k_wa150_c171_ab4.0_co_ac2.0_mbs10_wbce
+  #   sku: G8
+  #   sla_tier: basic
+  #   execution_mode: basic
+  #   priority: high
+  #   command:
+  #     - set -x; set -e
+  #     - pwd; ls; nvidia-smi
+  #     - sudo bash aml_setup_sing.sh
+  #     - /opt/conda/bin/python -m torch.distributed.launch
+  #       --nproc_per_node=8
+  #       --master_port=$$MASTER_PORT
+  #       tools/train.py
+  #       configs/extend_voc_bce/bce_coseg_ade150w/vitb16_320k_wa150_c171_ab4.0_co_ac2.0_mbs10_wbce.py
+  #       --launcher pytorch
+  #       --auto-resume
+  #       --work-dir /zeliuwestus2/output_svlseg/20221104_vitb16_320k_wa150_c171_ab4.0_co_ac2.0_mbs10_wbce
+
+  # - name: 20221104_vitb16_320k_wa150_c171_ab4.0_co_ac2.0_mbs40_wbce
+  #   sku: G8
+  #   sla_tier: basic
+  #   execution_mode: basic
+  #   priority: high
+  #   command:
+  #     - set -x; set -e
+  #     - pwd; ls; nvidia-smi
+  #     - sudo bash aml_setup_sing.sh
+  #     - /opt/conda/bin/python -m torch.distributed.launch
+  #       --nproc_per_node=8
+  #       --master_port=$$MASTER_PORT
+  #       tools/train.py
+  #       configs/extend_voc_bce/bce_coseg_ade150w/vitb16_320k_wa150_c171_ab4.0_co_ac2.0_mbs40_wbce.py
+  #       --launcher pytorch
+  #       --auto-resume
+  #       --work-dir /zeliuwestus2/output_svlseg/20221104_vitb16_320k_wa150_c171_ab4.0_co_ac2.0_mbs40_wbce

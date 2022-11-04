@@ -1,0 +1,32 @@
+description: CVPR2023
+target:
+  service: amlk8s
+  name: itplabrr1cl1
+
+environment:
+  image: zeliu98/pytorch:superbench-nvcr21.05-fixfusedlamb-itp-mmcv-msrest
+
+storage:
+  output:
+    storage_account_name: zeliuwestus2
+    container_name: v-miazhang
+    mount_dir: /zeliuwestus2
+
+code:
+  local_dir: $CONFIG_DIR/../
+
+jobs:
+
+  - name: 20221104_vitb16_320k_i11k_c171_s100_ib4.0_wbce
+    sku: G8
+    sla_tier: basic
+    execution_mode: basic
+    priority: high
+    command:
+      - set -x; set -e
+      - pwd; ls; nvidia-smi
+      - sudo bash aml_setup.sh
+      - bash tools/dist_train.sh
+        configs/extend_voc_bce/bce_baseline_in11k/vitb16_320k_i11k_c171_s100_ib4.0_wbce.py
+        --auto-resume
+        --work-dir /zeliuwestus2/output_svlseg/20221104_vitb16_320k_i11k_c171_s100_ib4.0_wbce

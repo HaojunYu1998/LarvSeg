@@ -24,7 +24,7 @@ from .voc import PascalVOCDataset
 from .coco_stuff import COCOStuffDataset
 from .coco_lvis import COCOLVISDataset
 
-from .imagenet import ImageNet21K, ImageNet124, ImageNet130, ImageNet585
+from .imagenet import ImageNet21K, ImageNet124, ImageNet130, ImageNet585, ImageNet11K
 from .mix_batch import MixBatchDataset
 from .demo import DemoDataset
 
@@ -37,5 +37,5 @@ __all__ = [
     'ADE20KFULLDataset', "COCOLVISDataset", "ImageNet21K", "MixBatchDataset",
     "ADE20KFULLMergedDataset", "ADE20KHyperDataset", "ADE20KFULLHyperDataset",
     "DemoDataset", "ADE20K130Dataset","ImageNet130", "ImageNet585", "ADE20K585Dataset",
-    "ImageNet124", "ADE20K124Dataset"
+    "ImageNet124", "ADE20K124Dataset", "ImageNet11K"
 ]

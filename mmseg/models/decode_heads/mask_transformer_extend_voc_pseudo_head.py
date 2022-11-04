@@ -130,7 +130,7 @@ class MaskTransformerExtendVocPseudoHead(BaseDecodeHead):
             self.dataset_on_gpu = self.mix_batch_datasets[rank % len(self.mix_batch_datasets)]
             self.ignore_index = self.ignore_indices[rank % len(self.mix_batch_datasets)]
             self.basic_loss_weight = self.basic_loss_weights[rank % len(self.mix_batch_datasets)]
-            self.aux_loss_weight = self.aux_loss_weight[rank % len(self.mix_batch_datasets)]
+            self.aux_loss_weight = self.aux_loss_weights[rank % len(self.mix_batch_datasets)]
             self.weakly_supervised = self.dataset_on_gpu in self.weakly_supervised_datasets
         else:
             self.dataset_on_gpu = self.test_dataset
