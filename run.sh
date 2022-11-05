@@ -2,14 +2,14 @@ export OMP_NUM_THREADS=1
 export CUDA_VISIBLE_DEVICES=0,1,2,3
 # export CUDA_LAUNCH_BLOCKING=1
 
-bash tools/dist_train.sh \
-configs/extend_voc/lseg/vitb16_320k_c171_lseg.py
+# bash tools/dist_train.sh \
+# configs/extend_voc/lseg/vitb16_320k_c171_lseg.py
 
-# bash tools/dist_test.sh \
-# configs/large_voc/vit/oracle/large_voc_vitb16_cosine_eval_coco171_oracle1.py \
-# work_dirs/20221006_large_voc_vitb16_cosine_80k_bs16_ade150_prior_loss/iter_80000.pth \
-# 4 \
-# --eval mIoU > c171_v1.txt
+bash tools/dist_test.sh \
+configs/extend_voc/lseg/vitb16_320k_c171_lseg.py \
+work_dirs/20221101_vitb16_320k_wa150_c171_ab0.8/iter_304000.pth \
+4 \
+--eval mIoU > lseg_demo_a150.txt
 
 # python tools/test.py \
 # configs/large_voc_v2/vit/cosine_in130/vitb16_cosine_160k_bs16_coco171_in130_avgpool.py \
@@ -35,3 +35,6 @@ configs/extend_voc/lseg/vitb16_320k_c171_lseg.py
 # mkdir -p /mnt/haojun2
 # ln -s /itpsea4data/dataset /mnt/haojun2/dataset
 # pip install timm
+
+
+# amlt remove exp :20221105_vitb16_320k_wa847_c171_ab160.0_s100_wbce :20221105_vitb16_320k_wa150_c171_ab80.0_wbce :20221105_vitb16_320k_wa150_c171_ab40.0_wbce :20221105_vitb16_320k_wa150_c171_ab160.0_wbce :20221105_vitb16_320k_wa847_c171_ab80.0_s100_wbce :20221105_vitb16_320k_wa847_c171_ab40.0_s100_wbce

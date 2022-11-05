@@ -153,10 +153,10 @@ class MaskTransformerExtendVocHead(BaseDecodeHead):
             self.register_buffer(f"full", torch.zeros(self.all_classes, dtype=torch.long))
             self.queue = self.queue / self.queue.norm(dim=-1, keepdim=True)
         self.dim = 2 if self.background_suppression else 1
-        if self.use_coseg_score_head:
-            self.coseg_head = FeedForward(dim=self.dim, hidden_dim=32)
-        else:
-            self.coseg_head = normalize
+        # if self.use_coseg_score_head:
+        #     self.coseg_head = FeedForward(dim=self.dim, hidden_dim=32)
+        # else:
+        self.coseg_head = normalize
         self.rank, self.world_size = get_dist_info()
 
     def init_weights(self):
@@ -319,7 +319,7 @@ class MaskTransformerExtendVocHead(BaseDecodeHead):
         loss["loss_basic"] = self.loss_decode(
             seg_mask, seg_label, ignore_index=self.ignore_index
         ) * self.basic_loss_weight
-        loss["loss_coseg"] = self.coseg_head(seg_mask[[0], :self.dim]).sum() * 0.0
+        loss["loss_coseg"] = seg_mask.sum() * 0.0
         return loss
 
     def weakly_loss(self, seg_mask, seg_embed, seg_score, seg_label):
@@ -347,8 +347,7 @@ class MaskTransformerExtendVocHead(BaseDecodeHead):
         else:
             loss["loss_basic"] = basic_loss / num_basic * self.basic_loss_weight
         if num_coseg == 0:
-            seg_mask = seg_mask.permute(0, 2, 3, 1).reshape(B * H * W, N)
-            loss["loss_coseg"] = self.coseg_head(seg_mask[[0], :self.dim]).sum() * 0.0
+            loss["loss_coseg"] = seg_mask.sum() * 0.0
         else:
             loss["loss_coseg"] = coseg_loss / num_coseg * self.coseg_loss_weight
         return loss
@@ -378,7 +377,7 @@ class MaskTransformerExtendVocHead(BaseDecodeHead):
         except:
             print("Unsuccessful _dequeue_and_enqueue!")
         if coseg_score is None:
-            return self.coseg_head(mask[[0], :self.dim]).sum() * 0.0
+            return mask.sum() * 0.0
         if self.background_suppression and not self.use_coseg_score_head:
             coseg_score = coseg_score[...,0] - coseg_score[...,1]
         coseg_score = self.coseg_head(coseg_score).reshape(h, w)
