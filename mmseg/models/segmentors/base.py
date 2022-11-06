@@ -256,11 +256,14 @@ class BaseSegmentor(BaseModule, metaclass=ABCMeta):
             mmcv.imshow(img, win_name, wait_time)
         if out_file is not None:
             import matplotlib.pyplot as plt
-            plt.figure()
-            plt.legend(handles=patches, loc='upper right', bbox_to_anchor=(1.15, 1), prop={'size': 8})
-            plt.axis('off')
-            plt.imshow(img)
-            plt.savefig(out_file)
+            from PIL import Image
+            Image.fromarray(img).save(out_file.replace("jpg", "pdf"))
+            # print(out_file.replace("jpg", "pdf"))
+            # plt.figure()
+            # # plt.legend(handles=patches, loc='upper right', bbox_to_anchor=(1.15, 1), prop={'size': 8})
+            # plt.axis('off')
+            # plt.imshow(img)
+            # plt.savefig(out_file)
             # mmcv.imwrite(img, out_file)
 
         if not (show or out_file):

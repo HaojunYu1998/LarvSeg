@@ -277,16 +277,11 @@ class EncoderDecoder(BaseSegmentor):
 
     def simple_test(self, img, img_meta, rescale=True):
         """Simple test with single image."""
+        # if img_meta[0]["ori_filename"] != "ADE_val_00000127.jpg":
+        #     return None
         seg_logit = self.inference(img, img_meta, rescale)
         # seg inference
         seg_pred = seg_logit.argmax(dim=1)
-
-        img_name = img_meta[0]["ori_filename"].replace("jpg", "pth")
-        # try:
-        lseg_pred = torch.load(f"/itpsea4data/lang-seg/output/ade150_pth/{img_name}", map_location="cpu")
-        lseg_pred = lseg_pred.to(seg_pred.device)[None]
-        lseg_pred = F.interpolate(lseg_pred[None].float(), size=seg_pred.shape[-2:], mode="nearest")[0]
-        seg_pred = lseg_pred.to(seg_pred.dtype)
 
         if torch.onnx.is_in_onnx_export():
             # our inference backend only support 4D output

@@ -129,3 +129,4 @@ files/
 third_party/detectron2/detectron2/model_zoo/configs
 notebook/embeddings
 pretrain/vitb16_320k_i124_c171_ib0.2.pth
+vis_dirs

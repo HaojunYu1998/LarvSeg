@@ -2,7 +2,7 @@ _base_ = [
     "../../_base_/models/large_voc_vitb16.py",
     "../../_base_/datasets/mix_batch_ADE847W_COCO171_IN585_eval_ADE847.py",
     "../../_base_/default_runtime.py",
-    "../../_base_/schedules/schedule_640k.py",
+    "../../_base_/schedules/schedule_320k.py",
 ]
 
 model = dict(
@@ -27,16 +27,16 @@ model = dict(
         use_sample_class=True,
         num_smaple_class=100,
         basic_loss_weights=[0.2, 1.0, 0.2],
-        coseg_loss_weights=[0.1, 0.0, 0.1],
+        coseg_loss_weights=[0.1, 0.0, 0.05],
         use_coseg=True,
         use_coseg_score_head=False,
         memory_bank_size=20,
         memory_bank_warm_up=1,
-        foreground_topk=40,
+        foreground_topk=20,
         background_suppression=True,
         background_topk=5,
         background_thresh=0.35,
-        background_mse_thresh=1.0,
+        background_mse_thresh=2.0,
     ),
     test_cfg=dict(mode="slide", crop_size=(512, 512), stride=(512, 512)),
 )

@@ -260,7 +260,11 @@ class MaskTransformerExtendVocBCEHead(BaseDecodeHead):
 
     def forward_test(self, inputs, img_metas, test_cfg, gt_semantic_seg=None, img=None):
         self._update(training=False)
-        masks, _, _ = self.forward(inputs, img_metas)
+        masks, embeds, scores = self.forward(inputs, img_metas)
+        # name = img_metas[0]["ori_filename"].replace(".jpg", ".pth")
+        # out_dir = "vis_dirs/igr_c171_wa150_eval_a150/"
+        # os.makedirs(out_dir, exist_ok=True)
+        # torch.save(embeds.cpu(), os.path.join(out_dir, name))
         return masks
 
     @force_fp32(apply_to=('seg_mask', ))
@@ -394,15 +398,15 @@ class MaskTransformerExtendVocBCEHead(BaseDecodeHead):
         coseg_score = cos_mat.mean(dim=-1)
         if not self.background_suppression:
             return coseg_score[:, None]
-        # bg_scores = score.topk(self.background_topk, dim=0).values.mean(dim=0)
+        bg_scores = score.topk(self.background_topk, dim=0).values.mean(dim=0)
         if len(bg_labels) > 0:
             bg_classes = bg_labels
         else:
-            bg_classes = []
-            # bg_classes = (bg_scores > self.background_thresh).nonzero(as_tuple=False)
-            # bg_classes = bg_classes.flatten().tolist()
-            # if fg_label in bg_classes:
-            #     bg_classes.remove(fg_label)
+            # bg_classes = []
+            bg_classes = (bg_scores > self.background_thresh).nonzero(as_tuple=False)
+            bg_classes = bg_classes.flatten().tolist()
+            if fg_label in bg_classes:
+                bg_classes.remove(fg_label)
         bg_inds = [self.cls_index[bg_cls] for bg_cls in bg_classes]
         if len(bg_inds) > 0:
             bg_embed = self.queue[bg_inds]
