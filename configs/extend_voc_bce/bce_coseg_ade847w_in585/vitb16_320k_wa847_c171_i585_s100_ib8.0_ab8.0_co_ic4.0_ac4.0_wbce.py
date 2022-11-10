@@ -32,7 +32,7 @@ model = dict(
         use_coseg_score_head=False,
         memory_bank_size=20,
         memory_bank_warm_up=1,
-        foreground_topk=40,
+        foreground_topk=20,
         background_suppression=True,
     ),
     test_cfg=dict(mode="slide", crop_size=(512, 512), stride=(512, 512)),

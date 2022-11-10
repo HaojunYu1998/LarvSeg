@@ -682,6 +682,61 @@ class ImageNet11K(ImageNet21K):
             results["label_map"] = self.label_map
 
     def prepare_train_img(self, idx):
+        try:
+            img_info = self.img_infos[idx]
+            ann_info = self.get_ann_info(idx)
+            results = dict(img_info=img_info, ann_info=ann_info)
+            self.pre_pipeline(results)
+            results = self.pipeline(results)
+            # prepare
+            filename = img_info["filename"]
+            if "/" in filename:
+                img_id = filename.split("/")[0]
+            else:
+                img_id = filename.rstrip(self.img_suffix)
+            if "_" in img_id:
+                img_id = img_id.split("_")[0]
+            _class = self.IMAGE_IDS.index(img_id)
+            # assert False, f"{results['img'].data.shape}"
+            results["gt_semantic_seg"] = DC(
+                torch.zeros_like(results['img'].data[[0]]).long() + _class
+            , stack=True)
+        except:
+            for _ in range(1000):
+                try:
+                    import numpy as np
+                    idx_ = int(np.random.uniform() * (len(self.img_infos)-1))
+                    img_info = self.img_infos[idx_]
+                    ann_info = self.get_ann_info(idx_)
+                    results = dict(img_info=img_info, ann_info=ann_info)
+                    self.pre_pipeline(results)
+                    results = self.pipeline(results)
+                    # prepare
+                    filename = img_info["filename"]
+                    if "/" in filename:
+                        img_id = filename.split("/")[0]
+                    else:
+                        img_id = filename.rstrip(self.img_suffix)
+                    _class = self.IMAGE_IDS.index(img_id)
+                    results["gt_semantic_seg"] = DC(
+                        torch.zeros_like(results['img'].data[[0]]).long() + _class
+                    , stack=True)
+                    print(f"{idx} is invalid, sample {idx_} instead")
+                    break
+                except:
+                    continue
+        return results
+
+    def prepare_test_img(self, idx):
+        """Get testing data after pipeline.
+
+        Args:
+            idx (int): Index of data.
+
+        Returns:
+            dict: Testing data after pipeline with new keys introduced by
+                pipeline.
+        """
         img_info = self.img_infos[idx]
         ann_info = self.get_ann_info(idx)
         results = dict(img_info=img_info, ann_info=ann_info)
@@ -693,13 +748,13 @@ class ImageNet11K(ImageNet21K):
             img_id = filename.split("/")[0]
         else:
             img_id = filename.rstrip(self.img_suffix)
-        if "_" in img_id:
-            img_id = img_id.split("_")[0]
         _class = self.IMAGE_IDS.index(img_id)
-        # assert False, f"{results['img'].data.shape}"
-        results["gt_semantic_seg"] = DC(
-            torch.zeros_like(results['img'].data[[0]]).long() + _class
-        , stack=True)
+        results["gt_semantic_seg"] = [
+            DC(torch.zeros_like(results['img'][i].data[[0]]).long() + _class, stack=True) 
+            for i, gt in enumerate(results["gt_semantic_seg"])
+        ]
+        if "gt_semantic_seg" in results.keys() and not self.oracle_inference:
+            results.pop("gt_semantic_seg")
         return results
 
 

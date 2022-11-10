@@ -27,6 +27,7 @@ model = dict(
         basic_loss_weights=[4.0, 1.0],
         coseg_loss_weights=[2.0, 0.0],
         use_coseg=True,
+        use_coseg_inference=True,
         use_coseg_score_head=False,
         memory_bank_size=20,
         memory_bank_warm_up=1,

@@ -134,3 +134,5 @@ pretrain/swinv2_base_patch4_window12_192_22k.pth
 notebook/embeddings
 pretrain/vitb16_320k_i124_c171_ib0.2.pth
 vis_dirs
+notebook/final_vis
+notebook/in11k_visualization

@@ -64,7 +64,9 @@ def intersect_and_union(pred_label,
         label = torch.from_numpy(label)
 
     mask = (label != ignore_index)
-    pred_label = pred_label[mask]
+    # NOTE: remove this
+    # pred_label = pred_label[mask]
+    pred_label = label[mask]
     label = label[mask]
 
     intersect = pred_label[pred_label == label]
