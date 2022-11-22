@@ -33,7 +33,7 @@ configs/large_voc_v3/vit/context_in124/vitb16_cosine_320k_bs16_coco171_in124_wea
   #   command:
   #     - set -x; set -e
   #     - pwd; ls; nvidia-smi
-  #     - sudo bash aml_setup_sing.sh
+  #     - sudo bash aml_setup.sh
   #     - /opt/conda/bin/python -m torch.distributed.launch
   #       --nproc_per_node=8
   #       --master_port=$$MASTER_PORT
@@ -51,7 +51,7 @@ configs/large_voc_v3/vit/context_in124/vitb16_cosine_320k_bs16_coco171_in124_wea
   #   command:
   #     - set -x; set -e
   #     - pwd; ls; nvidia-smi
-  #     - sudo bash aml_setup_sing.sh
+  #     - sudo bash aml_setup.sh
   #     - /opt/conda/bin/python -m torch.distributed.launch
   #       --nproc_per_node=8
   #       --master_port=$$MASTER_PORT
@@ -69,7 +69,7 @@ configs/large_voc_v3/vit/context_in124/vitb16_cosine_320k_bs16_coco171_in124_wea
   #   command:
   #     - set -x; set -e
   #     - pwd; ls; nvidia-smi
-  #     - sudo bash aml_setup_sing.sh
+  #     - sudo bash aml_setup.sh
   #     - /opt/conda/bin/python -m torch.distributed.launch
   #       --nproc_per_node=8
   #       --master_port=$$MASTER_PORT
@@ -87,7 +87,7 @@ configs/large_voc_v3/vit/context_in124/vitb16_cosine_320k_bs16_coco171_in124_wea
   #   command:
   #     - set -x; set -e
   #     - pwd; ls; nvidia-smi
-  #     - sudo bash aml_setup_sing.sh
+  #     - sudo bash aml_setup.sh
   #     - /opt/conda/bin/python -m torch.distributed.launch
   #       --nproc_per_node=8
   #       --master_port=$$MASTER_PORT
@@ -105,7 +105,7 @@ configs/large_voc_v3/vit/context_in124/vitb16_cosine_320k_bs16_coco171_in124_wea
   #   command:
   #     - set -x; set -e
   #     - pwd; ls; nvidia-smi
-  #     - sudo bash aml_setup_sing.sh
+  #     - sudo bash aml_setup.sh
   #     - /opt/conda/bin/python -m torch.distributed.launch
   #       --nproc_per_node=8
   #       --master_port=$$MASTER_PORT
@@ -123,7 +123,7 @@ configs/large_voc_v3/vit/context_in124/vitb16_cosine_320k_bs16_coco171_in124_wea
   #   command:
   #     - set -x; set -e
   #     - pwd; ls; nvidia-smi
-  #     - sudo bash aml_setup_sing.sh
+  #     - sudo bash aml_setup.sh
   #     - /opt/conda/bin/python -m torch.distributed.launch
   #       --nproc_per_node=8
   #       --master_port=$$MASTER_PORT
@@ -141,7 +141,7 @@ configs/large_voc_v3/vit/context_in124/vitb16_cosine_320k_bs16_coco171_in124_wea
   #   command:
   #     - set -x; set -e
   #     - pwd; ls; nvidia-smi
-  #     - sudo bash aml_setup_sing.sh
+  #     - sudo bash aml_setup.sh
   #     - /opt/conda/bin/python -m torch.distributed.launch
   #       --nproc_per_node=8
   #       --master_port=$$MASTER_PORT
@@ -159,7 +159,7 @@ configs/large_voc_v3/vit/context_in124/vitb16_cosine_320k_bs16_coco171_in124_wea
   #   command:
   #     - set -x; set -e
   #     - pwd; ls; nvidia-smi
-  #     - sudo bash aml_setup_sing.sh
+  #     - sudo bash aml_setup.sh
   #     - /opt/conda/bin/python -m torch.distributed.launch
   #       --nproc_per_node=8
   #       --master_port=$$MASTER_PORT
@@ -177,7 +177,7 @@ configs/large_voc_v3/vit/context_in124/vitb16_cosine_320k_bs16_coco171_in124_wea
   #   command:
   #     - set -x; set -e
   #     - pwd; ls; nvidia-smi
-  #     - sudo bash aml_setup_sing.sh
+  #     - sudo bash aml_setup.sh
   #     - /opt/conda/bin/python -m torch.distributed.launch
   #       --nproc_per_node=8
   #       --master_port=$$MASTER_PORT
@@ -195,7 +195,7 @@ configs/large_voc_v3/vit/context_in124/vitb16_cosine_320k_bs16_coco171_in124_wea
   #   command:
   #     - set -x; set -e
   #     - pwd; ls; nvidia-smi
-  #     - sudo bash aml_setup_sing.sh
+  #     - sudo bash aml_setup.sh
   #     - /opt/conda/bin/python -m torch.distributed.launch
   #       --nproc_per_node=8
   #       --master_port=$$MASTER_PORT
@@ -213,7 +213,7 @@ configs/large_voc_v3/vit/context_in124/vitb16_cosine_320k_bs16_coco171_in124_wea
   #   command:
   #     - set -x; set -e
   #     - pwd; ls; nvidia-smi
-  #     - sudo bash aml_setup_sing.sh
+  #     - sudo bash aml_setup.sh
   #     - /opt/conda/bin/python -m torch.distributed.launch
   #       --nproc_per_node=8
   #       --master_port=$$MASTER_PORT

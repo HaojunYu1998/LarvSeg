@@ -25,7 +25,7 @@ jobs:
   #   command:
   #     - set -x; set -e
   #     - pwd; ls; nvidia-smi
-  #     - sudo bash aml_setup_sing.sh
+  #     - sudo bash aml_setup.sh
   #     - /opt/conda/bin/python -m torch.distributed.launch
   #       --nproc_per_node=8
   #       --master_port=$$MASTER_PORT
@@ -43,7 +43,7 @@ jobs:
   #   command:
   #     - set -x; set -e
   #     - pwd; ls; nvidia-smi
-  #     - sudo bash aml_setup_sing.sh
+  #     - sudo bash aml_setup.sh
   #     - /opt/conda/bin/python -m torch.distributed.launch
   #       --nproc_per_node=8
   #       --master_port=$$MASTER_PORT
@@ -61,7 +61,7 @@ jobs:
   #   command:
   #     - set -x; set -e
   #     - pwd; ls; nvidia-smi
-  #     - sudo bash aml_setup_sing.sh
+  #     - sudo bash aml_setup.sh
   #     - /opt/conda/bin/python -m torch.distributed.launch
   #       --nproc_per_node=8
   #       --master_port=$$MASTER_PORT
@@ -79,7 +79,7 @@ jobs:
   #   command:
   #     - set -x; set -e
   #     - pwd; ls; nvidia-smi
-  #     - sudo bash aml_setup_sing.sh
+  #     - sudo bash aml_setup.sh
   #     - /opt/conda/bin/python -m torch.distributed.launch
   #       --nproc_per_node=8
   #       --master_port=$$MASTER_PORT
@@ -97,7 +97,7 @@ jobs:
   #   command:
   #     - set -x; set -e
   #     - pwd; ls; nvidia-smi
-  #     - sudo bash aml_setup_sing.sh
+  #     - sudo bash aml_setup.sh
   #     - /opt/conda/bin/python -m torch.distributed.launch
   #       --nproc_per_node=8
   #       --master_port=$$MASTER_PORT
@@ -115,7 +115,7 @@ jobs:
   #   command:
   #     - set -x; set -e
   #     - pwd; ls; nvidia-smi
-  #     - sudo bash aml_setup_sing.sh
+  #     - sudo bash aml_setup.sh
   #     - /opt/conda/bin/python -m torch.distributed.launch
   #       --nproc_per_node=8
   #       --master_port=$$MASTER_PORT
@@ -133,7 +133,7 @@ jobs:
   #   command:
   #     - set -x; set -e
   #     - pwd; ls; nvidia-smi
-  #     - sudo bash aml_setup_sing.sh
+  #     - sudo bash aml_setup.sh
   #     - /opt/conda/bin/python -m torch.distributed.launch
   #       --nproc_per_node=8
   #       --master_port=$$MASTER_PORT

@@ -1,8 +1,8 @@
 _base_ = [
-    "../../_base_/models/large_voc_vitb16.py",
-    "../../_base_/datasets/IN11K.py",
-    "../../_base_/default_runtime.py",
-    "../../_base_/schedules/schedule_640k.py",
+    "../_base_/models/large_voc_vitb16.py",
+    "../_base_/datasets/IN11K.py",
+    "../_base_/default_runtime.py",
+    "../_base_/schedules/schedule_640k.py",
 ]
 
 model = dict(

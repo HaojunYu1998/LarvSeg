@@ -1,8 +1,8 @@
 _base_ = [
-    "../../_base_/models/large_voc_vitb16.py",
-    "../../_base_/datasets/COCO171_eval_ADE150.py",
-    "../../_base_/default_runtime.py",
-    "../../_base_/schedules/schedule_320k.py",
+    "../_base_/models/large_voc_vitb16.py",
+    "../_base_/datasets/C171_eval_A150.py",
+    "../_base_/default_runtime.py",
+    "../_base_/schedules/schedule_320k.py",
 ]
 
 model = dict(
@@ -27,8 +27,8 @@ model = dict(
         basic_loss_weights=[1.0],
         coseg_loss_weights=[0.0],
         use_lang_seg=True,
-        cls_emb_train="notebook/cls_emb_c171.pth",
-        cls_emb_test="notebook/cls_emb_a150.pth",
+        cls_emb_train="file/cls_emb_c171.pth",
+        cls_emb_test="file/cls_emb_a150.pth",
     ),
     test_cfg=dict(mode="slide", crop_size=(512, 512), stride=(512, 512)),
 )

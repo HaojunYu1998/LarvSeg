@@ -147,9 +147,11 @@ class MaskTransformerExtendVocPseudoHead(BaseDecodeHead):
             self.ignore_index = self.test_ignore_index
 
         if self.dataset_on_gpu == "coco171":
-            from mmseg.datasets.coco_stuff import COCOStuffDataset
+            from mmseg.datasets.coco_stuff import COCOStuffDataset, ProcessedC171Dataset
 
             cls_name = COCOStuffDataset.CLASSES
+            if len(self.mix_batch_datasets) > 1:
+                cls_name = ProcessedC171Dataset.CLASSES
             cls_name = [x.split("-")[0] for x in cls_name]
         elif self.dataset_on_gpu == "ade150":
             from mmseg.datasets.ade import ADE20KDataset

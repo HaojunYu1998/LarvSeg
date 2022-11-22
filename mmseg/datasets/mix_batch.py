@@ -16,16 +16,15 @@ import mmcv
 import numpy as np
 from mmcv.utils import print_log
 from mmcv.runner import get_dist_info
-from prettytable import PrettyTable
 from torch.utils.data import Dataset
 
 from mmseg.core import eval_metrics, intersect_and_union, pre_eval_to_metrics
 from mmseg.utils import get_root_logger
 from .builder import DATASETS
 from .pipelines import Compose, LoadAnnotations
-from .coco_stuff import COCOStuffDataset
+from .coco_stuff import COCOStuffDataset, ProcessedC171Dataset
 from .ade import ADE20KDataset, ADE20KFULLDataset
-from .imagenet import ImageNet21K, ImageNet124, ImageNet130, ImageNet585, ImageNet11K
+from .imagenet import ImageNet21K, ImageNet124, ImageNet585, ImageNet11K
 
 
 @DATASETS.register_module()
@@ -36,6 +35,8 @@ class MixBatchDataset(Dataset):
             type = args.pop("type")
             if type == "COCOStuffDataset":
                 return COCOStuffDataset(**args)
+            elif type == "ProcessedC171Dataset":
+                return ProcessedC171Dataset(**args)
             elif type == "ADE20KDataset":
                 return ADE20KDataset(**args)
             elif type == "ADE20KFULLDataset":
@@ -44,8 +45,6 @@ class MixBatchDataset(Dataset):
                 return ImageNet21K(**args)
             elif type == "ImageNet124":
                 return ImageNet124(**args)
-            elif type == "ImageNet130":
-                return ImageNet130(**args)
             elif type == "ImageNet585":
                 return ImageNet585(**args)
             elif type == "ImageNet11K":

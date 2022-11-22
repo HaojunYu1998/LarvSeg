@@ -1,8 +1,8 @@
 _base_ = [
-    "../../_base_/models/large_voc_vitb16.py",
-    "../../_base_/datasets/mix_batch_ADE847W_COCO171_eval_ADE847.py",
-    "../../_base_/default_runtime.py",
-    "../../_base_/schedules/schedule_640k.py",
+    "../_base_/models/large_voc_vitb16.py",
+    "../_base_/datasets/mix_batch_WA847_C171_eval_A847.py",
+    "../_base_/default_runtime.py",
+    "../_base_/schedules/schedule_640k.py",
 ]
 
 model = dict(
@@ -18,7 +18,7 @@ model = dict(
         type="MaskTransformerExtendVocHead",
         n_cls=847,
         downsample_rate=2,
-        all_cls_path="notebook/ade847ucoco.json",
+        all_cls_path="file/ade847ucoco.json",
         mix_batch_datasets=["ade847", "coco171"],
         weakly_supervised_datasets=["ade847"],
         test_dataset="ade847",

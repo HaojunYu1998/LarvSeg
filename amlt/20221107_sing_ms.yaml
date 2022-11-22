@@ -28,7 +28,7 @@ configs/extend_voc/baseline_in11k/vitb16_640k_i11k_c171_s100_ib0.2.py
     command:
       - set -x; set -e
       - pwd; ls; nvidia-smi
-      - sudo bash aml_setup_sing.sh
+      - sudo bash aml_setup.sh
       - /opt/conda/bin/python -m torch.distributed.launch
         --nproc_per_node=8
         --master_port=$$MASTER_PORT
@@ -46,7 +46,7 @@ configs/extend_voc/baseline_in11k/vitb16_640k_i11k_c171_s100_ib0.2.py
   #   command:
   #     - set -x; set -e
   #     - pwd; ls; nvidia-smi
-  #     - sudo bash aml_setup_sing.sh
+  #     - sudo bash aml_setup.sh
   #     - /opt/conda/bin/python -m torch.distributed.launch
   #       --nproc_per_node=8
   #       --master_port=$$MASTER_PORT
@@ -64,7 +64,7 @@ configs/extend_voc/baseline_in11k/vitb16_640k_i11k_c171_s100_ib0.2.py
   #   command:
   #     - set -x; set -e
   #     - pwd; ls; nvidia-smi
-  #     - sudo bash aml_setup_sing.sh
+  #     - sudo bash aml_setup.sh
   #     - /opt/conda/bin/python -m torch.distributed.launch
   #       --nproc_per_node=8
   #       --master_port=$$MASTER_PORT
@@ -82,7 +82,7 @@ configs/extend_voc/baseline_in11k/vitb16_640k_i11k_c171_s100_ib0.2.py
   #   command:
   #     - set -x; set -e
   #     - pwd; ls; nvidia-smi
-  #     - sudo bash aml_setup_sing.sh
+  #     - sudo bash aml_setup.sh
   #     - /opt/conda/bin/python -m torch.distributed.launch
   #       --nproc_per_node=8
   #       --master_port=$$MASTER_PORT
@@ -100,7 +100,7 @@ configs/extend_voc/baseline_in11k/vitb16_640k_i11k_c171_s100_ib0.2.py
   #   command:
   #     - set -x; set -e
   #     - pwd; ls; nvidia-smi
-  #     - sudo bash aml_setup_sing.sh
+  #     - sudo bash aml_setup.sh
   #     - /opt/conda/bin/python -m torch.distributed.launch
   #       --nproc_per_node=8
   #       --master_port=$$MASTER_PORT

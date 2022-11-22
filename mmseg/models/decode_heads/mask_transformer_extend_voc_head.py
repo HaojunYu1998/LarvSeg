@@ -44,23 +44,6 @@ def init_weights(m):
         nn.init.constant_(m.weight, 1.0)
 
 
-class FeedForward(nn.Module):
-    def __init__(self, dim, hidden_dim, dropout=0.1):
-        super().__init__()
-        self.fc1 = nn.Linear(dim, hidden_dim)
-        self.act = nn.ReLU()
-        self.fc2 = nn.Linear(hidden_dim, 1)
-        self.drop = nn.Dropout(dropout)
-
-    def forward(self, x):
-        x = self.fc1(x)
-        x = self.act(x)
-        x = self.drop(x)
-        x = self.fc2(x)
-        x = self.drop(x)
-        return x
-
-
 @HEADS.register_module()
 class MaskTransformerExtendVocHead(BaseDecodeHead):
     def __init__(
@@ -92,7 +75,6 @@ class MaskTransformerExtendVocHead(BaseDecodeHead):
         use_coseg=False,
         use_coseg_inference=False,
         use_coseg_score_head=False,
-        coseg_share_weights=True,
         memory_bank_size=80,
         memory_bank_warm_up=100,
         foreground_topk=40,
@@ -144,7 +126,6 @@ class MaskTransformerExtendVocHead(BaseDecodeHead):
         self.use_coseg = use_coseg
         self.use_coseg_inference = use_coseg_inference
         self.use_coseg_score_head = use_coseg_score_head
-        self.coseg_share_weights = coseg_share_weights
         self.memory_bank_size = memory_bank_size
         self.memory_bank_warm_up = memory_bank_warm_up
         self.foreground_topk = foreground_topk
@@ -180,19 +161,6 @@ class MaskTransformerExtendVocHead(BaseDecodeHead):
             )
             self.queue = self.queue / self.queue.norm(dim=-1, keepdim=True)
         self.dim = 2 if self.background_suppression else 1
-        # if self.use_coseg_score_head:
-        #     self.coseg_head = FeedForward(dim=self.dim, hidden_dim=32)
-        # else:
-        if not self.coseg_share_weights:
-            self.cls_emb_aux = nn.Parameter(torch.randn(self.all_classes, d_model))
-            self.proj_patch_aux = nn.Parameter(
-                self.scale * torch.randn(d_model, d_model)
-            )
-            self.proj_classes_aux = nn.Parameter(
-                self.scale * torch.randn(d_model, d_model)
-            )
-            self.gamma_aux = nn.Parameter(torch.ones([]))
-            self.beta_aux = nn.Parameter(torch.zeros([]))
         self.coseg_head = normalize
         self.rank, self.world_size = get_dist_info()
 
@@ -226,9 +194,11 @@ class MaskTransformerExtendVocHead(BaseDecodeHead):
             self.ignore_index = self.test_ignore_index
 
         if self.dataset_on_gpu == "coco171":
-            from mmseg.datasets.coco_stuff import COCOStuffDataset
+            from mmseg.datasets.coco_stuff import COCOStuffDataset, ProcessedC171Dataset
 
             cls_name = COCOStuffDataset.CLASSES
+            if len(self.mix_batch_datasets) > 1:
+                cls_name = ProcessedC171Dataset.CLASSES
             cls_name = [x.split("-")[0] for x in cls_name]
         elif self.dataset_on_gpu == "ade150":
             from mmseg.datasets.ade import ADE20KDataset
@@ -238,10 +208,6 @@ class MaskTransformerExtendVocHead(BaseDecodeHead):
             from mmseg.datasets.ade import ADE20K124Dataset
 
             cls_name = ADE20K124Dataset.CLASSES124
-        elif self.dataset_on_gpu == "ade130":
-            from mmseg.datasets.ade import ADE20K130Dataset
-
-            cls_name = ADE20K130Dataset.CLASSES130
         elif self.dataset_on_gpu == "ade847":
             from mmseg.datasets.ade import ADE20KFULLDataset
 
@@ -313,13 +279,7 @@ class MaskTransformerExtendVocHead(BaseDecodeHead):
             / torch.sqrt(torch.var(masks, dim=-1, keepdim=True, unbiased=False) + 1e-5)
         ) * self.gamma + self.beta
 
-    def _mask_norm_aux(self, masks):
-        return (
-            (masks - torch.mean(masks, dim=-1, keepdim=True))
-            / torch.sqrt(torch.var(masks, dim=-1, keepdim=True, unbiased=False) + 1e-5)
-        ) * self.gamma_aux + self.beta_aux
-
-    def forward(self, x, img_metas, label, img):
+    def forward(self, x):
         x = self._transform_inputs(x)
         B, D, H, W = x.size()
         x = x.view(B, D, -1).permute(0, 2, 1)
@@ -339,58 +299,17 @@ class MaskTransformerExtendVocHead(BaseDecodeHead):
         masks = masks.view(B, H, W, N).permute(0, 3, 1, 2)
         scores = scores.view(B, H, W, N).permute(0, 3, 1, 2)
         embeds = embeds.view(B, H, W, -1).permute(0, 3, 1, 2)
+        return masks, embeds, scores
 
-        l = int(label.unique())
-        name = img_metas[0]["ori_filename"].split("/")[-1]
-        img_id = name.split("_")[0]
-        cls_name = self.cls_name[l]
-        pred_labels = masks.argmax(1).unique().tolist()
-        masks_new = F.interpolate(
-            masks[:, pred_labels],
-            size=img_metas[0]["ori_shape"][:2],
-            mode="bilinear",
-            align_corners=self.align_corners,
-        )
-        masks_new = masks_new.argmax(1).squeeze(0)
-        masks_new_ = torch.zeros_like(masks_new) + self.ignore_index
-        for i, lable in enumerate(pred_labels):
-            masks_new_[masks_new == i] = lable
-        save_name = name.replace("JPEG", "pth")
-        rate = float((masks_new_ == l).sum() / masks_new_.numel())
-        save_name = f"{rate:.3f}_{len(pred_labels)}_" + save_name
-        print(save_name)
-        torch.save(
-            masks_new_,
-            f"/itpsea4data/mmseg/notebook/in11k_visualization/{cls_name}_{img_id}/{save_name}",
-        )
-        # not share weights
-        masks_aux = None
-        if not self.coseg_share_weights:
-            cls_emb_aux = self.cls_emb_aux[self.cls_index]
-            cls_emb_aux = cls_emb_aux.expand(x.size(0), -1, -1)
-            cls_emb_aux = cls_emb_aux.to(x.device)
-            patches_aux = x
-            patches_aux = patches_aux @ self.proj_patch_aux
-            cls_emb_aux = cls_emb_aux @ self.proj_classes_aux
-            patches_aux = patches_aux / patches_aux.norm(dim=-1, keepdim=True)
-            cls_emb_aux = cls_emb_aux / cls_emb_aux.norm(dim=-1, keepdim=True)
-            masks_aux = patches_aux @ cls_emb_aux.transpose(1, 2)
-            masks_aux = self._mask_norm_aux(masks_aux)
-            B, HW, N = masks_aux.size()
-            masks_aux = masks_aux.view(B, H, W, N).permute(0, 3, 1, 2)
-        return masks, masks_aux, embeds, scores
-
-    def forward_train(self, inputs, img_metas, gt_semantic_seg, train_cfg):
+    def forward_train(self, inputs, img_metas, gt_semantic_seg, train_cfg=None):
         gt_semantic_seg = self._update(training=True, label=gt_semantic_seg)
-        masks, masks_aux, embeds, scores = self.forward(inputs, img_metas)
-        losses = self.losses(masks, masks_aux, embeds, scores, gt_semantic_seg)
+        masks, embeds, scores = self.forward(inputs)
+        losses = self.losses(masks, embeds, scores, gt_semantic_seg)
         return losses
 
     def forward_test(self, inputs, img_metas, test_cfg, gt_semantic_seg=None, img=None):
         self._update(training=False)
-        masks, masks_aux, embeds, scores = self.forward(
-            inputs, img_metas, gt_semantic_seg, img
-        )
+        masks, _, embeds, scores = self.forward(inputs)
         if self.use_coseg_inference:
             masks = self._coseg_inference(masks, scores, embeds)
         elif self.oracle_inference:
@@ -400,7 +319,7 @@ class MaskTransformerExtendVocHead(BaseDecodeHead):
         return masks
 
     @force_fp32(apply_to=("seg_mask",))
-    def losses(self, seg_mask, seg_mask_aux, seg_embed, seg_score, seg_label):
+    def losses(self, seg_mask, seg_embed, seg_score, seg_label):
         """Compute segmentation loss."""
         h = seg_label.shape[-2] // self.downsample_rate
         w = seg_label.shape[-1] // self.downsample_rate
@@ -408,19 +327,10 @@ class MaskTransformerExtendVocHead(BaseDecodeHead):
             seg_mask, size=(h, w), mode="bilinear", align_corners=self.align_corners
         )
         seg_label = resize(seg_label.float(), size=(h, w), mode="nearest").long()
-        if not self.coseg_share_weights:
-            seg_mask_aux = resize(
-                seg_mask_aux,
-                size=(h, w),
-                mode="bilinear",
-                align_corners=self.align_corners,
-            )
         if self.weakly_supervised:
-            loss = self.weakly_loss(
-                seg_mask, seg_mask_aux, seg_embed, seg_score, seg_label
-            )
+            loss = self.weakly_loss(seg_mask, seg_embed, seg_score, seg_label)
         else:
-            loss = self.supervised_loss(seg_mask, seg_mask_aux, seg_label)
+            loss = self.supervised_loss(seg_mask, seg_label)
         loss["acc_seg"] = self._log_accuracy(seg_mask, seg_label)
         return loss
 
@@ -441,7 +351,7 @@ class MaskTransformerExtendVocHead(BaseDecodeHead):
             acc_weight = 0.0 if self.weakly_supervised else acc_mult_weight
         return accuracy(seg_mask, seg_label) * acc_weight
 
-    def supervised_loss(self, seg_mask, seg_mask_aux, seg_label):
+    def supervised_loss(self, seg_mask, seg_label):
         """
         Args:
             seg_mask (torch.Tensor): segmentation logits, shape (B, N, H, W)
@@ -456,11 +366,9 @@ class MaskTransformerExtendVocHead(BaseDecodeHead):
             * self.basic_loss_weight
         )
         loss["loss_coseg"] = seg_mask.sum() * 0.0
-        if not self.coseg_share_weights:
-            loss["loss_coseg"] = seg_mask.sum() * 0.0 + seg_mask_aux.sum() * 0.0
         return loss
 
-    def weakly_loss(self, seg_mask, seg_mask_aux, seg_embed, seg_score, seg_label):
+    def weakly_loss(self, seg_mask, seg_embed, seg_score, seg_label):
         loss = dict()
         B, N, H, W = seg_mask.size()
         B, D, h, w = seg_embed.size()
@@ -468,8 +376,6 @@ class MaskTransformerExtendVocHead(BaseDecodeHead):
         seg_embed = seg_embed.permute(0, 2, 3, 1).reshape(B, h * w, D)
         seg_score = seg_score.permute(0, 2, 3, 1).reshape(B, h * w, N)
         seg_label = seg_label.reshape(B, H * W)
-        if not self.coseg_share_weights:
-            seg_mask_aux = seg_mask_aux.permute(0, 2, 3, 1).reshape(B, H * W, N)
         basic_loss, num_basic = 0.0, 0
         coseg_loss, num_coseg = 0.0, 0
         for idx, (mask, embed, score, label) in enumerate(
@@ -479,11 +385,7 @@ class MaskTransformerExtendVocHead(BaseDecodeHead):
             unique_label = unique_label[unique_label != self.ignore_index].tolist()
             for l in unique_label:
                 ignore_inds = [x for x in unique_label if x != l]
-                if not self.coseg_share_weights:
-                    mask_aux = seg_mask_aux[idx]
-                    basic_loss += self._cross_entropy_loss(mask_aux, l, ignore_inds)
-                else:
-                    basic_loss += self._cross_entropy_loss(mask, l, ignore_inds)
+                basic_loss += self._cross_entropy_loss(mask, l, ignore_inds)
                 num_basic += 1
                 if not self.use_coseg:
                     continue

@@ -615,8 +615,8 @@ def main(
 if __name__ == "__main__":
     a150_image_dir = "/itpsea4data/dataset/ADEChallengeData2016/images/validation/"
     a150_gt_dir = "/itpsea4data/dataset/ADEChallengeData2016/annotations/validation/"
-    c171_image_dir = "/itpsea4data/dataset/coco_stuff164k/images/val2017/"
-    c171_gt_dir = "/itpsea4data/dataset/coco_stuff164k/annotations/val2017/"
+    c171_image_dir = "/itpsea4data/dataset/coco_stuff164k/images/validation/"
+    c171_gt_dir = "/itpsea4data/dataset/coco_stuff164k/annotations/validation/"
     # main(
     #     embedding_dir="/itpsea4data/OpenVocSeg/outputs/CLIP_RN50x64_embedding_ADE20K/",
     #     image_dir=a150_image_dir,
