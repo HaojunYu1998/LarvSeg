@@ -14,18 +14,26 @@ If you find LarvSeg useful in your research, please consider citing:
 
 ## Usage
 
-1. clone the code to <local_path>/large_voc_seg
+1. Pull the nvidia-docker.
 
 ```
-cd <local_path>
+sudo nvidia-docker run --ipc=host -it -v <local_path>:/workspace --ipc=host hsfzxjy/mmseg:pytorch1.8.1-cuda10.2-cudnn7-devel /bin/bash
+```
+
+For exsample,
+
+```
+sudo nvidia-docker run --ipc=host -it -v /mnt/haojun/itpsea4data:/workspace --ipc=host hsfzxjy/mmseg:pytorch1.8.1-cuda10.2-cudnn7-devel /bin/bash
+```
+
+1. Clone the git repo to /workspace/large_voc_seg
+
+```
+cd /workspace
 git clone https://github.com/HaojunYuPKU/large_voc_seg
 ```
 
-2. pull the nvidia-docker
-
-```sudo nvidia-docker run --ipc=host -it -v <local_path>:/workspace --ipc=host hsfzxjy/mmseg:pytorch1.8.1-cuda10.2-cudnn7-devel /bin/bash```
-
-3. manage all datasets in /workspace/dataset/ as the following format (by soft link)
+3. Manage all datasets in /workspace/dataset/ as the following format (by soft link)
 
 ```
 /workspace/
@@ -56,19 +64,19 @@ git clone https://github.com/HaojunYuPKU/large_voc_seg
                   ├── validation/*.png
 ```
 
-4. install the LarvSeg package in developing mode
+4. Install the LarvSeg package in developing mode
 
 ```
 pip install -e .
 ```
 
-5. training command
+5. Training command:
 
 ```
 bash tools/dist_train.sh <path_to_config>
 ```
 
-6. evaluation command
+6. Evaluation command:
 
 ```
 bash tools/dist_test.sh <path_to_config> <path_to_checkpoint> <num_gpus> --eval mIoU
