@@ -14,15 +14,18 @@ If you find LarvSeg useful in your research, please consider citing:
 
 ## Usage
 
-1. clone the code to <local_path>
+1. clone the code to <local_path>/large_voc_seg
 
-```git clone https://github.com/HaojunYuPKU/large_voc_seg```
+```
+cd <local_path>
+git clone https://github.com/HaojunYuPKU/large_voc_seg
+```
 
-2. pull the docker image
+2. pull the nvidia-docker
 
 ```sudo nvidia-docker run --ipc=host -it -v <local_path>:/workspace --ipc=host hsfzxjy/mmseg:pytorch1.8.1-cuda10.2-cudnn7-devel /bin/bash```
 
-3. put all datasets in /workspace/dataset/
+3. manage all datasets in /workspace/dataset/ as the following format (by soft link)
 
 ```
 /workspace/
@@ -32,28 +35,28 @@ If you find LarvSeg useful in your research, please consider citing:
                   ├── <category_id>/*.JPEG
       ├── A150/
             ├── images/
-                  ├── train/*.jpg
+                  ├── training/*.jpg
                   ├── validation/*.jpg
             ├── annotations/
-                  ├── train/*.png
+                  ├── training/*.png
                   ├── validation/*.png
       ├── A847/
             ├── images/
-                  ├── train/*.jpg
+                  ├── training/*.jpg
                   ├── validation/*.jpg
             ├── annotations/
-                  ├── train/*.tif
+                  ├── training/*.tif
                   ├── validation/*.tif
       └── C171/
             ├── images/
-                  ├── train/*.jpg
+                  ├── training/*.jpg
                   ├── validation/*.jpg
             ├── annotations/
-                  ├── train/*.png
+                  ├── training/*.png
                   ├── validation/*.png
 ```
 
-4. install mmseg package
+4. install the LarvSeg package in developing mode
 
 ```
 pip install -e .
@@ -62,16 +65,11 @@ pip install -e .
 5. training command
 
 ```
-bash tools/dist_train.sh \
-<path_to_config>
+bash tools/dist_train.sh <path_to_config>
 ```
 
 6. evaluation command
 
 ```
-bash tools/dist_test.sh \
-<path_to_config> \
-<path_to_checkpoint> \
-<num_gpus> \
---eval mIoU
+bash tools/dist_test.sh <path_to_config> <path_to_checkpoint> <num_gpus> --eval mIoU
 ```
