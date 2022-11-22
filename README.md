@@ -26,14 +26,21 @@ For exsample,
 sudo nvidia-docker run --ipc=host -it -v /mnt/haojun/itpsea4data:/workspace --ipc=host hsfzxjy/mmseg:pytorch1.8.1-cuda10.2-cudnn7-devel /bin/bash
 ```
 
-1. Clone the git repo to /workspace/large_voc_seg
+2. Clone the git repo to /workspace/large_voc_seg
 
 ```
 cd /workspace
 git clone https://github.com/HaojunYuPKU/large_voc_seg
 ```
 
-3. Manage all datasets in /workspace/dataset/ as the following format (by soft link)
+3. Download the pretrained backbone.
+
+```
+cd /workspace/large_voc_seg/pretrain
+wget https://storage.googleapis.com/vit_models/augreg/B_16-i21k-300ep-lr_0.001-aug_medium1-wd_0.1-do_0.0-sd_0.0--imagenet2012-steps_20k-lr_0.01-res_384.npz
+```
+
+4. Manage all datasets in /workspace/dataset/ as the following format (by soft link)
 
 ```
 /workspace/
@@ -64,19 +71,19 @@ git clone https://github.com/HaojunYuPKU/large_voc_seg
                   ├── validation/*.png
 ```
 
-4. Install the LarvSeg package in developing mode
+5. Install the LarvSeg package in developing mode
 
 ```
 pip install -e .
 ```
 
-5. Training command:
+6. Training command:
 
 ```
 bash tools/dist_train.sh <path_to_config>
 ```
 
-6. Evaluation command:
+7. Evaluation command:
 
 ```
 bash tools/dist_test.sh <path_to_config> <path_to_checkpoint> <num_gpus> --eval mIoU
