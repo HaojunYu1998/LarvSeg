@@ -15,9 +15,25 @@
 └── dataset/
       ├── ADEChallengeData2016/
             ├── images/
+                  ├── train/
+                  ├── validation/
             ├── annotations/
+                  ├── train/
+                  ├── validation/
       ├── ADE20K_2021_17_01/
-      └── val.json
+            ├── images/
+                  ├── train/
+                  ├── validation/
+            ├── annotations/
+                  ├── train/
+                  ├── validation/
+      └── coco_stuff164k/
+            ├── images/
+                  ├── train/
+                  ├── validation/
+            ├── annotations/
+                  ├── train/
+                  ├── validation/
 ```
 
 4. 
