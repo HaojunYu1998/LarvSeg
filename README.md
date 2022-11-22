@@ -1,4 +1,4 @@
-# LargeSeg
+# LarvSeg
 
 This repository is an official implementation of the paper Exploring Image Classification Data For Large Vocabulary Semantic Segmentation via Category-wise Attentive Classifier
 
