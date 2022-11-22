@@ -44,3 +44,20 @@
 ```
 pip install -e .
 ```
+
+5. training command
+
+```
+bash tools/dist_train.sh \
+<path_to_config>
+```
+
+6. evaluation command
+
+```
+bash tools/dist_test.sh \
+<path_to_config> \
+<path_to_checkpoint> \
+<num_gpus> \
+--eval mIoU
+```
