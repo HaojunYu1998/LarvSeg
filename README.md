@@ -13,24 +13,24 @@
 ```
 /workspace/
 └── dataset/
-      ├── imagenet22k_azcopy/
+      ├── I22K/
             ├── fall11_whole/
                   ├── <category_id>/*.JPEG
-      ├── ADEChallengeData2016/
+      ├── A150/
             ├── images/
                   ├── train/*.jpg
                   ├── validation/*.jpg
             ├── annotations/
                   ├── train/*.png
                   ├── validation/*.png
-      ├── ADE20K_2021_17_01/
+      ├── A847/
             ├── images/
                   ├── train/*.jpg
                   ├── validation/*.jpg
             ├── annotations/
                   ├── train/*.tif
                   ├── validation/*.tif
-      └── coco_stuff164k/
+      └── C171/
             ├── images/
                   ├── train/*.jpg
                   ├── validation/*.jpg
