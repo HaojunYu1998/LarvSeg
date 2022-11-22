@@ -27,18 +27,20 @@ class PatchEmbed(BaseModule):
             Default: None.
     """
 
-    def __init__(self,
-                 in_channels=3,
-                 embed_dims=768,
-                 conv_type=None,
-                 kernel_size=16,
-                 stride=16,
-                 padding=0,
-                 dilation=1,
-                 bias=True,
-                 pad_to_patch_size=True,
-                 norm_cfg=None,
-                 init_cfg=None):
+    def __init__(
+        self,
+        in_channels=3,
+        embed_dims=768,
+        conv_type=None,
+        kernel_size=16,
+        stride=16,
+        padding=0,
+        dilation=1,
+        bias=True,
+        pad_to_patch_size=True,
+        norm_cfg=None,
+        init_cfg=None,
+    ):
         super(PatchEmbed, self).__init__()
 
         self.embed_dims = embed_dims
@@ -56,14 +58,15 @@ class PatchEmbed(BaseModule):
         elif isinstance(patch_size, tuple):
             if len(patch_size) == 1:
                 patch_size = to_2tuple(patch_size[0])
-            assert len(patch_size) == 2, \
-                f'The size of patch should have length 1 or 2, ' \
-                f'but got {len(patch_size)}'
+            assert len(patch_size) == 2, (
+                f"The size of patch should have length 1 or 2, "
+                f"but got {len(patch_size)}"
+            )
 
         self.patch_size = patch_size
 
         # Use conv layer to embed
-        conv_type = conv_type or 'Conv2d'
+        conv_type = conv_type or "Conv2d"
         self.projection = build_conv_layer(
             dict(type=conv_type),
             in_channels=in_channels,
@@ -72,7 +75,8 @@ class PatchEmbed(BaseModule):
             stride=stride,
             padding=padding,
             dilation=dilation,
-            bias=bias)
+            bias=bias,
+        )
 
         if norm_cfg is not None:
             self.norm = build_norm_layer(norm_cfg, embed_dims)[1]
@@ -86,11 +90,9 @@ class PatchEmbed(BaseModule):
         if self.pad_to_patch_size:
             # Modify H, W to multiple of patch size.
             if H % self.patch_size[0] != 0:
-                x = F.pad(
-                    x, (0, 0, 0, self.patch_size[0] - H % self.patch_size[0]))
+                x = F.pad(x, (0, 0, 0, self.patch_size[0] - H % self.patch_size[0]))
             if W % self.patch_size[1] != 0:
-                x = F.pad(
-                    x, (0, self.patch_size[1] - W % self.patch_size[1], 0, 0))
+                x = F.pad(x, (0, self.patch_size[1] - W % self.patch_size[1], 0, 0))
 
         x = self.projection(x)
         self.DH, self.DW = x.shape[2], x.shape[3]

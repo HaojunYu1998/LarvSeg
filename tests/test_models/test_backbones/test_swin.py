@@ -28,7 +28,7 @@ def test_swin_transformer():
     model(temp)
 
     # Test pretrain img size
-    model = SwinTransformer(pretrain_img_size=(224, ))
+    model = SwinTransformer(pretrain_img_size=(224,))
 
     with pytest.raises(AssertionError):
         model = SwinTransformer(pretrain_img_size=(224, 224, 224))

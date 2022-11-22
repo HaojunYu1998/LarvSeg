@@ -9,7 +9,15 @@ from .up_conv_block import UpConvBlock
 from .post_process_utils import dense_crf_post_process
 
 __all__ = [
-    'ResLayer', 'SelfAttentionBlock', 'make_divisible', 'InvertedResidual',
-    'UpConvBlock', 'InvertedResidualV3', 'SELayer', 'PatchEmbed',
-    'nchw_to_nlc', 'nlc_to_nchw', 'dense_crf_post_process'
+    "ResLayer",
+    "SelfAttentionBlock",
+    "make_divisible",
+    "InvertedResidual",
+    "UpConvBlock",
+    "InvertedResidualV3",
+    "SELayer",
+    "PatchEmbed",
+    "nchw_to_nlc",
+    "nlc_to_nchw",
+    "dense_crf_post_process",
 ]

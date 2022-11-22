@@ -35,7 +35,6 @@ def init_weights(m):
 
 @HEADS.register_module()
 class MaskTransformerLinearHead(BaseDecodeHead):
-
     def __init__(
         self,
         n_cls,
@@ -103,8 +102,7 @@ class MaskTransformerLinearHead(BaseDecodeHead):
         self.oracle_downsample_rate = oracle_downsample_rate
 
         self.proj_dec = nn.Linear(d_encoder, d_model)
-        self.proj_patch = nn.Parameter(self.scale *
-                                       torch.randn(d_model, d_model))
+        self.proj_patch = nn.Parameter(self.scale * torch.randn(d_model, d_model))
         self.gamma = nn.Parameter(torch.ones([]))
         self.beta = nn.Parameter(torch.zeros([]))
         # NOTE: linear classifier
@@ -119,7 +117,10 @@ class MaskTransformerLinearHead(BaseDecodeHead):
         # NOTE: upsampling for RN101
         if self.upsample_input > 1:
             x = F.interpolate(
-                x, scale_factor=self.upsample_input, mode="bilinear", align_corners=self.align_corners
+                x,
+                scale_factor=self.upsample_input,
+                mode="bilinear",
+                align_corners=self.align_corners,
             )
         B, C, H, W = x.size()
         feats = x.clone()
@@ -132,7 +133,9 @@ class MaskTransformerLinearHead(BaseDecodeHead):
         if self.training:
             masks = (
                 (masks - torch.mean(masks, dim=-1, keepdim=True))
-                / torch.sqrt(torch.var(masks, dim=-1, keepdim=True, unbiased=False) + 1e-5)
+                / torch.sqrt(
+                    torch.var(masks, dim=-1, keepdim=True, unbiased=False) + 1e-5
+                )
             ) * self.gamma + self.beta
         B, HW, N = masks.size()
 
@@ -155,7 +158,7 @@ class MaskTransformerLinearHead(BaseDecodeHead):
             assert gt_semantic_seg is not None
             masks = self.oracle_propagation(embeds, gt_semantic_seg)
         return masks
-    
+
     def oracle_propagation(self, seg_embed, seg_label):
         device = seg_embed.device
         # seg_label = torch.tensor(seg_label, dtype=torch.int64, device=device)
@@ -165,34 +168,34 @@ class MaskTransformerLinearHead(BaseDecodeHead):
         seg_embed = resize(
             input=seg_embed,
             size=(h, w),
-            mode='bilinear',
-            align_corners=self.align_corners
+            mode="bilinear",
+            align_corners=self.align_corners,
         )
         assert self.num_classes == 150
-        seg_label = resize(
-            input=seg_label.float(),
-            size=(h, w),
-            mode='nearest'
-        ).long()[0, 0]
+        seg_label = resize(input=seg_label.float(), size=(h, w), mode="nearest").long()[
+            0, 0
+        ]
         seg_label = seg_label - 1
-        seg_label[seg_label == -1] = 255 # NOTE: hard code for convenience (ADE-150)
+        seg_label[seg_label == -1] = 255  # NOTE: hard code for convenience (ADE-150)
         seg_embed = seg_embed.permute(0, 2, 3, 1)
         seg_label_per_image = seg_label.reshape(h * w)
         seg_embed_per_image = seg_embed.reshape(h * w, C)
-        seg_embed_per_image = seg_embed_per_image / seg_embed_per_image.norm(dim=-1, keepdim=True)
+        seg_embed_per_image = seg_embed_per_image / seg_embed_per_image.norm(
+            dim=-1, keepdim=True
+        )
         unique_label = torch.unique(seg_label_per_image)
         unique_label = unique_label[unique_label != 255]
         masks = torch.zeros((B, self.num_classes, h, w), device=device)
         for l in unique_label:
             pos_inds = (seg_label_per_image == l).nonzero(as_tuple=False)[:, 0]
-            inds = torch.randperm(len(pos_inds))[:self.num_oracle_points]
+            inds = torch.randperm(len(pos_inds))[: self.num_oracle_points]
             prior_inds = pos_inds[inds]
             cos_mat = seg_embed_per_image[prior_inds] @ seg_embed_per_image.T
             score_mat = cos_mat.max(dim=0).values.reshape(h, w)
             masks[0, l] = score_mat
         return masks
 
-    @force_fp32(apply_to=('seg_mask', ))
+    @force_fp32(apply_to=("seg_mask",))
     def losses(self, seg_mask, seg_embed, seg_feat, seg_label, img_labels=None):
         """Compute segmentation loss."""
         loss = dict()
@@ -201,26 +204,22 @@ class MaskTransformerLinearHead(BaseDecodeHead):
         seg_mask = resize(
             input=seg_mask,
             size=(h, w),
-            mode='bilinear',
-            align_corners=self.align_corners
+            mode="bilinear",
+            align_corners=self.align_corners,
         )
         seg_embed = resize(
             input=seg_embed,
             size=(h, w),
-            mode='bilinear',
-            align_corners=self.align_corners
+            mode="bilinear",
+            align_corners=self.align_corners,
         )
         seg_feat = resize(
             input=seg_feat,
             size=(h, w),
-            mode='bilinear',
-            align_corners=self.align_corners
+            mode="bilinear",
+            align_corners=self.align_corners,
         )
-        seg_label = resize(
-            input=seg_label.float(),
-            size=(h, w),
-            mode='nearest'
-        ).long()
+        seg_label = resize(input=seg_label.float(), size=(h, w), mode="nearest").long()
 
         B, N, H, W = seg_mask.shape
         prior_bucket = self._sample(seg_mask, seg_label)
@@ -229,30 +228,34 @@ class MaskTransformerLinearHead(BaseDecodeHead):
         seg_mask = seg_mask.permute(0, 2, 3, 1).reshape(B * H * W, N)
 
         if len(prior_bucket) == 0:
-            loss['loss_prior'] = torch.tensor(
+            loss["loss_prior"] = torch.tensor(
                 0, dtype=seg_mask.dtype, device=seg_mask.device, requires_grad=True
             )
             if self.use_structure_loss:
-                loss['loss_structure'] = torch.tensor(
+                loss["loss_structure"] = torch.tensor(
                     0, dtype=seg_mask.dtype, device=seg_mask.device, requires_grad=True
                 )
         else:
             prior_inds = torch.cat(prior_bucket)
-            loss['loss_prior'] = self.loss_decode(
-                seg_mask[prior_inds],
-                seg_label[prior_inds],
-                weight=None,
-                ignore_index=self.ignore_index
-            ) * self.prior_loss_weight
+            loss["loss_prior"] = (
+                self.loss_decode(
+                    seg_mask[prior_inds],
+                    seg_label[prior_inds],
+                    weight=None,
+                    ignore_index=self.ignore_index,
+                )
+                * self.prior_loss_weight
+            )
             if self.use_structure_loss:
-                loss['loss_structure'] = self.loss_structure(
-                    seg_feat, seg_label
-                ) * self.structure_loss_weight
+                loss["loss_structure"] = (
+                    self.loss_structure(seg_feat, seg_label)
+                    * self.structure_loss_weight
+                )
 
         acc_weight = 1.0
-        loss['acc_seg'] = accuracy(seg_mask, seg_label) * acc_weight
+        loss["acc_seg"] = accuracy(seg_mask, seg_label) * acc_weight
         return loss
-    
+
     def _sample(self, seg_logit, seg_label, min_kept=10):
         """Sample pixels that have high loss or with low prediction confidence.
 
@@ -270,9 +273,7 @@ class MaskTransformerLinearHead(BaseDecodeHead):
         unique_label = unique_label[unique_label != self.ignore_index]
         pos_bucket = []
         for l in unique_label:
-            pos_bucket.append(
-                (seg_label == l).nonzero(as_tuple=False)[:, 0]
-            )
+            pos_bucket.append((seg_label == l).nonzero(as_tuple=False)[:, 0])
         if len(pos_bucket) == 0:
             return []
         seg_logit = seg_logit.permute(0, 2, 3, 1).reshape(B * H * W, N)
@@ -306,10 +307,10 @@ class MaskTransformerLinearHead(BaseDecodeHead):
         if len(pos_bucket) == 0:
             return seg_feat[seg_label != self.ignore_index].sum()
         pos_inds = self._sample_feat(pos_bucket)
-        sample_cls = torch.cat([
-            seg_label[[i]] for i in pos_inds], dim=0).to(seg_feat.device)
-        sample_feat = torch.cat([
-            seg_feat[i] for i in pos_inds], dim=0)
+        sample_cls = torch.cat([seg_label[[i]] for i in pos_inds], dim=0).to(
+            seg_feat.device
+        )
+        sample_feat = torch.cat([seg_feat[i] for i in pos_inds], dim=0)
         loss = self.loss_similarity(sample_feat, sample_cls)
         return loss
 
@@ -335,7 +336,7 @@ class MaskTransformerLinearHead(BaseDecodeHead):
         cos_sim = cos_sim[valid_mask.bool()]
         label_sim = label_sim[valid_mask.bool()]
         return torch.pow(cos_sim - label_sim, 2)
-    
+
     def _sample_feat(self, buckets, total_sample_num=512):
         """Sample points from each buckets
         Args:
@@ -343,8 +344,7 @@ class MaskTransformerLinearHead(BaseDecodeHead):
         """
         num_per_buckets = [len(p) for p in buckets]
         sample_per_bucket = [
-            total_sample_num // len(buckets)
-            for _ in range(len(num_per_buckets))
+            total_sample_num // len(buckets) for _ in range(len(num_per_buckets))
         ]
         if len(sample_per_bucket) > 1:
             sample_per_bucket[-1] = total_sample_num - sum(sample_per_bucket[:-1])
@@ -367,13 +367,13 @@ class MaskTransformerLinearHead(BaseDecodeHead):
         tvect = target.new_zeros((batch, nclass), dtype=torch.int64)
         for i in range(batch):
             hist = torch.histc(
-                target[i].data.float(), bins=nclass, min=0, max=nclass - 1)
+                target[i].data.float(), bins=nclass, min=0, max=nclass - 1
+            )
             tvect[i] = hist
         return tvect
 
 
 class FeedForward(nn.Module):
-
     def __init__(self, dim, hidden_dim, dropout, out_dim=None):
         super().__init__()
         self.fc1 = nn.Linear(dim, hidden_dim)
@@ -397,7 +397,6 @@ class FeedForward(nn.Module):
 
 
 class Attention(nn.Module):
-
     def __init__(self, dim, heads, dropout):
         super().__init__()
         self.heads = heads
@@ -419,12 +418,21 @@ class Attention(nn.Module):
     def forward(self, q, k, v, mask=None):
         B, _, C = q.shape
         # B, head, N, C // head
-        q = self.q_linear(q).reshape(B, -1, self.heads,
-                                     C // self.heads).permute(0, 2, 1, 3)
-        k = self.k_linear(k).reshape(B, -1, self.heads,
-                                     C // self.heads).permute(0, 2, 1, 3)
-        v = self.v_linear(v).reshape(B, -1, self.heads,
-                                     C // self.heads).permute(0, 2, 1, 3)
+        q = (
+            self.q_linear(q)
+            .reshape(B, -1, self.heads, C // self.heads)
+            .permute(0, 2, 1, 3)
+        )
+        k = (
+            self.k_linear(k)
+            .reshape(B, -1, self.heads, C // self.heads)
+            .permute(0, 2, 1, 3)
+        )
+        v = (
+            self.v_linear(v)
+            .reshape(B, -1, self.heads, C // self.heads)
+            .permute(0, 2, 1, 3)
+        )
 
         attn = (q @ k.transpose(-2, -1)) * self.scale
         attn = attn.softmax(dim=-1)
@@ -438,15 +446,13 @@ class Attention(nn.Module):
 
 
 class Block(nn.Module):
-
     def __init__(self, dim, heads, mlp_dim, dropout, drop_path):
         super().__init__()
         self.norm1 = nn.LayerNorm(dim)
         self.norm2 = nn.LayerNorm(dim)
         self.attn = Attention(dim, heads, dropout)
         self.mlp = FeedForward(dim, mlp_dim, dropout)
-        self.drop_path = DropPath(
-            drop_path) if drop_path > 0.0 else nn.Identity()
+        self.drop_path = DropPath(drop_path) if drop_path > 0.0 else nn.Identity()
 
     def forward(self, x, cls_emb, mask=None, return_attention=False):
         y, attn = self.attn(self.norm1(x), cls_emb, cls_emb, mask)
@@ -456,8 +462,8 @@ class Block(nn.Module):
         x = x + self.drop_path(self.mlp(self.norm2(x)))
         return x
 
-class Attention2(nn.Module):
 
+class Attention2(nn.Module):
     def __init__(self, dim, heads, dropout):
         super().__init__()
         self.heads = heads
@@ -477,8 +483,10 @@ class Attention2(nn.Module):
     def forward(self, x, mask=None):
         B, N, C = x.shape
         qkv = (
-            self.qkv(x).reshape(B, N, 3, self.heads,
-                                C // self.heads).permute(2, 0, 3, 1, 4))
+            self.qkv(x)
+            .reshape(B, N, 3, self.heads, C // self.heads)
+            .permute(2, 0, 3, 1, 4)
+        )
         q, k, v = (
             qkv[0],
             qkv[1],
@@ -497,15 +505,13 @@ class Attention2(nn.Module):
 
 
 class Block2(nn.Module):
-
     def __init__(self, dim, heads, mlp_dim, dropout, drop_path):
         super().__init__()
         self.norm1 = nn.LayerNorm(dim)
         self.norm2 = nn.LayerNorm(dim)
         self.attn = Attention2(dim, heads, dropout)
         self.mlp = FeedForward(dim, mlp_dim, dropout)
-        self.drop_path = DropPath(
-            drop_path) if drop_path > 0.0 else nn.Identity()
+        self.drop_path = DropPath(drop_path) if drop_path > 0.0 else nn.Identity()
 
     def forward(self, x, mask=None, return_attention=False):
         y, attn = self.attn(self.norm1(x), mask)
@@ -517,7 +523,6 @@ class Block2(nn.Module):
 
 
 class DecoderLinear(nn.Module):
-
     def __init__(self, n_cls, patch_size, d_encoder):
         super().__init__()
 

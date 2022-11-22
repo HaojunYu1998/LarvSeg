@@ -16,15 +16,15 @@ model = dict(
     ),
     decode_head=dict(
         type="MaskTransformerLargeVocHead",
-        n_cls=130, # train on 686 classes, eval 585 classes
+        n_cls=130,  # train on 686 classes, eval 585 classes
         downsample_rate=2,
         temperature=0.05,
         # datasets
         all_cls_path="",
         mix_batch_datasets=["ade130"],
-        test_dataset="ade130", # not used
+        test_dataset="ade130",  # not used
         ignore_indices=[255],
-        test_ignore_index=255, # used
+        test_ignore_index=255,  # used
         # attention head
         d_encoder=768,
         n_layers=6,

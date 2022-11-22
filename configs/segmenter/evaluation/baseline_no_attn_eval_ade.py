@@ -61,14 +61,14 @@ lr_config = dict(
 # By default, models are trained on 8 GPUs with 2 images per GPU
 data = dict(samples_per_gpu=2)
 
-# log_config = dict( 
-#     interval=50, 
-#     hooks=[ 
-#         dict(type='TextLoggerHook'), 
-#         dict(type='WandbLoggerHook', 
+# log_config = dict(
+#     interval=50,
+#     hooks=[
+#         dict(type='TextLoggerHook'),
+#         dict(type='WandbLoggerHook',
 #             init_kwargs=dict(
-#                 id="202209225_baseline_160k_bs16_ade_all_eval_ade_miou", 
-#                 name="202209225_baseline_160k_bs16_ade_all_eval_ade_miou", 
+#                 id="202209225_baseline_160k_bs16_ade_all_eval_ade_miou",
+#                 name="202209225_baseline_160k_bs16_ade_all_eval_ade_miou",
 #                 entity='haojunyu',
 #                 project='SVLSeg',
 #         ))

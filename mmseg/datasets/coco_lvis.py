@@ -12,15 +12,20 @@ from .misc import COCO_LVIS_CLASSES, COCO_LVIS_PALLETE
 
 @DATASETS.register_module()
 class COCOLVISDataset(CustomDataset):
-    """COCO-LVIS dataset.
-    """
+    """COCO-LVIS dataset."""
+
     CLASSES = tuple(COCO_LVIS_CLASSES)
     PALETTE = COCO_LVIS_PALLETE
 
-    def __init__(self, img_suffix='.jpg', seg_map_suffix='.png', **kwargs):
+    def __init__(self, img_suffix=".jpg", seg_map_suffix=".png", **kwargs):
         super(COCOLVISDataset, self).__init__(
-            img_suffix=img_suffix, seg_map_suffix=seg_map_suffix, int16=True, ignore_index=-1,
-            reduce_zero_label=True, **kwargs)
+            img_suffix=img_suffix,
+            seg_map_suffix=seg_map_suffix,
+            int16=True,
+            ignore_index=-1,
+            reduce_zero_label=True,
+            **kwargs,
+        )
 
     def results2img(self, results, imgfile_prefix, to_label_id, indices=None):
         """Write the segmentation results to images.
@@ -46,10 +51,10 @@ class COCOLVISDataset(CustomDataset):
         result_files = []
         for result, idx in zip(results, indices):
 
-            filename = self.img_infos[idx]['filename']
+            filename = self.img_infos[idx]["filename"]
             basename = osp.splitext(osp.basename(filename))[0]
 
-            png_filename = osp.join(imgfile_prefix, f'{basename}.png')
+            png_filename = osp.join(imgfile_prefix, f"{basename}.png")
 
             result = result + 1
 
@@ -59,11 +64,7 @@ class COCOLVISDataset(CustomDataset):
 
         return result_files
 
-    def format_results(self,
-                       results,
-                       imgfile_prefix,
-                       to_label_id=True,
-                       indices=None):
+    def format_results(self, results, imgfile_prefix, to_label_id=True, indices=None):
         """Format the results into dir (standard format for ade20k evaluation).
         Args:
             results (list): Testing results of the dataset.
@@ -84,9 +85,8 @@ class COCOLVISDataset(CustomDataset):
         if indices is None:
             indices = list(range(len(self)))
 
-        assert isinstance(results, list), 'results must be a list.'
-        assert isinstance(indices, list), 'indices must be a list.'
+        assert isinstance(results, list), "results must be a list."
+        assert isinstance(indices, list), "indices must be a list."
 
-        result_files = self.results2img(results, imgfile_prefix, to_label_id,
-                                        indices)
+        result_files = self.results2img(results, imgfile_prefix, to_label_id, indices)
         return result_files

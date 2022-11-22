@@ -33,9 +33,17 @@ class RandomScale:
         scale = np.min((self.scale_range[1], rand_factor))
         scale = np.max((self.scale_range[0], scale))
         data = [
-            cv2.resize(d, None, fx=scale, fy=scale,
-            interpolation=cv2.INTER_LINEAR if d.dtype == np.float32 else cv2.INTER_NEAREST)
-            for d in data]
+            cv2.resize(
+                d,
+                None,
+                fx=scale,
+                fy=scale,
+                interpolation=cv2.INTER_LINEAR
+                if d.dtype == np.float32
+                else cv2.INTER_NEAREST,
+            )
+            for d in data
+        ]
         return data
 
 
@@ -46,8 +54,10 @@ class RandomCrop:
     def __call__(self, data):
         height, width = data[0].shape[:2]
         c_h, c_w = self.crop_size
-        assert height >= c_h and width >= c_w, f"({height}, {width}) v.s. ({c_h}, {c_w})"
+        assert (
+            height >= c_h and width >= c_w
+        ), f"({height}, {width}) v.s. ({c_h}, {c_w})"
         left = random.randint(0, width - c_w)
         top = random.randint(0, height - c_h)
-        data = [d[top:top+c_h, left:left+c_w] for d in data]
+        data = [d[top : top + c_h, left : left + c_w] for d in data]
         return data

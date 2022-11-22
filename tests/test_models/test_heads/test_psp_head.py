@@ -18,15 +18,12 @@ def test_psp_head():
 
     # test with norm_cfg
     head = PSPHead(
-        in_channels=32,
-        channels=16,
-        num_classes=19,
-        norm_cfg=dict(type='SyncBN'))
+        in_channels=32, channels=16, num_classes=19, norm_cfg=dict(type="SyncBN")
+    )
     assert _conv_has_norm(head, sync_bn=True)
 
     inputs = [torch.randn(1, 32, 45, 45)]
-    head = PSPHead(
-        in_channels=32, channels=16, num_classes=19, pool_scales=(1, 2, 3))
+    head = PSPHead(in_channels=32, channels=16, num_classes=19, pool_scales=(1, 2, 3))
     if torch.cuda.is_available():
         head, inputs = to_cuda(head, inputs)
     assert head.psp_modules[0][0].output_size == 1

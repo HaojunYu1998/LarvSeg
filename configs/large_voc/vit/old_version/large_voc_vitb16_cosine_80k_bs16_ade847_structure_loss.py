@@ -24,7 +24,9 @@ model = dict(
         all_cls_path="",
         mix_batch_datasets=["ade847"],
         test_dataset="ade847",
-        ignore_indices=[-1,],
+        ignore_indices=[
+            -1,
+        ],
         test_ignore_index=-1,
         # prior loss
         use_prior_loss=False,

@@ -21,7 +21,7 @@ class Query2LabelHead(BaseDecodeHead):
         n_cls,
         d_encoder,
         num_decoder_layers=2,
-        loss_img=dict(type='AsymmetricLoss', gamma_neg=0, gamma_pos=0),
+        loss_img=dict(type="AsymmetricLoss", gamma_neg=0, gamma_pos=0),
         **kwargs,
     ):
         # in_channels & channels are dummy arguments to satisfy signature of
@@ -40,8 +40,15 @@ class Query2LabelHead(BaseDecodeHead):
 
         self.img_cls_head = nn.Sequential(
             nn.AdaptiveAvgPool2d((16, 16)),
-            _Query2LabelHead(input_dim=d_encoder, hidden_dim=d_encoder, size=16, num_class=n_cls, num_encoder_layers=0, num_decoder_layers=num_decoder_layers)
-            )
+            _Query2LabelHead(
+                input_dim=d_encoder,
+                hidden_dim=d_encoder,
+                size=16,
+                num_class=n_cls,
+                num_encoder_layers=0,
+                num_decoder_layers=num_decoder_layers,
+            ),
+        )
         # self.k = 0
         # self.x = torch.zeros(1955, 171)
 
@@ -78,18 +85,18 @@ class Query2LabelHead(BaseDecodeHead):
         else:
             full_masks = x.new_ones((B, self.n_cls, H, W))
             return full_masks
-    
-    
-    @force_fp32(apply_to=('outputs', ))
+
+    @force_fp32(apply_to=("outputs",))
     def losses(self, outputs, seg_label):
         """Compute segmentation loss."""
         hist = self._get_batch_hist_vector(seg_label.squeeze(1), self.num_classes)
         img_pred = outputs
-        topk_index = torch.argsort(img_pred, dim=1, descending=True).squeeze(-1).squeeze(-1)
+        topk_index = (
+            torch.argsort(img_pred, dim=1, descending=True).squeeze(-1).squeeze(-1)
+        )
         loss = dict()
-        loss['loss_img'] = self.loss_img(
-            img_pred.squeeze(-1).squeeze(-1),
-            (hist > 0).float())
-        loss['acc_ap'] = get_average_precision(hist, topk_index)
+        loss["loss_img"] = self.loss_img(
+            img_pred.squeeze(-1).squeeze(-1), (hist > 0).float()
+        )
+        loss["acc_ap"] = get_average_precision(hist, topk_index)
         return loss
-

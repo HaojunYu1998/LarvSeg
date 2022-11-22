@@ -7,8 +7,7 @@ from mmseg.models import FPN
 def test_fpn():
     in_channels = [256, 512, 1024, 2048]
     inputs = [
-        torch.randn(1, c, 56 // 2**i, 56 // 2**i)
-        for i, c in enumerate(in_channels)
+        torch.randn(1, c, 56 // 2**i, 56 // 2**i) for i, c in enumerate(in_channels)
     ]
 
     fpn = FPN(in_channels, 256, len(in_channels))

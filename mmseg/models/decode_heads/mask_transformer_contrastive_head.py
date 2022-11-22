@@ -34,7 +34,6 @@ def init_weights(m):
 
 @HEADS.register_module()
 class MaskTransformerContrastiveHead(BaseDecodeHead):
-
     def __init__(
         self,
         n_cls,
@@ -88,8 +87,9 @@ class MaskTransformerContrastiveHead(BaseDecodeHead):
         self.imagenet_prior_rate = imagenet_prior_rate
         self.imagenet_pseudo_label = imagenet_pseudo_label
         self.cls_emb_path = cls_emb_path
-        self.cls_emb_path_test = cls_emb_path_test if len(
-            cls_emb_path_test) else self.cls_emb_path
+        self.cls_emb_path_test = (
+            cls_emb_path_test if len(cls_emb_path_test) else self.cls_emb_path
+        )
         self.cls_emb_concat = cls_emb_concat
         self.grounding_inference = grounding_inference
         self.imagenet_pred_save_dir = imagenet_pred_save_dir
@@ -97,18 +97,20 @@ class MaskTransformerContrastiveHead(BaseDecodeHead):
         self.use_pixel_embedding = use_pixel_embedding
 
         dpr = [x.item() for x in torch.linspace(0, drop_path_rate, n_layers)]
-        self.blocks = nn.ModuleList([
-            Block(d_model, n_heads, d_ff, dropout, dpr[i])
-            for i in range(n_layers)
-        ])
+        self.blocks = nn.ModuleList(
+            [Block(d_model, n_heads, d_ff, dropout, dpr[i]) for i in range(n_layers)]
+        )
 
         self.cls_emb_from_backbone = cls_emb_from_backbone
         self.imagenet_in_batch = False
         if isinstance(cls_emb_path, list):
             self.imagenet_in_batch = any("in21k" in p for p in cls_emb_path)
             from mmcv.runner import get_dist_info
+
             rank, _ = get_dist_info()
-            self.cls_emb_path = cls_emb_path.pop(rank % len(cls_emb_path)) #cls_emb_path[]
+            self.cls_emb_path = cls_emb_path.pop(
+                rank % len(cls_emb_path)
+            )  # cls_emb_path[]
             self.cls_emb_other = cls_emb_path
             print(f"cuda:{rank} loading {self.cls_emb_path}.")
 
@@ -117,8 +119,11 @@ class MaskTransformerContrastiveHead(BaseDecodeHead):
         self.loaded_cls_emb_test = False
         self.loaded_cls_emb_train = False
 
-        self.imagenet_on_gpu = "in21k" in self.cls_emb_path if self.training \
-                          else "in21k" in self.cls_emb_path_test
+        self.imagenet_on_gpu = (
+            "in21k" in self.cls_emb_path
+            if self.training
+            else "in21k" in self.cls_emb_path_test
+        )
         # assert self.imagenet_on_gpu is True, f"{self.cls_emb_path_test}, {self.training}"
         # print(rank, self.imagenet)
         if self.imagenet_on_gpu:
@@ -130,10 +135,8 @@ class MaskTransformerContrastiveHead(BaseDecodeHead):
 
         self.proj_dec = nn.Linear(d_encoder, d_model)
 
-        self.proj_patch = nn.Parameter(self.scale *
-                                       torch.randn(d_model, d_model))
-        self.proj_classes = nn.Parameter(self.scale *
-                                         torch.randn(d_model, d_model))
+        self.proj_patch = nn.Parameter(self.scale * torch.randn(d_model, d_model))
+        self.proj_classes = nn.Parameter(self.scale * torch.randn(d_model, d_model))
 
         self.decoder_norm = nn.LayerNorm(d_model)
         self.gamma = nn.Parameter(torch.ones([]))
@@ -153,7 +156,7 @@ class MaskTransformerContrastiveHead(BaseDecodeHead):
         x = self._transform_inputs(x)
         B, C, H, W = x.size()
         x = x.view(B, C, -1).permute(0, 2, 1)
-        
+
         x = self.proj_dec(x)
         cls_emb = cls_emb.to(x.device)
         x = torch.cat((x, cls_emb), dim=1)
@@ -163,7 +166,7 @@ class MaskTransformerContrastiveHead(BaseDecodeHead):
 
         # patches, cls_seg_feat = x, cls_emb
         self.n_cls = cls_emb.shape[1]
-        patches, cls_seg_feat = x[:, :-self.n_cls], x[:, -self.n_cls:]
+        patches, cls_seg_feat = x[:, : -self.n_cls], x[:, -self.n_cls :]
         patches = patches @ self.proj_patch
         cls_seg_feat = cls_seg_feat @ self.proj_classes
 
@@ -178,7 +181,9 @@ class MaskTransformerContrastiveHead(BaseDecodeHead):
             # masks = self.mask_norm(masks)
             masks = (
                 (masks - torch.mean(masks, dim=-1, keepdim=True))
-                / torch.sqrt(torch.var(masks, dim=-1, keepdim=True, unbiased=False) + 1e-5)
+                / torch.sqrt(
+                    torch.var(masks, dim=-1, keepdim=True, unbiased=False) + 1e-5
+                )
             ) * self.gamma + self.beta
         B, HW, N = masks.size()
 
@@ -187,12 +192,12 @@ class MaskTransformerContrastiveHead(BaseDecodeHead):
         # if self.use_pixel_embedding:
         embeds = patches.clone().view(B, H, W, C).permute(0, 3, 1, 2)
         # patches = patches.view(B, H, W, C).permute(0, 3, 1, 2)
-        return masks, embeds#, logits
+        return masks, embeds  # , logits
 
     def forward_train(self, inputs, img_metas, gt_semantic_seg, train_cfg):
         # load cls_emb, and avoid unnecessary loading
         if (not self.cls_emb_from_backbone) and (not self.loaded_cls_emb_train):
-            self.cls_emb = torch.load(self.cls_emb_path, map_location="cpu")            
+            self.cls_emb = torch.load(self.cls_emb_path, map_location="cpu")
             self.cls_emb.requires_grad = False
             self.loaded_cls_emb_test = False
             self.loaded_cls_emb_train = True
@@ -201,8 +206,8 @@ class MaskTransformerContrastiveHead(BaseDecodeHead):
 
         img_labels = None
         if self.imagenet_on_gpu:
-            img_names = [meta['ori_filename'] for meta in img_metas]
-            img_ids = [name[:name.find("_")] for name in img_names]
+            img_names = [meta["ori_filename"] for meta in img_metas]
+            img_ids = [name[: name.find("_")] for name in img_names]
             img_labels = [self.in21k_ids.index(img_id) for img_id in img_ids]
 
         losses = self.losses(masks, embeds, gt_semantic_seg, img_labels)
@@ -210,11 +215,10 @@ class MaskTransformerContrastiveHead(BaseDecodeHead):
 
     def forward_test(self, inputs, img_metas, test_cfg):
         if not self.loaded_cls_emb_test:
-            self.cls_emb = torch.load(
-                self.cls_emb_path_test, map_location="cpu")
+            self.cls_emb = torch.load(self.cls_emb_path_test, map_location="cpu")
             self.loaded_cls_emb_test = True
             self.loaded_cls_emb_train = False
-        
+
         masks, _ = self.forward(inputs, img_metas)
 
         # img_labels = None
@@ -233,7 +237,11 @@ class MaskTransformerContrastiveHead(BaseDecodeHead):
 
         if self.grounding_inference:
             # fname = img_metas[0]["ori_filename"].replace("jpg", "png")
-            gt_path = img_metas[0]["filename"].replace("images", "annotations").replace("jpg", "png")
+            gt_path = (
+                img_metas[0]["filename"]
+                .replace("images", "annotations")
+                .replace("jpg", "png")
+            )
             gt = np.array(Image.open(gt_path))
             gt = (gt - 1).astype(np.uint8)
             unique_label = list(np.unique(gt))
@@ -248,7 +256,7 @@ class MaskTransformerContrastiveHead(BaseDecodeHead):
             masks = masks.unsqueeze(0)
         return masks
 
-    @force_fp32(apply_to=('seg_mask', ))
+    @force_fp32(apply_to=("seg_mask",))
     def losses(self, seg_mask, seg_embed, seg_label, img_labels=None):
         """Compute segmentation loss."""
         loss = dict()
@@ -258,20 +266,16 @@ class MaskTransformerContrastiveHead(BaseDecodeHead):
         seg_mask = resize(
             input=seg_mask,
             size=(h, w),
-            mode='bilinear',
-            align_corners=self.align_corners
+            mode="bilinear",
+            align_corners=self.align_corners,
         )
-        seg_label = resize(
-            input=seg_label.float(),
-            size=(h, w),
-            mode='nearest'
-        ).long()
+        seg_label = resize(input=seg_label.float(), size=(h, w), mode="nearest").long()
         if self.use_pixel_embedding:
             seg_embed = resize(
                 input=seg_embed,
                 size=(h, w),
-                mode='bilinear',
-                align_corners=self.align_corners
+                mode="bilinear",
+                align_corners=self.align_corners,
             )
         else:
             del seg_embed
@@ -289,30 +293,33 @@ class MaskTransformerContrastiveHead(BaseDecodeHead):
         # seg_embed = seg_embed.permute(0, 2, 3, 1).reshape(B * H * W, N)
 
         if len(prior_bucket) == 0:
-            loss['loss_prior'] = torch.tensor(
+            loss["loss_prior"] = torch.tensor(
                 0, dtype=seg_mask.dtype, device=seg_mask.device, requires_grad=True
             )
             if self.use_pixel_embedding:
-                loss['loss_emb'] = torch.tensor(
+                loss["loss_emb"] = torch.tensor(
                     0, dtype=seg_mask.dtype, device=seg_mask.device, requires_grad=True
                 )
         else:
             prior_inds = torch.cat(prior_bucket)
-            loss['loss_prior'] = self.loss_decode(
-                seg_mask[prior_inds],
-                seg_label[prior_inds],
-                weight=None,
-                ignore_index=self.ignore_index
-            ) * self.prior_loss_weight
+            loss["loss_prior"] = (
+                self.loss_decode(
+                    seg_mask[prior_inds],
+                    seg_label[prior_inds],
+                    weight=None,
+                    ignore_index=self.ignore_index,
+                )
+                * self.prior_loss_weight
+            )
             if self.use_pixel_embedding:
                 pos_bucket = prior_bucket if self.imagenet_on_gpu else None
-                loss['loss_emb'] = self.loss_pix_embed(
+                loss["loss_emb"] = self.loss_pix_embed(
                     seg_embed=seg_embed, seg_label=seg_label, pos_bucket=pos_bucket
                 )
 
         acc_weight = 0.0 if self.imagenet_on_gpu else 2.0
         acc_weight = acc_weight if self.imagenet_in_batch else 1.0
-        loss['acc_seg'] = accuracy(seg_mask, seg_label) * acc_weight
+        loss["acc_seg"] = accuracy(seg_mask, seg_label) * acc_weight
         return loss
 
     def loss_structure(self, seg_logit, seg_label, prior_bucket, eps=1e-6):
@@ -326,24 +333,24 @@ class MaskTransformerContrastiveHead(BaseDecodeHead):
         cls_sim_mat = cls_sim_mat.to(seg_logit.device)
         seg_prob = (seg_logit / self.temperature).softmax(dim=-1) + eps
         cls_prob = (cls_sim_mat / self.temperature).softmax(dim=-1) + eps
-        
+
         kl_div_loss = torch.tensor(
             0, dtype=seg_logit.dtype, device=seg_logit.device, requires_grad=True
         )
         valid_num = 0
         for prior_ind in prior_bucket:
             prior_label = int(seg_label[prior_ind[0]])
-            assert seg_label[prior_ind].unique().numel() == 1, \
-                f"{seg_label[prior_ind].unique()}"
+            assert (
+                seg_label[prior_ind].unique().numel() == 1
+            ), f"{seg_label[prior_ind].unique()}"
             if len(prior_ind) == 0:
                 continue
             kl_div = seg_prob[prior_ind] * (
-                seg_prob[prior_ind].log() - \
-                cls_prob[prior_label][None].log()
+                seg_prob[prior_ind].log() - cls_prob[prior_label][None].log()
             )
             kl_div_loss = kl_div_loss + kl_div.sum()
             valid_num += 1
-        return kl_div_loss / BHW # max(valid_num, 1)
+        return kl_div_loss / BHW  # max(valid_num, 1)
 
     def loss_pix_embed(self, seg_embed, seg_label, pos_bucket=None):
         """
@@ -363,9 +370,7 @@ class MaskTransformerContrastiveHead(BaseDecodeHead):
                 if l != self.ignore_index
             ]
         if len(pos_bucket) == 0:
-            return {
-                "loss_emb": seg_embed[seg_label != self.ignore_index].sum()
-            }
+            return {"loss_emb": seg_embed[seg_label != self.ignore_index].sum()}
         pos_inds = self._sample_pixel(pos_bucket)
         sample_cls = torch.cat(
             [torch.Tensor([i for _ in range(len(p))]) for i, p in enumerate(pos_inds)],
@@ -406,10 +411,9 @@ class MaskTransformerContrastiveHead(BaseDecodeHead):
         """
         num_per_buckets = [len(p) for p in buckets]
         sample_per_bucket = [
-            total_sample_num // len(buckets)
-            for _ in range(len(num_per_buckets))
+            total_sample_num // len(buckets) for _ in range(len(num_per_buckets))
         ]
-        
+
         if len(sample_per_bucket) > 1:
             sample_per_bucket[-1] = total_sample_num - sum(sample_per_bucket[:-1])
         else:
@@ -423,7 +427,7 @@ class MaskTransformerContrastiveHead(BaseDecodeHead):
             for i, p in enumerate(buckets)
         ]
         return samples
-    
+
     def _sample(self, seg_logit, seg_label, min_kept=10):
         """Sample pixels that have high loss or with low prediction confidence.
 
@@ -441,9 +445,7 @@ class MaskTransformerContrastiveHead(BaseDecodeHead):
         unique_label = unique_label[unique_label != self.ignore_index]
         pos_bucket = []
         for l in unique_label:
-            pos_bucket.append(
-                (seg_label == l).nonzero(as_tuple=False)[:, 0]
-            )
+            pos_bucket.append((seg_label == l).nonzero(as_tuple=False)[:, 0])
         if len(pos_bucket) == 0:
             return [], []
         seg_logit = seg_logit.permute(0, 2, 3, 1).reshape(B * H * W, N)
@@ -464,7 +466,8 @@ class MaskTransformerContrastiveHead(BaseDecodeHead):
         cam_label = cam_label.reshape(B, H * W)
         if self.imagenet_pseudo_label:
             prior_bucket = [
-                cam.topk(int((cam > 0).sum())).indices + b * H * W for b, cam in enumerate(cam_label)
+                cam.topk(int((cam > 0).sum())).indices + b * H * W
+                for b, cam in enumerate(cam_label)
             ]
         else:
             K = int(self.imagenet_prior_rate * H * W)
@@ -472,9 +475,9 @@ class MaskTransformerContrastiveHead(BaseDecodeHead):
                 cam.topk(K).indices + b * H * W for b, cam in enumerate(cam_label)
             ]
         assert len(cam_label) == len(img_labels)
-        seg_label = torch.cat([
-            torch.ones_like(cam) * l for cam, l in zip(cam_label, img_labels)
-        ]) # B * H * W
+        seg_label = torch.cat(
+            [torch.ones_like(cam) * l for cam, l in zip(cam_label, img_labels)]
+        )  # B * H * W
         return seg_label, prior_bucket
 
     @staticmethod
@@ -484,14 +487,13 @@ class MaskTransformerContrastiveHead(BaseDecodeHead):
         tvect = target.new_zeros((batch, nclass), dtype=torch.int64)
         for i in range(batch):
             hist = torch.histc(
-                target[i].data.float(), bins=nclass, min=0, max=nclass - 1)
+                target[i].data.float(), bins=nclass, min=0, max=nclass - 1
+            )
             tvect[i] = hist
         return tvect
 
 
-
 class FeedForward(nn.Module):
-
     def __init__(self, dim, hidden_dim, dropout, out_dim=None):
         super().__init__()
         self.fc1 = nn.Linear(dim, hidden_dim)
@@ -515,7 +517,6 @@ class FeedForward(nn.Module):
 
 
 class Attention(nn.Module):
-
     def __init__(self, dim, heads, dropout):
         super().__init__()
         self.heads = heads
@@ -535,8 +536,10 @@ class Attention(nn.Module):
     def forward(self, x, mask=None):
         B, N, C = x.shape
         qkv = (
-            self.qkv(x).reshape(B, N, 3, self.heads,
-                                C // self.heads).permute(2, 0, 3, 1, 4))
+            self.qkv(x)
+            .reshape(B, N, 3, self.heads, C // self.heads)
+            .permute(2, 0, 3, 1, 4)
+        )
         q, k, v = (
             qkv[0],
             qkv[1],
@@ -555,15 +558,13 @@ class Attention(nn.Module):
 
 
 class Block(nn.Module):
-
     def __init__(self, dim, heads, mlp_dim, dropout, drop_path):
         super().__init__()
         self.norm1 = nn.LayerNorm(dim)
         self.norm2 = nn.LayerNorm(dim)
         self.attn = Attention(dim, heads, dropout)
         self.mlp = FeedForward(dim, mlp_dim, dropout)
-        self.drop_path = DropPath(
-            drop_path) if drop_path > 0.0 else nn.Identity()
+        self.drop_path = DropPath(drop_path) if drop_path > 0.0 else nn.Identity()
 
     def forward(self, x, mask=None, return_attention=False):
         y, attn = self.attn(self.norm1(x), mask)
@@ -575,7 +576,6 @@ class Block(nn.Module):
 
 
 class DecoderLinear(nn.Module):
-
     def __init__(self, n_cls, patch_size, d_encoder):
         super().__init__()
 

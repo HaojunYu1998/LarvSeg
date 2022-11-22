@@ -16,7 +16,7 @@ model = dict(
     ),
     decode_head=dict(
         type="MaskTransformerLargeVocCoSegHead",
-        n_cls=130, # train on 256 classes, eval 130 classes
+        n_cls=130,  # train on 256 classes, eval 130 classes
         downsample_rate=2,
         # datasets
         all_cls_path="notebook/ade130ucoco.json",
@@ -32,7 +32,7 @@ model = dict(
         use_memory_bank=True,
         memory_bank_size=20,
         memory_image_size=20,
-        memory_bank_full_time=20
+        memory_bank_full_time=20,
     ),
     test_cfg=dict(mode="slide", crop_size=(512, 512), stride=(512, 512)),
 )

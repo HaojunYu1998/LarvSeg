@@ -139,7 +139,7 @@ class MHAUnpooling(UnpoolingBase):
         elif self.fuse_source == "MHA":
             block_idx = state.get("block_idx", 0)
             block = self.blocks[block_idx]
-            
+
             query = query.permute(1, 0, 2)
             x = x.permute(1, 0, 2)
 

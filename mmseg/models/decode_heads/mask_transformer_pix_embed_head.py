@@ -24,7 +24,6 @@ def init_weights(m):
 
 @HEADS.register_module()
 class MaskTransformerPixEmbedHead(BaseDecodeHead):
-
     def __init__(
         self,
         n_cls,
@@ -59,29 +58,28 @@ class MaskTransformerPixEmbedHead(BaseDecodeHead):
         self.pixemb_before_attn = pixemb_before_attn
 
         dpr = [x.item() for x in torch.linspace(0, drop_path_rate, n_layers)]
-        self.blocks = nn.ModuleList([
-            Block(d_model, n_heads, d_ff, dropout, dpr[i])
-            for i in range(n_layers)
-        ])
+        self.blocks = nn.ModuleList(
+            [Block(d_model, n_heads, d_ff, dropout, dpr[i]) for i in range(n_layers)]
+        )
 
         self.cls_emb_from_backbone = cls_emb_from_backbone
         if not cls_emb_from_backbone:
             self.cls_emb = nn.Parameter(torch.randn(1, n_cls, d_model))
         self.proj_dec = nn.Linear(d_encoder, d_model)
 
-        self.proj_patch = nn.Parameter(self.scale *
-                                       torch.randn(d_model, d_model))
-        self.proj_classes = nn.Parameter(self.scale *
-                                         torch.randn(d_model, d_model))
+        self.proj_patch = nn.Parameter(self.scale * torch.randn(d_model, d_model))
+        self.proj_classes = nn.Parameter(self.scale * torch.randn(d_model, d_model))
 
         self.decoder_norm = nn.LayerNorm(d_model)
         self.mask_norm = nn.LayerNorm(n_cls)
 
         if self.pixemb_before_attn:
-            self.pixemb_blocks = nn.ModuleList([
-                Block(d_model, n_heads, d_ff, dropout, dpr[i])
-                for i in range(n_layers)
-            ])
+            self.pixemb_blocks = nn.ModuleList(
+                [
+                    Block(d_model, n_heads, d_ff, dropout, dpr[i])
+                    for i in range(n_layers)
+                ]
+            )
             self.pixemb_norm = nn.LayerNorm(d_model)
 
     def init_weights(self):
@@ -99,7 +97,7 @@ class MaskTransformerPixEmbedHead(BaseDecodeHead):
         x = x.view(B, C, -1).permute(0, 2, 1)
 
         if self.pixemb_before_attn:
-            embeds = x.clone() # (B, H * W, C)
+            embeds = x.clone()  # (B, H * W, C)
             for blk in self.pixemb_blocks:
                 embeds = blk(embeds)
             embeds = self.pixemb_norm(embeds)
@@ -111,7 +109,7 @@ class MaskTransformerPixEmbedHead(BaseDecodeHead):
             x = blk(x)
         x = self.decoder_norm(x)
 
-        patches, cls_seg_feat = x[:, :-self.n_cls], x[:, -self.n_cls:]
+        patches, cls_seg_feat = x[:, : -self.n_cls], x[:, -self.n_cls :]
         patches = patches @ self.proj_patch
         cls_seg_feat = cls_seg_feat @ self.proj_classes
 
@@ -135,9 +133,7 @@ class MaskTransformerPixEmbedHead(BaseDecodeHead):
     def forward_train(self, inputs, img_metas, gt_semantic_seg, train_cfg):
         masks, logits, embeds = self.forward(inputs)
         losses = self.losses(masks, gt_semantic_seg)
-        losses.update(
-            self.pix_embed_losses(embeds, gt_semantic_seg)
-        )
+        losses.update(self.pix_embed_losses(embeds, gt_semantic_seg))
         return losses
 
     def forward_test(self, inputs, img_metas, test_cfg):
@@ -160,9 +156,7 @@ class MaskTransformerPixEmbedHead(BaseDecodeHead):
             save_path = os.path.join(
                 save_feature_dir, ori_filename.replace(".jpg", ".pth")
             )
-            torch.save(
-                embeds.detach().cpu().half(), save_path
-            )
+            torch.save(embeds.detach().cpu().half(), save_path)
         del embeds
         # save logits
         save_logit_dir = test_cfg.get("save_logit_dir", None)
@@ -173,9 +167,7 @@ class MaskTransformerPixEmbedHead(BaseDecodeHead):
             save_path = os.path.join(
                 save_logit_dir, ori_filename.replace(".jpg", ".pth")
             )
-            torch.save(
-                logits.detach().cpu().half(), save_path
-            )
+            torch.save(logits.detach().cpu().half(), save_path)
         del logits
         return masks
 
@@ -228,9 +220,7 @@ class MaskTransformerPixEmbedHead(BaseDecodeHead):
             if l != self.ignore_index
         ]
         if len(pos_bucket) == 0:
-            return {
-                "loss_emb": seg_feature[seg_label != self.ignore_index].sum()
-            }
+            return {"loss_emb": seg_feature[seg_label != self.ignore_index].sum()}
         pos_inds = self._sample(pos_bucket)
         sample_cls = torch.cat(
             [torch.Tensor([i for _ in range(len(p))]) for i, p in enumerate(pos_inds)],
@@ -238,7 +228,7 @@ class MaskTransformerPixEmbedHead(BaseDecodeHead):
         ).to(seg_feature.device)
         sample_embed = torch.cat([seg_feature[i] for i in pos_inds], dim=0)
         loss = self.loss_similarity(sample_embed, sample_cls)
-        return {"loss_emb": loss} 
+        return {"loss_emb": loss}
 
     def _sample(self, buckets, total_sample_num=512):
         """Sample points from each buckets
@@ -247,10 +237,9 @@ class MaskTransformerPixEmbedHead(BaseDecodeHead):
         """
         num_per_buckets = [len(p) for p in buckets]
         sample_per_bucket = [
-            total_sample_num // len(buckets)
-            for _ in range(len(num_per_buckets))
+            total_sample_num // len(buckets) for _ in range(len(num_per_buckets))
         ]
-        
+
         if len(sample_per_bucket) > 1:
             sample_per_bucket[-1] = total_sample_num - sum(sample_per_bucket[:-1])
         else:
@@ -296,13 +285,13 @@ class MaskTransformerPixEmbedHead(BaseDecodeHead):
         tvect = target.new_zeros((batch, nclass), dtype=torch.int64)
         for i in range(batch):
             hist = torch.histc(
-                target[i].data.float(), bins=nclass, min=0, max=nclass - 1)
+                target[i].data.float(), bins=nclass, min=0, max=nclass - 1
+            )
             tvect[i] = hist
         return tvect
 
 
 class FeedForward(nn.Module):
-
     def __init__(self, dim, hidden_dim, dropout, out_dim=None):
         super().__init__()
         self.fc1 = nn.Linear(dim, hidden_dim)
@@ -326,7 +315,6 @@ class FeedForward(nn.Module):
 
 
 class Attention(nn.Module):
-
     def __init__(self, dim, heads, dropout):
         super().__init__()
         self.heads = heads
@@ -346,8 +334,10 @@ class Attention(nn.Module):
     def forward(self, x, mask=None):
         B, N, C = x.shape
         qkv = (
-            self.qkv(x).reshape(B, N, 3, self.heads,
-                                C // self.heads).permute(2, 0, 3, 1, 4))
+            self.qkv(x)
+            .reshape(B, N, 3, self.heads, C // self.heads)
+            .permute(2, 0, 3, 1, 4)
+        )
         q, k, v = (
             qkv[0],
             qkv[1],
@@ -366,15 +356,13 @@ class Attention(nn.Module):
 
 
 class Block(nn.Module):
-
     def __init__(self, dim, heads, mlp_dim, dropout, drop_path):
         super().__init__()
         self.norm1 = nn.LayerNorm(dim)
         self.norm2 = nn.LayerNorm(dim)
         self.attn = Attention(dim, heads, dropout)
         self.mlp = FeedForward(dim, mlp_dim, dropout)
-        self.drop_path = DropPath(
-            drop_path) if drop_path > 0.0 else nn.Identity()
+        self.drop_path = DropPath(drop_path) if drop_path > 0.0 else nn.Identity()
 
     def forward(self, x, mask=None, return_attention=False):
         y, attn = self.attn(self.norm1(x), mask)
@@ -386,7 +374,6 @@ class Block(nn.Module):
 
 
 class DecoderLinear(nn.Module):
-
     def __init__(self, n_cls, patch_size, d_encoder):
         super().__init__()
 

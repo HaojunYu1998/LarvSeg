@@ -22,13 +22,15 @@ class MultiLevelNeck(nn.Module):
             Default: None.
     """
 
-    def __init__(self,
-                 in_channels,
-                 out_channels,
-                 scales=[0.5, 1, 2, 4],
-                 use_separable=False,
-                 norm_cfg=None,
-                 act_cfg=None):
+    def __init__(
+        self,
+        in_channels,
+        out_channels,
+        scales=[0.5, 1, 2, 4],
+        use_separable=False,
+        norm_cfg=None,
+        act_cfg=None,
+    ):
         super(MultiLevelNeck, self).__init__()
         assert isinstance(in_channels, list)
         self.in_channels = in_channels
@@ -44,7 +46,9 @@ class MultiLevelNeck(nn.Module):
                     out_channels,
                     kernel_size=1,
                     norm_cfg=norm_cfg,
-                    act_cfg=act_cfg))
+                    act_cfg=act_cfg,
+                )
+            )
         for _ in range(self.num_outs):
             conv_builder = DepthwiseSeparableConvModule if use_separable else ConvModule
             self.convs.append(
@@ -55,26 +59,26 @@ class MultiLevelNeck(nn.Module):
                     padding=1,
                     stride=1,
                     norm_cfg=norm_cfg,
-                    act_cfg=act_cfg))
+                    act_cfg=act_cfg,
+                )
+            )
 
     # default init_weights for conv(msra) and norm in ConvModule
     def init_weights(self):
         for m in self.modules():
             if isinstance(m, nn.Conv2d):
-                xavier_init(m, distribution='uniform')
+                xavier_init(m, distribution="uniform")
 
     def forward(self, inputs):
         assert len(inputs) == len(self.in_channels)
         inputs = [
-            lateral_conv(inputs[i])
-            for i, lateral_conv in enumerate(self.lateral_convs)
+            lateral_conv(inputs[i]) for i, lateral_conv in enumerate(self.lateral_convs)
         ]
         # for len(inputs) not equal to self.num_outs
         if len(inputs) == 1:
             inputs = [inputs[0] for _ in range(self.num_outs)]
         outs = []
         for i in range(self.num_outs):
-            x_resize = resize(
-                inputs[i], scale_factor=self.scales[i], mode='bilinear')
+            x_resize = resize(inputs[i], scale_factor=self.scales[i], mode="bilinear")
             outs.append(self.convs[i](x_resize))
         return tuple(outs)

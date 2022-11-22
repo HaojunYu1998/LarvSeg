@@ -5,6 +5,7 @@ import os
 import sys
 import os.path as osp
 import time
+
 # import wandb
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
@@ -20,6 +21,7 @@ from mmseg.datasets import build_dataset
 from mmseg.models import build_segmentor
 from mmseg.utils import collect_env, get_root_logger, polyfill
 import mmseg.core.hooks
+
 
 def handle_top_exception(exc_type, exc_value, traceback):
     if issubclass(exc_type, KeyboardInterrupt):
@@ -143,6 +145,7 @@ def main():
     mmcv.mkdir_or_exist(osp.abspath(cfg.work_dir))
     # dump config
     from pathlib import Path
+
     for _ in range(10):
         Path(osp.join(cfg.work_dir, osp.basename(args.config))).touch()
     cfg.dump(osp.join(cfg.work_dir, osp.basename(args.config)))
@@ -184,7 +187,7 @@ def main():
         cfg.model, train_cfg=cfg.get("train_cfg"), test_cfg=cfg.get("test_cfg")
     )
     if cfg.model.get("train_cfg").get("init_method", None) == "load_checkpoint":
-        load_checkpoint(model, cfg.model.pretrained, map_location='cpu')
+        load_checkpoint(model, cfg.model.pretrained, map_location="cpu")
     else:
         model.init_weights()
 

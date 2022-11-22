@@ -15,11 +15,11 @@ def test_psa_head():
             channels=16,
             num_classes=19,
             mask_size=(39, 39),
-            psa_type='gather')
+            psa_type="gather",
+        )
 
     # test no norm_cfg
-    head = PSAHead(
-        in_channels=32, channels=16, num_classes=19, mask_size=(39, 39))
+    head = PSAHead(in_channels=32, channels=16, num_classes=19, mask_size=(39, 39))
     assert not _conv_has_norm(head, sync_bn=False)
 
     # test with norm_cfg
@@ -28,13 +28,13 @@ def test_psa_head():
         channels=16,
         num_classes=19,
         mask_size=(39, 39),
-        norm_cfg=dict(type='SyncBN'))
+        norm_cfg=dict(type="SyncBN"),
+    )
     assert _conv_has_norm(head, sync_bn=True)
 
     # test 'bi-direction' psa_type
     inputs = [torch.randn(1, 32, 39, 39)]
-    head = PSAHead(
-        in_channels=32, channels=16, num_classes=19, mask_size=(39, 39))
+    head = PSAHead(in_channels=32, channels=16, num_classes=19, mask_size=(39, 39))
     if torch.cuda.is_available():
         head, inputs = to_cuda(head, inputs)
     outputs = head(inputs)
@@ -43,11 +43,8 @@ def test_psa_head():
     # test 'bi-direction' psa_type, shrink_factor=1
     inputs = [torch.randn(1, 32, 39, 39)]
     head = PSAHead(
-        in_channels=32,
-        channels=16,
-        num_classes=19,
-        mask_size=(39, 39),
-        shrink_factor=1)
+        in_channels=32, channels=16, num_classes=19, mask_size=(39, 39), shrink_factor=1
+    )
     if torch.cuda.is_available():
         head, inputs = to_cuda(head, inputs)
     outputs = head(inputs)
@@ -60,7 +57,8 @@ def test_psa_head():
         channels=16,
         num_classes=19,
         mask_size=(39, 39),
-        psa_softmax=True)
+        psa_softmax=True,
+    )
     if torch.cuda.is_available():
         head, inputs = to_cuda(head, inputs)
     outputs = head(inputs)
@@ -73,7 +71,8 @@ def test_psa_head():
         channels=16,
         num_classes=19,
         mask_size=(39, 39),
-        psa_type='collect')
+        psa_type="collect",
+    )
     if torch.cuda.is_available():
         head, inputs = to_cuda(head, inputs)
     outputs = head(inputs)
@@ -87,7 +86,8 @@ def test_psa_head():
         num_classes=19,
         mask_size=(39, 39),
         shrink_factor=1,
-        psa_type='collect')
+        psa_type="collect",
+    )
     if torch.cuda.is_available():
         head, inputs = to_cuda(head, inputs)
     outputs = head(inputs)
@@ -100,9 +100,10 @@ def test_psa_head():
         channels=16,
         num_classes=19,
         mask_size=(39, 39),
-        psa_type='collect',
+        psa_type="collect",
         shrink_factor=1,
-        compact=True)
+        compact=True,
+    )
     if torch.cuda.is_available():
         head, inputs = to_cuda(head, inputs)
     outputs = head(inputs)
@@ -115,7 +116,8 @@ def test_psa_head():
         channels=16,
         num_classes=19,
         mask_size=(39, 39),
-        psa_type='distribute')
+        psa_type="distribute",
+    )
     if torch.cuda.is_available():
         head, inputs = to_cuda(head, inputs)
     outputs = head(inputs)

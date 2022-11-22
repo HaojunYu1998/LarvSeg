@@ -14,7 +14,8 @@ def test_uper_head():
 
     # test no norm_cfg
     head = UPerHead(
-        in_channels=[32, 16], channels=16, num_classes=19, in_index=[-2, -1])
+        in_channels=[32, 16], channels=16, num_classes=19, in_index=[-2, -1]
+    )
     assert not _conv_has_norm(head, sync_bn=False)
 
     # test with norm_cfg
@@ -22,13 +23,15 @@ def test_uper_head():
         in_channels=[32, 16],
         channels=16,
         num_classes=19,
-        norm_cfg=dict(type='SyncBN'),
-        in_index=[-2, -1])
+        norm_cfg=dict(type="SyncBN"),
+        in_index=[-2, -1],
+    )
     assert _conv_has_norm(head, sync_bn=True)
 
     inputs = [torch.randn(1, 32, 45, 45), torch.randn(1, 16, 21, 21)]
     head = UPerHead(
-        in_channels=[32, 16], channels=16, num_classes=19, in_index=[-2, -1])
+        in_channels=[32, 16], channels=16, num_classes=19, in_index=[-2, -1]
+    )
     if torch.cuda.is_available():
         head, inputs = to_cuda(head, inputs)
     outputs = head(inputs)

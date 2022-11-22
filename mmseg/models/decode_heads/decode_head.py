@@ -12,6 +12,7 @@ from mmseg.ops import resize
 from ..builder import build_loss
 from ..losses.accuracy import accuracy
 
+
 class BaseDecodeHead(BaseModule, metaclass=ABCMeta):
     """Base class for BaseDecodeHead.
 
@@ -45,26 +46,24 @@ class BaseDecodeHead(BaseModule, metaclass=ABCMeta):
         init_cfg (dict or list[dict], optional): Initialization config dict.
     """
 
-    def __init__(self,
-                 in_channels,
-                 channels,
-                 *,
-                 num_classes,
-                 dropout_ratio=0.1,
-                 conv_cfg=None,
-                 norm_cfg=None,
-                 act_cfg=dict(type='ReLU'),
-                 in_index=-1,
-                 input_transform=None,
-                 loss_decode=dict(
-                     type='CrossEntropyLoss',
-                     use_sigmoid=False,
-                     loss_weight=1.0),
-                 ignore_index=255,
-                 sampler=None,
-                 align_corners=False,
-                 init_cfg=dict(
-                     type='Normal', std=0.01, override=dict(name='conv_seg'))):
+    def __init__(
+        self,
+        in_channels,
+        channels,
+        *,
+        num_classes,
+        dropout_ratio=0.1,
+        conv_cfg=None,
+        norm_cfg=None,
+        act_cfg=dict(type="ReLU"),
+        in_index=-1,
+        input_transform=None,
+        loss_decode=dict(type="CrossEntropyLoss", use_sigmoid=False, loss_weight=1.0),
+        ignore_index=255,
+        sampler=None,
+        align_corners=False,
+        init_cfg=dict(type="Normal", std=0.01, override=dict(name="conv_seg")),
+    ):
         super(BaseDecodeHead, self).__init__(init_cfg)
         self._init_inputs(in_channels, in_index, input_transform)
         self.channels = channels
@@ -77,13 +76,13 @@ class BaseDecodeHead(BaseModule, metaclass=ABCMeta):
         self.loss_decode = build_loss(loss_decode)
         self.ignore_index = ignore_index
         self.align_corners = align_corners
-        
+
         self.conv_seg = nn.Conv2d(channels, num_classes, kernel_size=1)
         if sampler is not None:
             self.sampler = build_pixel_sampler(sampler, context=self)
         else:
             self.sampler = None
-        
+
         if dropout_ratio > 0:
             self.dropout = nn.Dropout2d(dropout_ratio)
         else:
@@ -92,9 +91,11 @@ class BaseDecodeHead(BaseModule, metaclass=ABCMeta):
 
     def extra_repr(self):
         """Extra repr."""
-        s = f'input_transform={self.input_transform}, ' \
-            f'ignore_index={self.ignore_index}, ' \
-            f'align_corners={self.align_corners}'
+        s = (
+            f"input_transform={self.input_transform}, "
+            f"ignore_index={self.ignore_index}, "
+            f"align_corners={self.align_corners}"
+        )
         return s
 
     def _init_inputs(self, in_channels, in_index, input_transform):
@@ -119,14 +120,14 @@ class BaseDecodeHead(BaseModule, metaclass=ABCMeta):
         """
 
         if input_transform is not None:
-            assert input_transform in ['resize_concat', 'multiple_select']
+            assert input_transform in ["resize_concat", "multiple_select"]
         self.input_transform = input_transform
         self.in_index = in_index
         if input_transform is not None:
             assert isinstance(in_channels, (list, tuple))
             assert isinstance(in_index, (list, tuple))
             assert len(in_channels) == len(in_index)
-            if input_transform == 'resize_concat':
+            if input_transform == "resize_concat":
                 self.in_channels = sum(in_channels)
             else:
                 self.in_channels = in_channels
@@ -147,17 +148,19 @@ class BaseDecodeHead(BaseModule, metaclass=ABCMeta):
 
         if isinstance(inputs, torch.Tensor):
             pass
-        elif self.input_transform == 'resize_concat':
+        elif self.input_transform == "resize_concat":
             inputs = [inputs[i] for i in self.in_index]
             upsampled_inputs = [
                 resize(
                     input=x,
                     size=inputs[0].shape[2:],
-                    mode='bilinear',
-                    align_corners=self.align_corners) for x in inputs
+                    mode="bilinear",
+                    align_corners=self.align_corners,
+                )
+                for x in inputs
             ]
             inputs = torch.cat(upsampled_inputs, dim=1)
-        elif self.input_transform == 'multiple_select':
+        elif self.input_transform == "multiple_select":
             inputs = [inputs[i] for i in self.in_index]
         else:
             inputs = inputs[self.in_index]
@@ -208,7 +211,7 @@ class BaseDecodeHead(BaseModule, metaclass=ABCMeta):
         return self.forward(inputs)
 
     def cls_seg(self, feat):
-        """Classify each pixel."""        
+        """Classify each pixel."""
         if self.dropout is not None:
             feat = self.dropout(feat)
         output = self.conv_seg(feat)
@@ -226,25 +229,24 @@ class BaseDecodeHead(BaseModule, metaclass=ABCMeta):
             tvect[i] = hist
         return tvect
 
-    @force_fp32(apply_to=('seg_logit', ))
+    @force_fp32(apply_to=("seg_logit",))
     def losses(self, seg_logit, seg_label):
         """Compute segmentation loss."""
         loss = dict()
         seg_logit = resize(
             input=seg_logit,
             size=seg_label.shape[2:],
-            mode='bilinear',
-            align_corners=self.align_corners)
+            mode="bilinear",
+            align_corners=self.align_corners,
+        )
         if self.sampler is not None:
             seg_weight = self.sampler.sample(seg_logit, seg_label)
         else:
             seg_weight = None
         seg_label = seg_label.squeeze(1)
 
-        loss['loss_seg'] = self.loss_decode(
-            seg_logit,
-            seg_label,
-            weight=seg_weight,
-            ignore_index=self.ignore_index)
-        loss['acc_seg'] = accuracy(seg_logit, seg_label)
+        loss["loss_seg"] = self.loss_decode(
+            seg_logit, seg_label, weight=seg_weight, ignore_index=self.ignore_index
+        )
+        loss["acc_seg"] = accuracy(seg_logit, seg_label)
         return loss

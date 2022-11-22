@@ -167,8 +167,9 @@ class LoadAnnotations(object):
                 gt_semantic_seg[gt_semantic_seg == 0] = 255
                 gt_semantic_seg = gt_semantic_seg - 1
                 gt_semantic_seg[gt_semantic_seg == 254] = 255
-        
+
         import copy
+
         gt_semantic_seg_ = copy.deepcopy(gt_semantic_seg)
         # modify if custom classes
         if results.get("label_map", None) is not None:

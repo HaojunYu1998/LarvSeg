@@ -37,9 +37,7 @@ model = dict(
         dropout=0.1,
         loss_decode=dict(type="CrossEntropyLoss", use_sigmoid=False, loss_weight=1.0),
     ),
-
     test_cfg=dict(mode="slide", crop_size=(640, 640), stride=(640, 640)),
-    train_cfg={}
+    train_cfg={},
 )
-  # yapf: disable
-
+# yapf: disable

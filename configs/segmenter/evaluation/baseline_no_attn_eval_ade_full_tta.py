@@ -30,7 +30,7 @@ model = dict(
         grounding_inference=False,
         ann_suffix=".tif",
         test_anno_dir="/mnt/haojun2/dataset/ADE20K_2021_17_01/annotations_detectron2/validation_merged",
-        ignore_index=65535
+        ignore_index=65535,
     ),
     test_cfg=dict(mode="slide", crop_size=(512, 512), stride=(512, 512)),
 )
@@ -62,14 +62,14 @@ lr_config = dict(
 # By default, models are trained on 8 GPUs with 2 images per GPU
 data = dict(samples_per_gpu=2)
 
-# log_config = dict( 
-#     interval=50, 
-#     hooks=[ 
-#         dict(type='TextLoggerHook'), 
-#         dict(type='WandbLoggerHook', 
+# log_config = dict(
+#     interval=50,
+#     hooks=[
+#         dict(type='TextLoggerHook'),
+#         dict(type='WandbLoggerHook',
 #             init_kwargs=dict(
-#                 id="202209225_baseline_160k_bs16_ade_all_eval_ade_full_miou_tta", 
-#                 name="202209225_baseline_160k_bs16_ade_all_eval_ade_full_miou_tta", 
+#                 id="202209225_baseline_160k_bs16_ade_all_eval_ade_full_miou_tta",
+#                 name="202209225_baseline_160k_bs16_ade_all_eval_ade_full_miou_tta",
 #                 entity='haojunyu',
 #                 project='SVLSeg',
 #         ))

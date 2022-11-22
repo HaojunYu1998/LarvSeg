@@ -3,8 +3,12 @@ import mmcv
 import pytest
 import torch
 
-from mmseg.models.utils import (InvertedResidual, InvertedResidualV3, SELayer,
-                                make_divisible)
+from mmseg.models.utils import (
+    InvertedResidual,
+    InvertedResidualV3,
+    SELayer,
+    make_divisible,
+)
 
 
 def test_make_divisible():
@@ -77,7 +81,7 @@ def test_inv_residualv3():
     assert inv_module.with_res_shortcut is True
     assert inv_module.with_se is False
     assert inv_module.with_expand_conv is False
-    assert not hasattr(inv_module, 'expand_conv')
+    assert not hasattr(inv_module, "expand_conv")
     assert isinstance(inv_module.depthwise_conv.conv, torch.nn.Conv2d)
     assert inv_module.depthwise_conv.conv.kernel_size == (3, 3)
     assert inv_module.depthwise_conv.conv.stride == (1, 1)
@@ -97,11 +101,10 @@ def test_inv_residualv3():
     se_cfg = dict(
         channels=16,
         ratio=4,
-        act_cfg=(dict(type='ReLU'),
-                 dict(type='HSigmoid', bias=3.0, divisor=6.0)))
-    act_cfg = dict(type='HSwish')
-    inv_module = InvertedResidualV3(
-        32, 40, 16, 3, 2, se_cfg=se_cfg, act_cfg=act_cfg)
+        act_cfg=(dict(type="ReLU"), dict(type="HSigmoid", bias=3.0, divisor=6.0)),
+    )
+    act_cfg = dict(type="HSwish")
+    inv_module = InvertedResidualV3(32, 40, 16, 3, 2, se_cfg=se_cfg, act_cfg=act_cfg)
     assert inv_module.with_res_shortcut is False
     assert inv_module.with_se is True
     assert inv_module.with_expand_conv is True
@@ -110,8 +113,9 @@ def test_inv_residualv3():
     assert inv_module.expand_conv.conv.padding == (0, 0)
     assert isinstance(inv_module.expand_conv.activate, mmcv.cnn.HSwish)
 
-    assert isinstance(inv_module.depthwise_conv.conv,
-                      mmcv.cnn.bricks.Conv2dAdaptivePadding)
+    assert isinstance(
+        inv_module.depthwise_conv.conv, mmcv.cnn.bricks.Conv2dAdaptivePadding
+    )
     assert inv_module.depthwise_conv.conv.kernel_size == (3, 3)
     assert inv_module.depthwise_conv.conv.stride == (2, 2)
     assert inv_module.depthwise_conv.conv.padding == (0, 0)
@@ -127,7 +131,8 @@ def test_inv_residualv3():
 
     # test with checkpoint forward
     inv_module = InvertedResidualV3(
-        32, 40, 16, 3, 2, se_cfg=se_cfg, act_cfg=act_cfg, with_cp=True)
+        32, 40, 16, 3, 2, se_cfg=se_cfg, act_cfg=act_cfg, with_cp=True
+    )
     assert inv_module.with_cp
     x = torch.randn(2, 32, 64, 64, requires_grad=True)
     output = inv_module(x)
@@ -137,7 +142,7 @@ def test_inv_residualv3():
 def test_se_layer():
     with pytest.raises(AssertionError):
         # test act_cfg assertion.
-        SELayer(32, act_cfg=(dict(type='ReLU'), ))
+        SELayer(32, act_cfg=(dict(type="ReLU"),))
 
     # test config with channels = 16.
     se_layer = SELayer(16)
@@ -155,7 +160,7 @@ def test_se_layer():
     assert output.shape == (1, 16, 64, 64)
 
     # test config with channels = 16, act_cfg = dict(type='ReLU').
-    se_layer = SELayer(16, act_cfg=dict(type='ReLU'))
+    se_layer = SELayer(16, act_cfg=dict(type="ReLU"))
     assert se_layer.conv1.conv.kernel_size == (1, 1)
     assert se_layer.conv1.conv.stride == (1, 1)
     assert se_layer.conv1.conv.padding == (0, 0)

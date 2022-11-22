@@ -15,7 +15,7 @@ def convert_label(label):
         if ct >= 50:
             break
         else:
-            onehot[:, ct, :, :] = (label == t)
+            onehot[:, ct, :, :] = label == t
         ct = ct + 1
 
     return onehot
@@ -31,14 +31,13 @@ class BSDS:
         self.color_transforms = color_transforms
         self.geo_transforms = geo_transforms
 
-
     def __getitem__(self, idx):
         idx = self.index[idx][:-4]
-        gt = scipy.io.loadmat(os.path.join(self.gt_dir, idx+".mat"))
-        t = np.random.randint(0, len(gt['groundTruth'][0]))
-        gt = gt['groundTruth'][0][t][0][0][0]
+        gt = scipy.io.loadmat(os.path.join(self.gt_dir, idx + ".mat"))
+        t = np.random.randint(0, len(gt["groundTruth"][0]))
+        gt = gt["groundTruth"][0][t][0][0][0]
 
-        img = rgb2lab(plt.imread(os.path.join(self.img_dir, idx+".jpg")))
+        img = rgb2lab(plt.imread(os.path.join(self.img_dir, idx + ".jpg")))
 
         gt = gt.astype(np.int64)
         img = img.astype(np.float32)
@@ -55,7 +54,6 @@ class BSDS:
         img = img.permute(2, 0, 1)
 
         return img, gt.reshape(50, -1).float()
-
 
     def __len__(self):
         return len(self.index)

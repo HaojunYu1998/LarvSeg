@@ -33,7 +33,7 @@ model = dict(
         use_memory_bank=True,
         memory_bank_size=20,
         memory_image_size=20,
-        memory_bank_full_time=40
+        memory_bank_full_time=40,
     ),
     test_cfg=dict(mode="slide", crop_size=(512, 512), stride=(512, 512)),
 )

@@ -50,10 +50,7 @@ class TopKPixelSampler(BasePixelSampler):
         seg_label = seg_label.reshape(B * H * W)
         unique_label = torch.unique(seg_label)
         unique_label = unique_label[unique_label != self.context.ignore_index]
-        pos_bucket = [
-            torch.nonzero(seg_label == l)[:, 0]
-            for l in unique_label
-        ]
+        pos_bucket = [torch.nonzero(seg_label == l)[:, 0] for l in unique_label]
         if len(pos_bucket) == 0:
             return [], []
         seg_logit = seg_logit.permute(0, 2, 3, 1).reshape(B * H * W, N)
@@ -73,7 +70,5 @@ class TopKPixelSampler(BasePixelSampler):
             num_per_buckets.append(k)
         prior_buckets = []
         for k, p, l in zip(num_per_buckets, buckets, unique_label):
-            prior_buckets.append(
-                p[seg_logit[p, int(l)].topk(k).indices]
-            )
+            prior_buckets.append(p[seg_logit[p, int(l)].topk(k).indices])
         return prior_buckets

@@ -29,7 +29,9 @@ def mse(img1, img2):
 
 
 def normalize(x):
-    return (x - torch.mean(x, dim=-1, keepdim=True)) / torch.sqrt(torch.var(x, dim=-1, keepdim=True, unbiased=False) + 1e-5)
+    return (x - torch.mean(x, dim=-1, keepdim=True)) / torch.sqrt(
+        torch.var(x, dim=-1, keepdim=True, unbiased=False) + 1e-5
+    )
 
 
 def init_weights(m):
@@ -43,7 +45,6 @@ def init_weights(m):
 
 
 class FeedForward(nn.Module):
-
     def __init__(self, dim, hidden_dim, dropout=0.1):
         super().__init__()
         self.fc1 = nn.Linear(dim, hidden_dim)
@@ -62,10 +63,9 @@ class FeedForward(nn.Module):
 
 @HEADS.register_module()
 class MaskTransformerExtendVocHead(BaseDecodeHead):
-
     def __init__(
         self,
-        n_cls, # for evaluation
+        n_cls,  # for evaluation
         patch_size,
         d_encoder,
         n_layers,
@@ -88,7 +88,7 @@ class MaskTransformerExtendVocHead(BaseDecodeHead):
         use_sample_class=False,
         num_smaple_class=100,
         basic_loss_weights=[0.2, 1.0],
-        coseg_loss_weights=[0.2, 0.0], # for weak supervision
+        coseg_loss_weights=[0.2, 0.0],  # for weak supervision
         use_coseg=False,
         use_coseg_inference=False,
         use_coseg_score_head=False,
@@ -99,7 +99,7 @@ class MaskTransformerExtendVocHead(BaseDecodeHead):
         background_suppression=False,
         background_topk=5,
         background_thresh=0.2,
-        background_mse_thresh=1.0, # MSE score
+        background_mse_thresh=1.0,  # MSE score
         oracle_inference=False,
         num_oracle_points=1,
         oracle_downsample_rate=1,
@@ -160,13 +160,24 @@ class MaskTransformerExtendVocHead(BaseDecodeHead):
         self.proj_classes = nn.Parameter(self.scale * torch.randn(d_model, d_model))
         self.gamma = nn.Parameter(torch.ones([]))
         self.beta = nn.Parameter(torch.zeros([]))
-        self.all_classes = self.num_classes if self.all_cls is None else len(self.all_cls)
+        self.all_classes = (
+            self.num_classes if self.all_cls is None else len(self.all_cls)
+        )
         if not self.use_lang_seg:
             self.cls_emb = nn.Parameter(torch.randn(self.all_classes, d_model))
         if self.use_coseg:
-            self.register_buffer(f"queue", torch.randn(self.all_classes, memory_bank_size, foreground_topk, d_model))
-            self.register_buffer(f"ptr", torch.zeros(self.all_classes, dtype=torch.long))
-            self.register_buffer(f"full", torch.zeros(self.all_classes, dtype=torch.long))
+            self.register_buffer(
+                f"queue",
+                torch.randn(
+                    self.all_classes, memory_bank_size, foreground_topk, d_model
+                ),
+            )
+            self.register_buffer(
+                f"ptr", torch.zeros(self.all_classes, dtype=torch.long)
+            )
+            self.register_buffer(
+                f"full", torch.zeros(self.all_classes, dtype=torch.long)
+            )
             self.queue = self.queue / self.queue.norm(dim=-1, keepdim=True)
         self.dim = 2 if self.background_suppression else 1
         # if self.use_coseg_score_head:
@@ -174,8 +185,12 @@ class MaskTransformerExtendVocHead(BaseDecodeHead):
         # else:
         if not self.coseg_share_weights:
             self.cls_emb_aux = nn.Parameter(torch.randn(self.all_classes, d_model))
-            self.proj_patch_aux = nn.Parameter(self.scale * torch.randn(d_model, d_model))
-            self.proj_classes_aux = nn.Parameter(self.scale * torch.randn(d_model, d_model))
+            self.proj_patch_aux = nn.Parameter(
+                self.scale * torch.randn(d_model, d_model)
+            )
+            self.proj_classes_aux = nn.Parameter(
+                self.scale * torch.randn(d_model, d_model)
+            )
             self.gamma_aux = nn.Parameter(torch.ones([]))
             self.beta_aux = nn.Parameter(torch.zeros([]))
         self.coseg_head = normalize
@@ -193,45 +208,63 @@ class MaskTransformerExtendVocHead(BaseDecodeHead):
             self.cls_emb = torch.load(cls_emb_path, map_location="cpu")
             self.cls_emb.requires_grad = False
         if training:
-            self.dataset_on_gpu = self.mix_batch_datasets[rank % len(self.mix_batch_datasets)]
+            self.dataset_on_gpu = self.mix_batch_datasets[
+                rank % len(self.mix_batch_datasets)
+            ]
             self.ignore_index = self.ignore_indices[rank % len(self.mix_batch_datasets)]
-            self.basic_loss_weight = self.basic_loss_weights[rank % len(self.mix_batch_datasets)]
-            self.coseg_loss_weight = self.coseg_loss_weights[rank % len(self.mix_batch_datasets)]
-            self.weakly_supervised = self.dataset_on_gpu in self.weakly_supervised_datasets
+            self.basic_loss_weight = self.basic_loss_weights[
+                rank % len(self.mix_batch_datasets)
+            ]
+            self.coseg_loss_weight = self.coseg_loss_weights[
+                rank % len(self.mix_batch_datasets)
+            ]
+            self.weakly_supervised = (
+                self.dataset_on_gpu in self.weakly_supervised_datasets
+            )
         else:
             self.dataset_on_gpu = self.test_dataset
             self.ignore_index = self.test_ignore_index
-        
+
         if self.dataset_on_gpu == "coco171":
             from mmseg.datasets.coco_stuff import COCOStuffDataset
+
             cls_name = COCOStuffDataset.CLASSES
             cls_name = [x.split("-")[0] for x in cls_name]
         elif self.dataset_on_gpu == "ade150":
             from mmseg.datasets.ade import ADE20KDataset
+
             cls_name = ADE20KDataset.CLASSES
         elif self.dataset_on_gpu == "ade124":
             from mmseg.datasets.ade import ADE20K124Dataset
+
             cls_name = ADE20K124Dataset.CLASSES124
         elif self.dataset_on_gpu == "ade130":
             from mmseg.datasets.ade import ADE20K130Dataset
+
             cls_name = ADE20K130Dataset.CLASSES130
         elif self.dataset_on_gpu == "ade847":
             from mmseg.datasets.ade import ADE20KFULLDataset
+
             cls_name = ADE20KFULLDataset.CLASSES
         elif self.dataset_on_gpu == "ade585":
             from mmseg.datasets.ade import ADE20K585Dataset
+
             cls_name = ADE20K585Dataset.CLASSES585
         elif self.dataset_on_gpu == "in124":
             from mmseg.datasets.imagenet import ImageNet124
+
             cls_name = ImageNet124.CLASSES
         elif self.dataset_on_gpu == "in130":
             from mmseg.datasets.imagenet import ImageNet130
+
             cls_name = ImageNet130.CLASSES
         elif self.dataset_on_gpu == "in585":
             from mmseg.datasets.imagenet import ImageNet585
+
             cls_name = ImageNet585.CLASSES
         elif self.dataset_on_gpu == "in11k":
             from mmseg.datasets.imagenet import ImageNet11K
+
             cls_name = ImageNet11K.CLASSES
         else:
             raise NotImplementedError(f"{self.dataset_on_gpu} is not supported")
@@ -246,11 +279,13 @@ class MaskTransformerExtendVocHead(BaseDecodeHead):
             assert label is not None
             unique_label = torch.unique(label.flatten())
             unique_label = unique_label[unique_label != self.ignore_index].tolist()
-            kept_inds = [i for i, c in enumerate(self.cls_name) if c not in self.ignore_cls]
+            kept_inds = [
+                i for i, c in enumerate(self.cls_name) if c not in self.ignore_cls
+            ]
             map_dict = {old_ind: new_ind for new_ind, old_ind in enumerate(kept_inds)}
             remap_label = torch.zeros_like(label) + self.ignore_index
             for l in unique_label:
-                remap_label[label==l] = map_dict[l]
+                remap_label[label == l] = map_dict[l]
             label = remap_label
             self.cls_index = [self.cls_index[i] for i in kept_inds]
             self.cls_name = [self.cls_name[i] for i in kept_inds]
@@ -259,13 +294,15 @@ class MaskTransformerExtendVocHead(BaseDecodeHead):
             assert label is not None
             unique_label = torch.unique(label.flatten())
             unique_label = unique_label[unique_label != self.ignore_index].tolist()
-            rand_inds = np.random.choice(len(self.cls_index), size=self.num_smaple_class, replace=False).tolist()
+            rand_inds = np.random.choice(
+                len(self.cls_index), size=self.num_smaple_class, replace=False
+            ).tolist()
             rand_inds = list(set(rand_inds) | set(unique_label))
             self.cls_index = [self.cls_index[i] for i in rand_inds]
             remap_label = torch.zeros_like(label) + self.ignore_index
             for new_ind, old_ind in enumerate(rand_inds):
                 if old_ind in unique_label:
-                    remap_label[label==old_ind] = new_ind
+                    remap_label[label == old_ind] = new_ind
             return remap_label
         else:
             return label
@@ -275,7 +312,7 @@ class MaskTransformerExtendVocHead(BaseDecodeHead):
             (masks - torch.mean(masks, dim=-1, keepdim=True))
             / torch.sqrt(torch.var(masks, dim=-1, keepdim=True, unbiased=False) + 1e-5)
         ) * self.gamma + self.beta
-    
+
     def _mask_norm_aux(self, masks):
         return (
             (masks - torch.mean(masks, dim=-1, keepdim=True))
@@ -309,20 +346,22 @@ class MaskTransformerExtendVocHead(BaseDecodeHead):
         cls_name = self.cls_name[l]
         pred_labels = masks.argmax(1).unique().tolist()
         masks_new = F.interpolate(
-            masks[:, pred_labels], 
-            size=img_metas[0]["ori_shape"][:2], mode="bilinear", align_corners=self.align_corners
+            masks[:, pred_labels],
+            size=img_metas[0]["ori_shape"][:2],
+            mode="bilinear",
+            align_corners=self.align_corners,
         )
         masks_new = masks_new.argmax(1).squeeze(0)
         masks_new_ = torch.zeros_like(masks_new) + self.ignore_index
         for i, lable in enumerate(pred_labels):
-            masks_new_[masks_new==i] = lable
-        save_name = name.replace('JPEG', 'pth')
+            masks_new_[masks_new == i] = lable
+        save_name = name.replace("JPEG", "pth")
         rate = float((masks_new_ == l).sum() / masks_new_.numel())
-        save_name = f"{rate:.3f}_{len(pred_labels)}_"+save_name
+        save_name = f"{rate:.3f}_{len(pred_labels)}_" + save_name
         print(save_name)
         torch.save(
-            masks_new_, 
-            f"/itpsea4data/mmseg/notebook/in11k_visualization/{cls_name}_{img_id}/{save_name}"
+            masks_new_,
+            f"/itpsea4data/mmseg/notebook/in11k_visualization/{cls_name}_{img_id}/{save_name}",
         )
         # not share weights
         masks_aux = None
@@ -349,37 +388,42 @@ class MaskTransformerExtendVocHead(BaseDecodeHead):
 
     def forward_test(self, inputs, img_metas, test_cfg, gt_semantic_seg=None, img=None):
         self._update(training=False)
-        masks, masks_aux, embeds, scores = self.forward(inputs, img_metas, gt_semantic_seg, img)
+        masks, masks_aux, embeds, scores = self.forward(
+            inputs, img_metas, gt_semantic_seg, img
+        )
         if self.use_coseg_inference:
             masks = self._coseg_inference(masks, scores, embeds)
         elif self.oracle_inference:
             assert gt_semantic_seg is not None
             masks = self.oracle_propagation(embeds, img_metas, gt_semantic_seg)
-        masks = masks[:,[0,1,2,3]]
+        masks = masks[:, [0, 1, 2, 3]]
         return masks
 
-    @force_fp32(apply_to=('seg_mask', ))
+    @force_fp32(apply_to=("seg_mask",))
     def losses(self, seg_mask, seg_mask_aux, seg_embed, seg_score, seg_label):
         """Compute segmentation loss."""
         h = seg_label.shape[-2] // self.downsample_rate
         w = seg_label.shape[-1] // self.downsample_rate
         seg_mask = resize(
-            seg_mask, size=(h, w), mode='bilinear', align_corners=self.align_corners
+            seg_mask, size=(h, w), mode="bilinear", align_corners=self.align_corners
         )
-        seg_label = resize(
-            seg_label.float(), size=(h, w), mode='nearest'
-        ).long()
+        seg_label = resize(seg_label.float(), size=(h, w), mode="nearest").long()
         if not self.coseg_share_weights:
             seg_mask_aux = resize(
-                seg_mask_aux, size=(h, w), mode='bilinear', align_corners=self.align_corners
+                seg_mask_aux,
+                size=(h, w),
+                mode="bilinear",
+                align_corners=self.align_corners,
             )
         if self.weakly_supervised:
-            loss = self.weakly_loss(seg_mask, seg_mask_aux, seg_embed, seg_score, seg_label)
+            loss = self.weakly_loss(
+                seg_mask, seg_mask_aux, seg_embed, seg_score, seg_label
+            )
         else:
             loss = self.supervised_loss(seg_mask, seg_mask_aux, seg_label)
-        loss['acc_seg'] = self._log_accuracy(seg_mask, seg_label)
+        loss["acc_seg"] = self._log_accuracy(seg_mask, seg_label)
         return loss
-    
+
     def _log_accuracy(self, seg_mask, seg_label):
         B, N, H, W = seg_mask.shape
         seg_label = seg_label.flatten()
@@ -388,12 +432,15 @@ class MaskTransformerExtendVocHead(BaseDecodeHead):
         acc_weight = 1.0
         if weak_in_batch:
             num_datasets = len(self.mix_batch_datasets)
-            all_data = [self.mix_batch_datasets[r % num_datasets] for r in range(self.world_size)]
+            all_data = [
+                self.mix_batch_datasets[r % num_datasets]
+                for r in range(self.world_size)
+            ]
             sup_data = [d for d in all_data if d not in self.weakly_supervised_datasets]
             acc_mult_weight = len(all_data) / len(sup_data)
             acc_weight = 0.0 if self.weakly_supervised else acc_mult_weight
         return accuracy(seg_mask, seg_label) * acc_weight
-    
+
     def supervised_loss(self, seg_mask, seg_mask_aux, seg_label):
         """
         Args:
@@ -404,9 +451,10 @@ class MaskTransformerExtendVocHead(BaseDecodeHead):
         B, N, H, W = seg_mask.size()
         seg_mask = seg_mask.permute(0, 2, 3, 1).reshape(B * H * W, N)
         seg_label = seg_label.reshape(B * H * W)
-        loss["loss_basic"] = self.loss_decode(
-            seg_mask, seg_label, ignore_index=self.ignore_index
-        ) * self.basic_loss_weight
+        loss["loss_basic"] = (
+            self.loss_decode(seg_mask, seg_label, ignore_index=self.ignore_index)
+            * self.basic_loss_weight
+        )
         loss["loss_coseg"] = seg_mask.sum() * 0.0
         if not self.coseg_share_weights:
             loss["loss_coseg"] = seg_mask.sum() * 0.0 + seg_mask_aux.sum() * 0.0
@@ -437,11 +485,14 @@ class MaskTransformerExtendVocHead(BaseDecodeHead):
                 else:
                     basic_loss += self._cross_entropy_loss(mask, l, ignore_inds)
                 num_basic += 1
-                if not self.use_coseg: continue
-                coseg_loss += self._coseg_loss(mask, score, embed, l, (h, w, H, W), ignore_inds)
+                if not self.use_coseg:
+                    continue
+                coseg_loss += self._coseg_loss(
+                    mask, score, embed, l, (h, w, H, W), ignore_inds
+                )
                 num_coseg += 1
         if num_basic == 0:
-            loss["loss_basic"] = seg_mask.sum() * 0.0 
+            loss["loss_basic"] = seg_mask.sum() * 0.0
         else:
             loss["loss_basic"] = basic_loss / num_basic * self.basic_loss_weight
         if num_coseg == 0:
@@ -451,15 +502,15 @@ class MaskTransformerExtendVocHead(BaseDecodeHead):
         return loss
 
     def _cross_entropy_loss(self, pred, label, ignore_indices):
-        """Cross Entropy Loss with multiple ignore indices.
-        """
+        """Cross Entropy Loss with multiple ignore indices."""
         assert pred.numel() > 0, "no elements in prediction"
         if "in" in self.dataset_on_gpu:
             assert len(ignore_indices) == 0, f"more than one classes for imagenet data"
         N = pred.shape[-1]
         kept_indices = [i for i in range(N) if i not in ignore_indices]
         if len(kept_indices) == 0:
-            print("NO Label"); return pred.sum() * 0.0
+            print("NO Label")
+            return pred.sum() * 0.0
         assert label in kept_indices, f"{label} not in {kept_indices}"
         map_dict = {old_ind: new_ind for new_ind, old_ind in enumerate(kept_indices)}
         pred = pred[:, kept_indices].mean(dim=0, keepdim=True)
@@ -477,10 +528,13 @@ class MaskTransformerExtendVocHead(BaseDecodeHead):
         if coseg_score is None:
             return mask.sum() * 0.0
         if self.background_suppression and not self.use_coseg_score_head:
-            coseg_score = coseg_score[...,0] - coseg_score[...,1]
+            coseg_score = coseg_score[..., 0] - coseg_score[..., 1]
         coseg_score = self.coseg_head(coseg_score).reshape(h, w)
         coseg_score = F.interpolate(
-            coseg_score[None, None], size=(H, W), mode="bilinear", align_corners=self.align_corners
+            coseg_score[None, None],
+            size=(H, W),
+            mode="bilinear",
+            align_corners=self.align_corners,
         )[0, 0].flatten()
         mask = mask * coseg_score[:, None].sigmoid()
         coseg_loss = self._cross_entropy_loss(mask, fg_label, bg_labels)
@@ -495,7 +549,7 @@ class MaskTransformerExtendVocHead(BaseDecodeHead):
         embed = embed.permute(0, 2, 3, 1).reshape(h * w, D)
         for l in range(N):
             coseg_score_l = self._coseg_score(score, embed, l, [])
-            coseg_score_l = coseg_score_l[...,0] - coseg_score_l[...,1]
+            coseg_score_l = coseg_score_l[..., 0] - coseg_score_l[..., 1]
             coseg_score_l = self.coseg_head(coseg_score_l).flatten()
             mask[:, l] *= coseg_score_l.sigmoid()
         return mask.reshape(B, h, w, N).permute(0, 3, 1, 2)
@@ -564,21 +618,21 @@ class MaskTransformerExtendVocHead(BaseDecodeHead):
         seg_embed = resize(
             input=seg_embed,
             size=(h, w),
-            mode='bilinear',
-            align_corners=self.align_corners
+            mode="bilinear",
+            align_corners=self.align_corners,
         )
-        seg_label = resize(
-            input=seg_label.float(),
-            size=(h, w),
-            mode='nearest'
-        ).long()[0, 0]
+        seg_label = resize(input=seg_label.float(), size=(h, w), mode="nearest").long()[
+            0, 0
+        ]
         if self.dataset_on_gpu == "ade150":
             seg_label = seg_label - 1
             seg_label[seg_label == -1] = self.ignore_index
         seg_embed = seg_embed.permute(0, 2, 3, 1)
         seg_label_per_image = seg_label.reshape(h * w)
         seg_embed_per_image = seg_embed.reshape(h * w, D)
-        seg_embed_per_image = seg_embed_per_image / seg_embed_per_image.norm(dim=-1, keepdim=True)
+        seg_embed_per_image = seg_embed_per_image / seg_embed_per_image.norm(
+            dim=-1, keepdim=True
+        )
         unique_label = torch.unique(seg_label_per_image)
         unique_label = unique_label[unique_label != self.ignore_index]
         if "ADE_val_00000511" in name:
@@ -586,7 +640,7 @@ class MaskTransformerExtendVocHead(BaseDecodeHead):
         masks = torch.zeros((B, self.num_classes, h, w), device=device)
         for l in unique_label:
             pos_inds = (seg_label_per_image == l).nonzero(as_tuple=False).flatten()
-            inds = torch.randperm(len(pos_inds))[:self.num_oracle_points]
+            inds = torch.randperm(len(pos_inds))[: self.num_oracle_points]
             seed_inds = pos_inds[inds]
             cos_mat = seg_embed_per_image[seed_inds] @ seg_embed_per_image.T
             score_mat = cos_mat.max(dim=0).values.reshape(h, w)
@@ -601,6 +655,7 @@ class MaskTransformerExtendVocHead(BaseDecodeHead):
         tvect = target.new_zeros((batch, nclass), dtype=torch.int64)
         for i in range(batch):
             hist = torch.histc(
-                target[i].data.float(), bins=nclass, min=0, max=nclass - 1)
+                target[i].data.float(), bins=nclass, min=0, max=nclass - 1
+            )
             tvect[i] = hist
         return tvect

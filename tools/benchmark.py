@@ -12,11 +12,12 @@ from mmseg.models import build_segmentor
 
 
 def parse_args():
-    parser = argparse.ArgumentParser(description='MMSeg benchmark a model')
-    parser.add_argument('config', help='test config file path')
-    parser.add_argument('checkpoint', help='checkpoint file')
+    parser = argparse.ArgumentParser(description="MMSeg benchmark a model")
+    parser.add_argument("config", help="test config file path")
+    parser.add_argument("checkpoint", help="checkpoint file")
     parser.add_argument(
-        '--log-interval', type=int, default=50, help='interval of logging')
+        "--log-interval", type=int, default=50, help="interval of logging"
+    )
     args = parser.parse_args()
     return args
 
@@ -38,15 +39,16 @@ def main():
         samples_per_gpu=1,
         workers_per_gpu=cfg.data.workers_per_gpu,
         dist=False,
-        shuffle=False)
+        shuffle=False,
+    )
 
     # build the model and load checkpoint
     cfg.model.train_cfg = None
-    model = build_segmentor(cfg.model, test_cfg=cfg.get('test_cfg'))
-    fp16_cfg = cfg.get('fp16', None)
+    model = build_segmentor(cfg.model, test_cfg=cfg.get("test_cfg"))
+    fp16_cfg = cfg.get("fp16", None)
     if fp16_cfg is not None:
         wrap_fp16_model(model)
-    load_checkpoint(model, args.checkpoint, map_location='cpu')
+    load_checkpoint(model, args.checkpoint, map_location="cpu")
 
     model = MMDataParallel(model, device_ids=[0])
 
@@ -73,14 +75,16 @@ def main():
             pure_inf_time += elapsed
             if (i + 1) % args.log_interval == 0:
                 fps = (i + 1 - num_warmup) / pure_inf_time
-                print('Done image [{:3}/ {}], '.format(i+1, total_iters) + 
-                      'fps: {:.2f} img / s'.format(fps))
+                print(
+                    "Done image [{:3}/ {}], ".format(i + 1, total_iters)
+                    + "fps: {:.2f} img / s".format(fps)
+                )
 
         if (i + 1) == total_iters:
             fps = (i + 1 - num_warmup) / pure_inf_time
-            print('Overall fps: {:.2f} img / s'.format(fps))
+            print("Overall fps: {:.2f} img / s".format(fps))
             break
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()

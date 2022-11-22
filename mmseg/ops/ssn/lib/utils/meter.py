@@ -3,7 +3,7 @@ class Meter:
         self.ema_coef = ema_coef
         self.params = {}
 
-    def add(self, params:dict, ignores:list = []):
+    def add(self, params: dict, ignores: list = []):
         for k, v in params.items():
             if k in ignores:
                 continue

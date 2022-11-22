@@ -25,7 +25,7 @@ model = dict(
         grounding_inference=True,
         ann_suffix=".tif",
         test_anno_dir="/mnt/haojun2/dataset/ADE20K_2021_17_01/annotations_detectron2/validation_merged",
-        ignore_index=65535
+        ignore_index=65535,
     ),
     test_cfg=dict(mode="slide", crop_size=(512, 512), stride=(512, 512)),
 )

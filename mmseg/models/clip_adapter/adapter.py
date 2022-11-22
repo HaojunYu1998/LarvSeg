@@ -9,9 +9,9 @@ from .text_prompt import PromptExtractor
 
 class ClipAdapter(nn.Module):
     def __init__(
-        self, 
-        clip_model_name: str, 
-        prompt_learner: PromptExtractor, 
+        self,
+        clip_model_name: str,
+        prompt_learner: PromptExtractor,
     ):
         super().__init__()
         self.clip_model = build_clip_model(clip_model_name)
@@ -62,8 +62,7 @@ class ClipAdapter(nn.Module):
 
     def get_image_features(self, image: torch.Tensor):
         image_features = self.clip_model.visual(image)
-        image_features = image_features / \
-            image_features.norm(dim=-1, keepdim=True)
+        image_features = image_features / image_features.norm(dim=-1, keepdim=True)
         return image_features
 
     def get_sim_logits(

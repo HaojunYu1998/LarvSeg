@@ -20,8 +20,7 @@ def test_ohem_sampler():
         sampler.sample(seg_logit, seg_label)
 
     # test with thresh
-    sampler = OHEMPixelSampler(
-        context=_context_for_ohem(), thresh=0.7, min_kept=200)
+    sampler = OHEMPixelSampler(context=_context_for_ohem(), thresh=0.7, min_kept=200)
     seg_logit = torch.randn(1, 19, 45, 45)
     seg_label = torch.randint(0, 19, size=(1, 1, 45, 45))
     seg_weight = sampler.sample(seg_logit, seg_label)

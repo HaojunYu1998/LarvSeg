@@ -41,7 +41,7 @@ model = dict(
         in_channels=[1024, 1024, 1024, 1024],
         channels=1024,
         num_classes=150,
-        mlseg=dict(head=dict(num_classes=150))
+        mlseg=dict(head=dict(num_classes=150)),
     ),
     auxiliary_head=dict(in_channels=1024, num_classes=150),
     test_cfg=dict(mode="slide", crop_size=crop_size, stride=(426, 426)),
@@ -60,11 +60,14 @@ optimizer = dict(
     betas=(0.9, 0.999),
     weight_decay=0.05,
     constructor="LayerDecayOptimizerConstructor",
-    paramwise_cfg=dict(num_layers=24, layer_decay_rate=0.95,
+    paramwise_cfg=dict(
+        num_layers=24,
+        layer_decay_rate=0.95,
         custom_keys={
             "decode_head.img_cls_head.block.": dict(lr_mult=0.1),
-            "decode_head.img_cls_head.fc": dict(lr_mult=0.1)
-        }),
+            "decode_head.img_cls_head.fc": dict(lr_mult=0.1),
+        },
+    ),
 )
 
 lr_config = dict(

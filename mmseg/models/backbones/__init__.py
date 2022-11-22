@@ -17,9 +17,21 @@ from .vit_clip import VisionTransformerCLIP
 from .beit import BEiT
 
 __all__ = [
-    'ResNet', 'ResNetV1c', 'ResNetV1d', 'ResNeXt', 'HRNet', 'FastSCNN',
-    'ResNeSt', 'MobileNetV2', 'UNet', 'CGNet', 'MobileNetV3',
-    'VisionTransformer', 'SwinTransformer', 'MixVisionTransformer',
-    'VisionTransformerSSN', 'VisionTransformerCLIP',
-    'SwinTransformerV2'
+    "ResNet",
+    "ResNetV1c",
+    "ResNetV1d",
+    "ResNeXt",
+    "HRNet",
+    "FastSCNN",
+    "ResNeSt",
+    "MobileNetV2",
+    "UNet",
+    "CGNet",
+    "MobileNetV3",
+    "VisionTransformer",
+    "SwinTransformer",
+    "MixVisionTransformer",
+    "VisionTransformerSSN",
+    "VisionTransformerCLIP",
+    "SwinTransformerV2",
 ]

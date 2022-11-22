@@ -3,7 +3,20 @@ import math
 import warnings
 from collections import OrderedDict, namedtuple
 from torch import Tensor, device, dtype
-from typing import Union, Tuple, Any, Callable, Iterator, Set, Optional, overload, TypeVar, Mapping, Dict, List
+from typing import (
+    Union,
+    Tuple,
+    Any,
+    Callable,
+    Iterator,
+    Set,
+    Optional,
+    overload,
+    TypeVar,
+    Mapping,
+    Dict,
+    List,
+)
 
 import torch
 import torch.nn as nn
@@ -29,10 +42,12 @@ from torch.utils.checkpoint import checkpoint
 from .helpers.vit import load_weights_from_npz, load_weights_from_HRT_Cls_format
 
 
-class _IncompatibleKeys(namedtuple('IncompatibleKeys', ['missing_keys', 'unexpected_keys'])):
+class _IncompatibleKeys(
+    namedtuple("IncompatibleKeys", ["missing_keys", "unexpected_keys"])
+):
     def __repr__(self):
         if not self.missing_keys and not self.unexpected_keys:
-            return '<All keys matched successfully>'
+            return "<All keys matched successfully>"
         return super(_IncompatibleKeys, self).__repr__()
 
     __str__ = __repr__
@@ -243,7 +258,7 @@ class VisionTransformerCLIP(BaseModule):
             pad_to_patch_size=True,
             norm_cfg=norm_cfg if patch_norm else None,
             init_cfg=None,
-            bias=False, # NOTE: Set Patch Embedding bias=False to match CLIP
+            bias=False,  # NOTE: Set Patch Embedding bias=False to match CLIP
         )
 
         num_patches = (img_size[0] // patch_size) * (img_size[1] // patch_size)
@@ -289,7 +304,7 @@ class VisionTransformerCLIP(BaseModule):
                     batch_first=True,
                 )
             )
-        
+
         self.norm0_name, norm0 = build_norm_layer(norm_cfg, embed_dims, postfix=0)
         self.add_module(self.norm0_name, norm0)
 

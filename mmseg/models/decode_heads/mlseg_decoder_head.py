@@ -12,7 +12,6 @@ from .mlseg_encoder_head import GroupWiseLinear
 
 @HEADS.register_module()
 class MLSegDecoderHead(nn.Module):
-
     def __init__(
         self,
         input_dim,
@@ -39,7 +38,8 @@ class MLSegDecoderHead(nn.Module):
         )
         self.num_class = num_class
         self.position_embedding = PositionEmbeddingSine(
-            hidden_dim // 2, normalize=True, maxH=size, maxW=size)
+            hidden_dim // 2, normalize=True, maxH=size, maxW=size
+        )
 
         self.input_proj = nn.Conv2d(input_dim, hidden_dim, kernel_size=1)
         self.share_embedding = share_embedding
@@ -55,8 +55,7 @@ class MLSegDecoderHead(nn.Module):
             query_input = self.query_embed.weight
         pos = self.position_embedding(input)
 
-        hs = self.transformer(self.input_proj(input), query_input,
-                              pos)[0]  # B,K,d
+        hs = self.transformer(self.input_proj(input), query_input, pos)[0]  # B,K,d
         out = self.fc(hs[-1])
 
         if self.share_embedding == "CA":
@@ -104,16 +103,16 @@ class PositionEmbeddingSine(nn.Module):
             x_embed = x_embed / (x_embed[:, :, -1:] + eps) * self.scale
 
         dim_t = torch.arange(self.num_pos_feats, dtype=torch.float32)
-        dim_t = self.temperature**(2 * (dim_t // 2) / self.num_pos_feats)
+        dim_t = self.temperature ** (2 * (dim_t // 2) / self.num_pos_feats)
 
         pos_x = x_embed[:, :, :, None] / dim_t
         pos_y = y_embed[:, :, :, None] / dim_t
         pos_x = torch.stack(
-            (pos_x[:, :, :, 0::2].sin(), pos_x[:, :, :, 1::2].cos()),
-            dim=4).flatten(3)
+            (pos_x[:, :, :, 0::2].sin(), pos_x[:, :, :, 1::2].cos()), dim=4
+        ).flatten(3)
         pos_y = torch.stack(
-            (pos_y[:, :, :, 0::2].sin(), pos_y[:, :, :, 1::2].cos()),
-            dim=4).flatten(3)
+            (pos_y[:, :, :, 0::2].sin(), pos_y[:, :, :, 1::2].cos()), dim=4
+        ).flatten(3)
         pos = torch.cat((pos_y, pos_x), dim=3).permute(0, 3, 1, 2)
         return pos
 
@@ -123,7 +122,6 @@ class PositionEmbeddingSine(nn.Module):
 
 
 class Transformer(nn.Module):
-
     def __init__(
         self,
         d_model=512,
@@ -142,17 +140,17 @@ class Transformer(nn.Module):
 
         self.num_encoder_layers = num_encoder_layers
         if num_decoder_layers > 0:
-            encoder_layer = TransformerEncoderLayer(d_model, nhead,
-                                                    dim_feedforward, dropout,
-                                                    activation,
-                                                    normalize_before)
+            encoder_layer = TransformerEncoderLayer(
+                d_model, nhead, dim_feedforward, dropout, activation, normalize_before
+            )
             encoder_norm = nn.LayerNorm(d_model) if normalize_before else None
-            self.encoder = TransformerEncoder(encoder_layer,
-                                              num_encoder_layers, encoder_norm)
+            self.encoder = TransformerEncoder(
+                encoder_layer, num_encoder_layers, encoder_norm
+            )
 
-        decoder_layer = TransformerDecoderLayer(d_model, nhead,
-                                                dim_feedforward, dropout,
-                                                activation, normalize_before)
+        decoder_layer = TransformerDecoderLayer(
+            d_model, nhead, dim_feedforward, dropout, activation, normalize_before
+        )
         decoder_norm = nn.LayerNorm(d_model)
         self.decoder = TransformerDecoder(
             decoder_layer,
@@ -220,8 +218,7 @@ class Transformer(nn.Module):
             mask = mask.flatten(1)
 
         if self.num_encoder_layers > 0:
-            memory = self.encoder(
-                src, src_key_padding_mask=mask, pos=pos_embed)
+            memory = self.encoder(src, src_key_padding_mask=mask, pos=pos_embed)
         else:
             memory = src
 
@@ -234,12 +231,10 @@ class Transformer(nn.Module):
             query_pos=query_embed,
         )
 
-        return hs.transpose(1, 2), memory[:h * w].permute(1, 2,
-                                                          0).view(bs, c, h, w)
+        return hs.transpose(1, 2), memory[: h * w].permute(1, 2, 0).view(bs, c, h, w)
 
 
 class TransformerEncoder(nn.Module):
-
     def __init__(self, encoder_layer, num_layers, norm=None):
         super().__init__()
         self.layers = _get_clones(encoder_layer, num_layers)
@@ -264,12 +259,7 @@ class TransformerEncoder(nn.Module):
 
 
 class TransformerDecoder(nn.Module):
-
-    def __init__(self,
-                 decoder_layer,
-                 num_layers,
-                 norm=None,
-                 return_intermediate=False):
+    def __init__(self, decoder_layer, num_layers, norm=None, return_intermediate=False):
         super().__init__()
         self.layers = _get_clones(decoder_layer, num_layers)
         self.num_layers = num_layers
@@ -317,7 +307,6 @@ class TransformerDecoder(nn.Module):
 
 
 class TransformerEncoderLayer(nn.Module):
-
     def __init__(
         self,
         d_model,
@@ -352,11 +341,8 @@ class TransformerEncoderLayer(nn.Module):
 
         q = k = self.with_pos_embed(src, pos)
         src2, corr = self.self_attn(
-            q,
-            k,
-            value=src,
-            attn_mask=src_mask,
-            key_padding_mask=src_key_padding_mask)
+            q, k, value=src, attn_mask=src_mask, key_padding_mask=src_key_padding_mask
+        )
 
         src = src + self.dropout1(src2)
         src = self.norm1(src)
@@ -367,7 +353,6 @@ class TransformerEncoderLayer(nn.Module):
 
 
 class TransformerDecoderLayer(nn.Module):
-
     def __init__(
         self,
         d_model,
@@ -379,8 +364,7 @@ class TransformerDecoderLayer(nn.Module):
     ):
         super().__init__()
         self.self_attn = MultiheadAttention(d_model, nhead, dropout=dropout)
-        self.multihead_attn = MultiheadAttention(
-            d_model, nhead, dropout=dropout)
+        self.multihead_attn = MultiheadAttention(d_model, nhead, dropout=dropout)
         # Implementation of Feedforward model
         self.linear1 = nn.Linear(d_model, dim_feedforward)
         self.dropout = nn.Dropout(dropout)

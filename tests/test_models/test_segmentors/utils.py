@@ -23,30 +23,31 @@ def _demo_mm_inputs(input_shape=(1, 3, 8, 16), num_classes=10):
     rng = np.random.RandomState(0)
 
     imgs = rng.rand(*input_shape)
-    segs = rng.randint(
-        low=0, high=num_classes - 1, size=(N, 1, H, W)).astype(np.uint8)
+    segs = rng.randint(low=0, high=num_classes - 1, size=(N, 1, H, W)).astype(np.uint8)
 
-    img_metas = [{
-        'img_shape': (H, W, C),
-        'ori_shape': (H, W, C),
-        'pad_shape': (H, W, C),
-        'filename': '<demo>.png',
-        'scale_factor': 1.0,
-        'flip': False,
-        'flip_direction': 'horizontal'
-    } for _ in range(N)]
+    img_metas = [
+        {
+            "img_shape": (H, W, C),
+            "ori_shape": (H, W, C),
+            "pad_shape": (H, W, C),
+            "filename": "<demo>.png",
+            "scale_factor": 1.0,
+            "flip": False,
+            "flip_direction": "horizontal",
+        }
+        for _ in range(N)
+    ]
 
     mm_inputs = {
-        'imgs': torch.FloatTensor(imgs),
-        'img_metas': img_metas,
-        'gt_semantic_seg': torch.LongTensor(segs)
+        "imgs": torch.FloatTensor(imgs),
+        "img_metas": img_metas,
+        "gt_semantic_seg": torch.LongTensor(segs),
     }
     return mm_inputs
 
 
 @BACKBONES.register_module()
 class ExampleBackbone(nn.Module):
-
     def __init__(self):
         super(ExampleBackbone, self).__init__()
         self.conv = nn.Conv2d(3, 3, 3)
@@ -60,7 +61,6 @@ class ExampleBackbone(nn.Module):
 
 @HEADS.register_module()
 class ExampleDecodeHead(BaseDecodeHead):
-
     def __init__(self):
         super(ExampleDecodeHead, self).__init__(3, 3, num_classes=19)
 
@@ -70,7 +70,6 @@ class ExampleDecodeHead(BaseDecodeHead):
 
 @HEADS.register_module()
 class ExampleCascadeDecodeHead(BaseCascadeDecodeHead):
-
     def __init__(self):
         super(ExampleCascadeDecodeHead, self).__init__(3, 3, num_classes=19)
 
@@ -86,9 +85,9 @@ def _segmentor_forward_train_test(segmentor):
     # batch_size=2 for BatchNorm
     mm_inputs = _demo_mm_inputs(num_classes=num_classes)
 
-    imgs = mm_inputs.pop('imgs')
-    img_metas = mm_inputs.pop('img_metas')
-    gt_semantic_seg = mm_inputs['gt_semantic_seg']
+    imgs = mm_inputs.pop("imgs")
+    img_metas = mm_inputs.pop("img_metas")
+    gt_semantic_seg = mm_inputs["gt_semantic_seg"]
 
     # convert to cuda Tensor if applicable
     if torch.cuda.is_available():
@@ -98,7 +97,8 @@ def _segmentor_forward_train_test(segmentor):
 
     # Test forward train
     losses = segmentor.forward(
-        imgs, img_metas, gt_semantic_seg=gt_semantic_seg, return_loss=True)
+        imgs, img_metas, gt_semantic_seg=gt_semantic_seg, return_loss=True
+    )
     assert isinstance(losses, dict)
 
     # Test forward simple test

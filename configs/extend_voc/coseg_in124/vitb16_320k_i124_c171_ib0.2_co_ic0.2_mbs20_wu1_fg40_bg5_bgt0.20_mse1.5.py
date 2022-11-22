@@ -34,7 +34,7 @@ model = dict(
         background_suppression=True,
         background_topk=5,
         background_thresh=0.20,
-        background_mse_thresh=1.5
+        background_mse_thresh=1.5,
     ),
     test_cfg=dict(mode="slide", crop_size=(512, 512), stride=(512, 512)),
 )

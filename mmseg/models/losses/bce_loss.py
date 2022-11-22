@@ -5,34 +5,39 @@ import torch.nn.functional as F
 import numpy as np
 from ..builder import LOSSES
 
+
 @LOSSES.register_module()
 class BCELoss(nn.Module):
-
-    def __init__(self,
-                 class_freq_path=None,
-                 reduction='mean'):
+    def __init__(self, class_freq_path=None, reduction="mean"):
         super(BCELoss, self).__init__()
         if class_freq_path:
             class_freq = np.load(class_freq_path)
-            weight = (1-class_freq) / (class_freq + 0.01)
+            weight = (1 - class_freq) / (class_freq + 0.01)
             weight = torch.from_numpy(weight)
         else:
             weight = None
-        self.mul_label_loss = nn.BCEWithLogitsLoss(pos_weight=weight, reduction=reduction)
+        self.mul_label_loss = nn.BCEWithLogitsLoss(
+            pos_weight=weight, reduction=reduction
+        )
 
-    def forward(self,
-                img_pred,
-                label,
-                **kwargs):
+    def forward(self, img_pred, label, **kwargs):
         """Forward function."""
         return self.mul_label_loss(img_pred, label)
 
+
 @LOSSES.register_module()
 class AsymmetricLoss(nn.Module):
-    ''' Notice - optimized version, minimizes memory allocation and gpu uploading,
-    favors inplace operations'''
+    """Notice - optimized version, minimizes memory allocation and gpu uploading,
+    favors inplace operations"""
 
-    def __init__(self, gamma_neg=4, gamma_pos=1, clip=0.05, eps=1e-5, disable_torch_grad_focal_loss=False):
+    def __init__(
+        self,
+        gamma_neg=4,
+        gamma_pos=1,
+        clip=0.05,
+        eps=1e-5,
+        disable_torch_grad_focal_loss=False,
+    ):
         super(AsymmetricLoss, self).__init__()
 
         self.gamma_neg = gamma_neg
@@ -41,10 +46,12 @@ class AsymmetricLoss(nn.Module):
         self.disable_torch_grad_focal_loss = disable_torch_grad_focal_loss
         self.eps = eps
 
-        self.targets = self.anti_targets = self.xs_pos = self.xs_neg = self.asymmetric_w = self.loss = None
+        self.targets = (
+            self.anti_targets
+        ) = self.xs_pos = self.xs_neg = self.asymmetric_w = self.loss = None
 
     def forward(self, x, y):
-        """"
+        """ "
         Parameters
         ----------
         x: input logits
@@ -74,18 +81,23 @@ class AsymmetricLoss(nn.Module):
                     #     torch._C.set_grad_enabled(False)
                     self.xs_pos = self.xs_pos * self.targets
                     self.xs_neg = self.xs_neg * self.anti_targets
-                    self.asymmetric_w = torch.pow(1 - self.xs_pos - self.xs_neg,
-                                                self.gamma_pos * self.targets + self.gamma_neg * self.anti_targets)
+                    self.asymmetric_w = torch.pow(
+                        1 - self.xs_pos - self.xs_neg,
+                        self.gamma_pos * self.targets
+                        + self.gamma_neg * self.anti_targets,
+                    )
                     # if self.disable_torch_grad_focal_loss:
                     #     torch._C.set_grad_enabled(True)
                 self.loss *= self.asymmetric_w
             else:
                 self.xs_pos = self.xs_pos * self.targets
                 self.xs_neg = self.xs_neg * self.anti_targets
-                self.asymmetric_w = torch.pow(1 - self.xs_pos - self.xs_neg,
-                                            self.gamma_pos * self.targets + self.gamma_neg * self.anti_targets)   
-                self.loss *= self.asymmetric_w         
-        _loss = - self.loss.sum() / x.size(0)
+                self.asymmetric_w = torch.pow(
+                    1 - self.xs_pos - self.xs_neg,
+                    self.gamma_pos * self.targets + self.gamma_neg * self.anti_targets,
+                )
+                self.loss *= self.asymmetric_w
+        _loss = -self.loss.sum() / x.size(0)
         _loss = _loss / y.size(1)
 
         return _loss

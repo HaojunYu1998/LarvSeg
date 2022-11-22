@@ -35,7 +35,6 @@ def init_weights(m):
 
 @HEADS.register_module()
 class MaskTransformerStructureHead(BaseDecodeHead):
-
     def __init__(
         self,
         n_cls,
@@ -114,8 +113,9 @@ class MaskTransformerStructureHead(BaseDecodeHead):
         self.imagenet_cam_thresh = imagenet_cam_thresh
         self.pseudo_label_thresh = pseudo_label_thresh
         self.cls_emb_path = cls_emb_path
-        self.cls_emb_path_test = cls_emb_path_test if len(
-            cls_emb_path_test) else self.cls_emb_path
+        self.cls_emb_path_test = (
+            cls_emb_path_test if len(cls_emb_path_test) else self.cls_emb_path
+        )
         self.cls_emb_concat = cls_emb_concat
         self.grounding_inference = grounding_inference
         self.imagenet_pred_save_dir = imagenet_pred_save_dir
@@ -130,18 +130,20 @@ class MaskTransformerStructureHead(BaseDecodeHead):
         self.call_init_weight = call_init_weight
 
         dpr = [x.item() for x in torch.linspace(0, drop_path_rate, n_layers)]
-        self.blocks = nn.ModuleList([
-            Block(d_model, n_heads, d_ff, dropout, dpr[i])
-            for i in range(n_layers)
-        ])
+        self.blocks = nn.ModuleList(
+            [Block(d_model, n_heads, d_ff, dropout, dpr[i]) for i in range(n_layers)]
+        )
 
         self.cls_emb_from_backbone = cls_emb_from_backbone
         self.imagenet_in_batch = False
         if isinstance(cls_emb_path, list):
             self.imagenet_in_batch = any("in21k" in p for p in cls_emb_path)
             from mmcv.runner import get_dist_info
+
             rank, _ = get_dist_info()
-            self.cls_emb_path = cls_emb_path.pop(rank % len(cls_emb_path)) #cls_emb_path[]
+            self.cls_emb_path = cls_emb_path.pop(
+                rank % len(cls_emb_path)
+            )  # cls_emb_path[]
             self.cls_emb_other = cls_emb_path
             print(f"cuda:{rank} loading {self.cls_emb_path}.")
 
@@ -150,10 +152,16 @@ class MaskTransformerStructureHead(BaseDecodeHead):
         self.loaded_cls_emb_test = False
         self.loaded_cls_emb_train = False
 
-        self.imagenet_on_gpu = "in21k" in self.cls_emb_path if self.training \
-                          else "in21k" in self.cls_emb_path_test
-        self.imagenet_on_gpu_ = "in11k" in self.cls_emb_path if self.training \
-                          else "in11k" in self.cls_emb_path_test
+        self.imagenet_on_gpu = (
+            "in21k" in self.cls_emb_path
+            if self.training
+            else "in21k" in self.cls_emb_path_test
+        )
+        self.imagenet_on_gpu_ = (
+            "in11k" in self.cls_emb_path
+            if self.training
+            else "in11k" in self.cls_emb_path_test
+        )
         self.imagenet_on_gpu = self.imagenet_on_gpu_ or self.imagenet_on_gpu
         # assert self.imagenet_on_gpu is True, f"{self.cls_emb_path_test}, {self.training}"
         # print(rank, self.imagenet)
@@ -168,11 +176,10 @@ class MaskTransformerStructureHead(BaseDecodeHead):
 
         self.proj_dec = nn.Linear(d_encoder, d_model)
 
-        self.proj_patch = nn.Parameter(self.scale *
-                                       torch.randn(d_model, d_model))
+        self.proj_patch = nn.Parameter(self.scale * torch.randn(d_model, d_model))
         # self.proj_classes = nn.Parameter(self.scale *
         #                                  torch.randn(d_model, d_model))
-        
+
         self.decoder_norm = nn.LayerNorm(d_model)
         self.gamma = nn.Parameter(torch.ones([]))
         self.beta = nn.Parameter(torch.zeros([]))
@@ -197,7 +204,7 @@ class MaskTransformerStructureHead(BaseDecodeHead):
         cls_emb = cls_emb.to(x.device)
 
         B, C, H, W = x.size()
-        
+
         x = x.view(B, C, -1).permute(0, 2, 1)
 
         x = self.proj_dec(x)
@@ -223,7 +230,9 @@ class MaskTransformerStructureHead(BaseDecodeHead):
             # masks = self.mask_norm(masks)
             masks = (
                 (masks - torch.mean(masks, dim=-1, keepdim=True))
-                / torch.sqrt(torch.var(masks, dim=-1, keepdim=True, unbiased=False) + 1e-5)
+                / torch.sqrt(
+                    torch.var(masks, dim=-1, keepdim=True, unbiased=False) + 1e-5
+                )
             ) * self.gamma + self.beta
         B, HW, N = masks.size()
 
@@ -243,12 +252,21 @@ class MaskTransformerStructureHead(BaseDecodeHead):
             if self.structure_loss_method == "region" and self.set_structure_queue:
                 for i in range(self.structure_num_classes):
                     self.register_buffer(
-                        "queue"+str(i), torch.randn(self.d_encoder, self.structure_queue_len)
+                        "queue" + str(i),
+                        torch.randn(self.d_encoder, self.structure_queue_len),
                     )
                     self.register_buffer(
-                        "ptr"+str(i), torch.zeros(1, dtype=torch.long)
+                        "ptr" + str(i), torch.zeros(1, dtype=torch.long)
                     )
-                    exec("self.queue"+str(i) + '=' + 'nn.functional.normalize(' + "self.queue"+str(i) + ',dim=0).cuda()')
+                    exec(
+                        "self.queue"
+                        + str(i)
+                        + "="
+                        + "nn.functional.normalize("
+                        + "self.queue"
+                        + str(i)
+                        + ",dim=0).cuda()"
+                    )
                 self.set_structure_queue = False
             self.cls_emb = cls_emb
             self.cls_emb.requires_grad = False
@@ -256,14 +274,14 @@ class MaskTransformerStructureHead(BaseDecodeHead):
             self.loaded_cls_emb_train = True
 
         img_labels = None
-        if self.imagenet_on_gpu: # if self.imagenet_sample_class_num > 0:
-            img_names = [meta['ori_filename'].split("/")[-1] for meta in img_metas]
-            img_ids = [name[:name.find("_")] for name in img_names]
+        if self.imagenet_on_gpu:  # if self.imagenet_sample_class_num > 0:
+            img_names = [meta["ori_filename"].split("/")[-1] for meta in img_metas]
+            img_ids = [name[: name.find("_")] for name in img_names]
             if self.imagenet_sample_class_num > 0:
                 sampled_inds = np.random.choice(
-                    list(range(len(self.in21k_ids_all))), 
-                    size=self.imagenet_sample_class_num, 
-                    replace=False
+                    list(range(len(self.in21k_ids_all))),
+                    size=self.imagenet_sample_class_num,
+                    replace=False,
                 )
                 self.in21k_ids = list(
                     set(img_ids) | set(self.in21k_ids_all[i] for i in sampled_inds)
@@ -284,11 +302,10 @@ class MaskTransformerStructureHead(BaseDecodeHead):
 
     def forward_test(self, inputs, img_metas, test_cfg):
         if not self.loaded_cls_emb_test:
-            self.cls_emb = torch.load(
-                self.cls_emb_path_test, map_location="cpu")
+            self.cls_emb = torch.load(self.cls_emb_path_test, map_location="cpu")
             self.loaded_cls_emb_test = True
             self.loaded_cls_emb_train = False
-        
+
         masks, _, _ = self.forward(inputs, img_metas)
 
         # img_labels = None
@@ -297,7 +314,7 @@ class MaskTransformerStructureHead(BaseDecodeHead):
         #     img_ids = [name[:name.find("_")] for name in img_names]
         #     img_labels = [self.in21k_ids.index(img_id) for img_id in img_ids]
         #     img_shapes = [meta['ori_shape'][:-1] for meta in img_metas]
-        
+
         # os.makedirs(self.imagenet_pred_save_dir, exist_ok=True)
         # if self.imagenet_pred_save_dir is not None:
         #     pred = masks.softmax(dim=1)
@@ -311,17 +328,22 @@ class MaskTransformerStructureHead(BaseDecodeHead):
         #     Image.fromarray((pred * 255).astype(np.uint8)).save(
         #         os.path.join(self.imagenet_pred_save_dir, img_names[0].replace(".jpg", ".png"))
         #     )
-        
+
         if self.grounding_inference:
-            
+
             if len(self.test_anno_dir) > 0:
                 gt_path = os.path.join(
                     self.test_anno_dir,
-                    img_metas[0]["filename"].split("/")[-1].replace(".jpg", self.ann_suffix)
+                    img_metas[0]["filename"]
+                    .split("/")[-1]
+                    .replace(".jpg", self.ann_suffix),
                 )
             else:
-                gt_path = img_metas[0]["filename"].replace(
-                    "images", "annotations").replace(".jpg", self.ann_suffix)
+                gt_path = (
+                    img_metas[0]["filename"]
+                    .replace("images", "annotations")
+                    .replace(".jpg", self.ann_suffix)
+                )
             gt = np.array(Image.open(gt_path))
             if self.ann_suffix == ".png":
                 gt = (gt - 1).astype(np.uint8)
@@ -341,7 +363,7 @@ class MaskTransformerStructureHead(BaseDecodeHead):
             masks = masks.unsqueeze(0)
         return masks
 
-    @force_fp32(apply_to=('seg_mask', ))
+    @force_fp32(apply_to=("seg_mask",))
     def losses(self, seg_mask, seg_embed, seg_feat, seg_label, img_labels=None):
         """Compute segmentation loss."""
         loss = dict()
@@ -350,26 +372,22 @@ class MaskTransformerStructureHead(BaseDecodeHead):
         seg_mask = resize(
             input=seg_mask,
             size=(h, w),
-            mode='bilinear',
-            align_corners=self.align_corners
+            mode="bilinear",
+            align_corners=self.align_corners,
         )
         seg_embed = resize(
             input=seg_embed,
             size=(h, w),
-            mode='bilinear',
-            align_corners=self.align_corners
+            mode="bilinear",
+            align_corners=self.align_corners,
         )
         seg_feat = resize(
             input=seg_feat,
             size=(h, w),
-            mode='bilinear',
-            align_corners=self.align_corners
+            mode="bilinear",
+            align_corners=self.align_corners,
         )
-        seg_label = resize(
-            input=seg_label.float(),
-            size=(h, w),
-            mode='nearest'
-        ).long()
+        seg_label = resize(input=seg_label.float(), size=(h, w), mode="nearest").long()
 
         B, N, H, W = seg_mask.shape
         if self.imagenet_on_gpu:
@@ -385,27 +403,33 @@ class MaskTransformerStructureHead(BaseDecodeHead):
 
         # prior_inds = None if len(prior_bucket) == 0 else torch.cat(prior_bucket)
         if len(prior_bucket) == 0:
-            loss['loss_prior'] = torch.tensor(
+            loss["loss_prior"] = torch.tensor(
                 0, dtype=seg_mask.dtype, device=seg_mask.device, requires_grad=True
             )
-            loss['loss_structure'] = torch.tensor(
+            loss["loss_structure"] = torch.tensor(
                 0, dtype=seg_mask.dtype, device=seg_mask.device, requires_grad=True
             )
         else:
             prior_inds = torch.cat(prior_bucket)
             assert prior_inds.numel() > 0
-            loss['loss_prior'] = self.loss_decode(
-                seg_mask[prior_inds],
-                seg_label[prior_inds],
-                weight=None,
-                ignore_index=self.ignore_index
-            ) * self.prior_loss_weight
-            if not self.structure_per_image:
-                loss['loss_structure'] = self.loss_structure(
-                    seg_feat[prior_inds],
+            loss["loss_prior"] = (
+                self.loss_decode(
                     seg_mask[prior_inds],
                     seg_label[prior_inds],
-                ) * self.structure_loss_weight
+                    weight=None,
+                    ignore_index=self.ignore_index,
+                )
+                * self.prior_loss_weight
+            )
+            if not self.structure_per_image:
+                loss["loss_structure"] = (
+                    self.loss_structure(
+                        seg_feat[prior_inds],
+                        seg_mask[prior_inds],
+                        seg_label[prior_inds],
+                    )
+                    * self.structure_loss_weight
+                )
             else:
                 seg_label = seg_label.reshape(B, H * W)
                 seg_mask = seg_mask.reshape(B, H * W, N)
@@ -415,19 +439,18 @@ class MaskTransformerStructureHead(BaseDecodeHead):
                 )
                 for b in range(B):
                     prior_inds_per_image = prior_inds[
-                        (prior_inds >= b * H * W) & 
-                        (prior_inds < (b + 1) * H * W)
+                        (prior_inds >= b * H * W) & (prior_inds < (b + 1) * H * W)
                     ]
                     loss_structure += self.loss_structure(
                         seg_feat[b][prior_inds_per_image],
                         seg_mask[b][prior_inds_per_image],
                         seg_label[b][prior_inds_per_image],
                     )
-                loss['loss_structure'] = loss_structure / B * self.structure_loss_weight
+                loss["loss_structure"] = loss_structure / B * self.structure_loss_weight
 
         acc_weight = 0.0 if self.imagenet_on_gpu else 2.0
         acc_weight = acc_weight if self.imagenet_in_batch else 1.0
-        loss['acc_seg'] = accuracy(seg_mask, seg_label) * acc_weight
+        loss["acc_seg"] = accuracy(seg_mask, seg_label) * acc_weight
         return loss
 
     def loss_structure(self, seg_feat, seg_mask, seg_label):
@@ -446,8 +469,7 @@ class MaskTransformerStructureHead(BaseDecodeHead):
             return seg_feat[seg_label != self.ignore_index].sum()
 
         pos_inds = self._sample_feat(pos_bucket)
-        sample_feat = torch.cat([
-            seg_feat[i] for i in pos_inds], dim=0)
+        sample_feat = torch.cat([seg_feat[i] for i in pos_inds], dim=0)
 
         if self.structure_loss_method == "region":
             region_feat, unique_label = self.construct_region(
@@ -457,14 +479,19 @@ class MaskTransformerStructureHead(BaseDecodeHead):
             loss = self.similarity3(region_feat, unique_label)
         elif self.structure_loss_method == "contrastive":
             sample_cls = torch.cat(
-                [torch.Tensor([i for _ in range(len(p))]) for i, p in enumerate(pos_inds)],
+                [
+                    torch.Tensor([i for _ in range(len(p))])
+                    for i, p in enumerate(pos_inds)
+                ],
                 dim=0,
             ).to(sample_feat.device)
             loss = self.similarity2(sample_feat, sample_cls)
         elif self.structure_loss_method == "margin":
-            sample_cls = torch.cat([
-                seg_label[[i]] for i in pos_inds], dim=0
-            ).to(seg_feat.device).long()
+            sample_cls = (
+                torch.cat([seg_label[[i]] for i in pos_inds], dim=0)
+                .to(seg_feat.device)
+                .long()
+            )
             loss = self.similarity1(sample_feat, sample_cls)
         return loss
 
@@ -542,7 +569,9 @@ class MaskTransformerStructureHead(BaseDecodeHead):
             l = int(l)
             # k = eval("self.queue"+str(l)).clone().detach()
             # l_pos = q[None] @ k # (1, N_queue)
-            l_pos = q.unsqueeze(1)*eval("self.queue"+str(l)).clone().detach()  #256, N1
+            l_pos = (
+                q.unsqueeze(1) * eval("self.queue" + str(l)).clone().detach()
+            )  # 256, N1
             all_ind = [m for m in range(self.structure_num_classes)]
             tmp = all_ind.copy()
             tmp.remove(l)
@@ -551,7 +580,9 @@ class MaskTransformerStructureHead(BaseDecodeHead):
             for neg_l in tmp:
                 # k = eval("self.queue"+str(neg_l)).clone().detach()
                 # l_neg.append(q[None] @ k)
-                l_neg += q.unsqueeze(1)*eval("self.queue"+str(neg_l)).clone().detach()
+                l_neg += (
+                    q.unsqueeze(1) * eval("self.queue" + str(neg_l)).clone().detach()
+                )
             # (N_neg, N_queue)
             # l_neg = torch.cat(l_neg, dim=0)
             contrast_loss += self._compute_contrast_loss(l_pos, l_neg)
@@ -561,7 +592,7 @@ class MaskTransformerStructureHead(BaseDecodeHead):
                 l = self.sampled_idx_to_ori_inds[int(l)]
             l = int(l)
             self._dequeue_and_enqueue(q, l)
-        return contrast_loss #/ max(1, len(label))
+        return contrast_loss  # / max(1, len(label))
         # return contrast_loss
 
     def construct_region(self, feat, mask, label):
@@ -579,15 +610,18 @@ class MaskTransformerStructureHead(BaseDecodeHead):
                 hard_mask = (indices != l) & (label == l)
                 # print(f"{int(easy_mask.sum())}, {int(hard_mask.sum())}")
                 feat_l = torch.cat(
-                    [(1 - values[easy_mask].unsqueeze(1)) * feat[easy_mask], feat[hard_mask]], dim=0
+                    [
+                        (1 - values[easy_mask].unsqueeze(1)) * feat[easy_mask],
+                        feat[hard_mask],
+                    ],
+                    dim=0,
                 ).mean(dim=0)
                 region_feat.append(feat_l)
             region_feat = torch.stack(region_feat, dim=0)
         else:
-            region_feat = torch.stack([
-                label[label==l].mean(dim=0)
-                for l in unique_label
-            ]) # (N_region, C)
+            region_feat = torch.stack(
+                [label[label == l].mean(dim=0) for l in unique_label]
+            )  # (N_region, C)
         return region_feat, unique_label
 
     def _compute_contrast_loss(self, l_pos, l_neg):
@@ -607,11 +641,11 @@ class MaskTransformerStructureHead(BaseDecodeHead):
         labels = torch.zeros((N,), dtype=torch.long).cuda()
         return self.structure_criterion(logits, labels)
 
-    def _dequeue_and_enqueue(self, feat, label): #, bs):
-        ptr = int(eval("self.ptr"+str(label)))
-        eval("self.queue"+str(label))[:, ptr] = feat
+    def _dequeue_and_enqueue(self, feat, label):  # , bs):
+        ptr = int(eval("self.ptr" + str(label)))
+        eval("self.queue" + str(label))[:, ptr] = feat
         ptr = (ptr + 1) % self.structure_queue_len
-        eval("self.ptr"+str(label))[0] = ptr
+        eval("self.ptr" + str(label))[0] = ptr
         # print(ptr)
 
     def _sample_feat(self, buckets, total_sample_num=512):
@@ -621,10 +655,9 @@ class MaskTransformerStructureHead(BaseDecodeHead):
         """
         num_per_buckets = [len(p) for p in buckets]
         sample_per_bucket = [
-            total_sample_num // len(buckets)
-            for _ in range(len(num_per_buckets))
+            total_sample_num // len(buckets) for _ in range(len(num_per_buckets))
         ]
-        
+
         if len(sample_per_bucket) > 1:
             sample_per_bucket[-1] = total_sample_num - sum(sample_per_bucket[:-1])
         else:
@@ -656,9 +689,7 @@ class MaskTransformerStructureHead(BaseDecodeHead):
         unique_label = unique_label[unique_label != self.ignore_index]
         pos_bucket = []
         for l in unique_label:
-            pos_bucket.append(
-                (seg_label == l).nonzero(as_tuple=False)[:, 0]
-            )
+            pos_bucket.append((seg_label == l).nonzero(as_tuple=False)[:, 0])
         if len(pos_bucket) == 0:
             return []
         seg_mask = seg_mask.permute(0, 2, 3, 1).reshape(B * H * W, N)
@@ -695,7 +726,7 @@ class MaskTransformerStructureHead(BaseDecodeHead):
                 else:
                     seg_label.append(torch.ones_like(cam) * self.ignore_index)
             # print("in21k", [x.shape for x in prior_bucket])
-            seg_label = torch.cat(seg_label) # B * H * W
+            seg_label = torch.cat(seg_label)  # B * H * W
             return prior_bucket, seg_label
         # CAM
         K = int(self.imagenet_prior_rate * H * W)
@@ -711,17 +742,19 @@ class MaskTransformerStructureHead(BaseDecodeHead):
             cam_score = float(seg_mask[b, inds, img_labels[b]].mean())
             if self.use_pairwise_affinity and (cam_score > self.cam_thresh):
                 cos_sim = seg_embed[b] @ seg_embed[b, inds].T
-                cos_sim = cos_sim.mean(dim=-1) # (H*W,)
+                cos_sim = cos_sim.mean(dim=-1)  # (H*W,)
                 pa_inds = (cos_sim > self.pairwise_affinity_thresh).nonzero().flatten()
                 inds = torch.unique(torch.cat([inds, pa_inds]))
-                print(f"{cam_score:.4f}, {K}, {len(inds)}, {float(cos_sim[inds].mean()):.4f}")
+                print(
+                    f"{cam_score:.4f}, {K}, {len(inds)}, {float(cos_sim[inds].mean()):.4f}"
+                )
 
             prior_bucket.append(inds + b * H * W)
-                
+
         assert len(cam_label) == len(img_labels)
-        seg_label = torch.cat([
-            torch.ones_like(cam) * l for cam, l in zip(cam_label, img_labels)
-        ]) # B * H * W
+        seg_label = torch.cat(
+            [torch.ones_like(cam) * l for cam, l in zip(cam_label, img_labels)]
+        )  # B * H * W
         return prior_bucket, seg_label
 
     @staticmethod
@@ -731,13 +764,13 @@ class MaskTransformerStructureHead(BaseDecodeHead):
         tvect = target.new_zeros((batch, nclass), dtype=torch.int64)
         for i in range(batch):
             hist = torch.histc(
-                target[i].data.float(), bins=nclass, min=0, max=nclass - 1)
+                target[i].data.float(), bins=nclass, min=0, max=nclass - 1
+            )
             tvect[i] = hist
         return tvect
 
 
 class FeedForward(nn.Module):
-
     def __init__(self, dim, hidden_dim, dropout, out_dim=None):
         super().__init__()
         self.fc1 = nn.Linear(dim, hidden_dim)
@@ -761,7 +794,6 @@ class FeedForward(nn.Module):
 
 
 class Attention(nn.Module):
-
     def __init__(self, dim, heads, dropout):
         super().__init__()
         self.heads = heads
@@ -783,12 +815,21 @@ class Attention(nn.Module):
     def forward(self, q, k, v, mask=None):
         B, _, C = q.shape
         # B, head, N, C // head
-        q = self.q_linear(q).reshape(B, -1, self.heads,
-                                     C // self.heads).permute(0, 2, 1, 3)
-        k = self.k_linear(k).reshape(B, -1, self.heads,
-                                     C // self.heads).permute(0, 2, 1, 3)
-        v = self.v_linear(v).reshape(B, -1, self.heads,
-                                     C // self.heads).permute(0, 2, 1, 3)
+        q = (
+            self.q_linear(q)
+            .reshape(B, -1, self.heads, C // self.heads)
+            .permute(0, 2, 1, 3)
+        )
+        k = (
+            self.k_linear(k)
+            .reshape(B, -1, self.heads, C // self.heads)
+            .permute(0, 2, 1, 3)
+        )
+        v = (
+            self.v_linear(v)
+            .reshape(B, -1, self.heads, C // self.heads)
+            .permute(0, 2, 1, 3)
+        )
 
         attn = (q @ k.transpose(-2, -1)) * self.scale
         attn = attn.softmax(dim=-1)
@@ -802,15 +843,13 @@ class Attention(nn.Module):
 
 
 class Block(nn.Module):
-
     def __init__(self, dim, heads, mlp_dim, dropout, drop_path):
         super().__init__()
         self.norm1 = nn.LayerNorm(dim)
         self.norm2 = nn.LayerNorm(dim)
         self.attn = Attention(dim, heads, dropout)
         self.mlp = FeedForward(dim, mlp_dim, dropout)
-        self.drop_path = DropPath(
-            drop_path) if drop_path > 0.0 else nn.Identity()
+        self.drop_path = DropPath(drop_path) if drop_path > 0.0 else nn.Identity()
 
     def forward(self, x, cls_emb, mask=None, return_attention=False):
         y, attn = self.attn(self.norm1(x), cls_emb, cls_emb, mask)
@@ -822,7 +861,6 @@ class Block(nn.Module):
 
 
 class DecoderLinear(nn.Module):
-
     def __init__(self, n_cls, patch_size, d_encoder):
         super().__init__()
 

@@ -23,7 +23,9 @@ model = dict(
         all_cls_path="",
         mix_batch_datasets=["ade130"],
         test_dataset="ade130",
-        ignore_indices=[255,],
+        ignore_indices=[
+            255,
+        ],
         test_ignore_index=255,
         # attention head
         d_encoder=768,

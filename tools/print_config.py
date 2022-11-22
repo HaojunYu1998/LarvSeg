@@ -7,12 +7,12 @@ from mmseg.apis import init_segmentor
 
 
 def parse_args():
-    parser = argparse.ArgumentParser(description='Print the whole config')
-    parser.add_argument('config', help='config file path')
+    parser = argparse.ArgumentParser(description="Print the whole config")
+    parser.add_argument("config", help="config file path")
+    parser.add_argument("--graph", action="store_true", help="print the models graph")
     parser.add_argument(
-        '--graph', action='store_true', help='print the models graph')
-    parser.add_argument(
-        '--options', nargs='+', action=DictAction, help='arguments in dict')
+        "--options", nargs="+", action=DictAction, help="arguments in dict"
+    )
     args = parser.parse_args()
 
     return args
@@ -24,16 +24,16 @@ def main():
     cfg = Config.fromfile(args.config)
     if args.options is not None:
         cfg.merge_from_dict(args.options)
-    print(f'Config:\n{cfg.pretty_text}')
+    print(f"Config:\n{cfg.pretty_text}")
     # dump config
-    cfg.dump('example.py')
+    cfg.dump("example.py")
     # dump models graph
     if args.graph:
-        model = init_segmentor(args.config, device='cpu')
-        print(f'Model graph:\n{str(model)}')
-        with open('example-graph.txt', 'w') as f:
+        model = init_segmentor(args.config, device="cpu")
+        print(f"Model graph:\n{str(model)}")
+        with open("example-graph.txt", "w") as f:
             f.writelines(str(model))
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()

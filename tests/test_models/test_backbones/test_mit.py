@@ -9,7 +9,7 @@ from mmseg.models.backbones.mit import EfficientMultiheadAttention, MixFFN
 def test_mit():
     with pytest.raises(AssertionError):
         # It's only support official style and mmcls style now.
-        MixVisionTransformer(pretrain_style='timm')
+        MixVisionTransformer(pretrain_style="timm")
 
     with pytest.raises(TypeError):
         # Pretrained represents pretrain url and must be str or None.
@@ -19,7 +19,8 @@ def test_mit():
     H, W = (224, 224)
     temp = torch.randn((1, 3, H, W))
     model = MixVisionTransformer(
-        embed_dims=32, num_heads=[1, 2, 5, 8], out_indices=(0, 1, 2, 3))
+        embed_dims=32, num_heads=[1, 2, 5, 8], out_indices=(0, 1, 2, 3)
+    )
     model.init_weights()
     outs = model(temp)
     assert outs[0].shape == (1, 32, H // 4, W // 4)

@@ -25,7 +25,6 @@ def init_weights(m):
 
 @HEADS.register_module()
 class MaskTransformerNNCEESSNetHead(BaseDecodeHead):
-
     def __init__(
         self,
         n_cls,
@@ -62,18 +61,15 @@ class MaskTransformerNNCEESSNetHead(BaseDecodeHead):
             d_ess = d_model
 
         dpr = [x.item() for x in torch.linspace(0, drop_path_rate, n_layers)]
-        self.blocks = nn.ModuleList([
-            Block(d_model, n_heads, d_ff, dropout, dpr[i])
-            for i in range(n_layers)
-        ])
+        self.blocks = nn.ModuleList(
+            [Block(d_model, n_heads, d_ff, dropout, dpr[i]) for i in range(n_layers)]
+        )
 
         self.cls_emb = nn.Parameter(torch.randn(1, n_cls, d_model))
         self.proj_dec = nn.Linear(d_encoder, d_model)
 
-        self.proj_patch = nn.Parameter(self.scale *
-                                       torch.randn(d_model, d_ess))
-        self.proj_classes = nn.Parameter(self.scale *
-                                         torch.randn(d_model, d_ess))
+        self.proj_patch = nn.Parameter(self.scale * torch.randn(d_model, d_ess))
+        self.proj_classes = nn.Parameter(self.scale * torch.randn(d_model, d_ess))
 
         self.decoder_norm = nn.LayerNorm(d_model)
         self.mask_norm = nn.LayerNorm(n_cls)
@@ -92,7 +88,8 @@ class MaskTransformerNNCEESSNetHead(BaseDecodeHead):
         tvect = target.new_zeros((batch, nclass), dtype=torch.int64)
         for i in range(batch):
             hist = torch.histc(
-                target[i].data.float(), bins=nclass, min=0, max=nclass - 1)
+                target[i].data.float(), bins=nclass, min=0, max=nclass - 1
+            )
             tvect[i] = hist
         return tvect
 
@@ -112,7 +109,7 @@ class MaskTransformerNNCEESSNetHead(BaseDecodeHead):
             x = blk(x)
         x = self.decoder_norm(x)
 
-        patches, cls_seg_feat = x[:, :-self.n_cls], x[:, -self.n_cls:]
+        patches, cls_seg_feat = x[:, : -self.n_cls], x[:, -self.n_cls :]
         patches = patches @ self.proj_patch
         cls_seg_feat = cls_seg_feat @ self.proj_classes
 
@@ -128,8 +125,9 @@ class MaskTransformerNNCEESSNetHead(BaseDecodeHead):
             masks = resize(
                 input=masks,
                 size=targets.shape[1:],
-                mode='bilinear',
-                align_corners=self.align_corners)
+                mode="bilinear",
+                align_corners=self.align_corners,
+            )
 
             with torch.no_grad():
                 _, topk_label = torch.topk(masks, self.topk_cls, dim=1)
@@ -137,8 +135,9 @@ class MaskTransformerNNCEESSNetHead(BaseDecodeHead):
                 mask_tar = topk_label == targets
                 topk_label[mask_tar] = topk_label[mask_tar] - 1
                 topk_label = topk_label.permute(1, 0, 2, 3)  # B k H W
-                index = torch.cat([targets.unsqueeze(1), topk_label],
-                                  dim=1)  # B k+1 H W
+                index = torch.cat(
+                    [targets.unsqueeze(1), topk_label], dim=1
+                )  # B k+1 H W
                 index[index == -1] = 0
                 index[index == self.ignore_index] = 0
 
@@ -149,11 +148,12 @@ class MaskTransformerNNCEESSNetHead(BaseDecodeHead):
         else:
             with torch.no_grad():
                 _, non_topk_label = torch.topk(
-                    masks, self.n_cls - self.topk_cls, dim=1, largest=False)
+                    masks, self.n_cls - self.topk_cls, dim=1, largest=False
+                )
                 masks.scatter_(1, non_topk_label, -100)
             return masks
 
-    @force_fp32(apply_to=('outputs', ))
+    @force_fp32(apply_to=("outputs",))
     def losses(self, outputs, seg_label):
         """Compute segmentation loss."""
         pixel_pred = outputs
@@ -162,28 +162,27 @@ class MaskTransformerNNCEESSNetHead(BaseDecodeHead):
         seg_logit = resize(
             input=pixel_pred,
             size=seg_label.shape[2:],
-            mode='bilinear',
-            align_corners=self.align_corners)
+            mode="bilinear",
+            align_corners=self.align_corners,
+        )
 
         seg_label = self.ignore_index * (
-            torch.logical_or(seg_label == -1, seg_label == self.ignore_index))
+            torch.logical_or(seg_label == -1, seg_label == self.ignore_index)
+        )
 
         if self.sampler is not None:
             seg_weight = self.sampler.sample(seg_logit, seg_label)
         else:
             seg_weight = None
         seg_label = seg_label.squeeze(1)
-        loss['loss_seg'] = self.loss_decode(
-            seg_logit,
-            seg_label,
-            weight=seg_weight,
-            ignore_index=self.ignore_index)
-        loss['acc_seg'] = accuracy(seg_logit, seg_label)
+        loss["loss_seg"] = self.loss_decode(
+            seg_logit, seg_label, weight=seg_weight, ignore_index=self.ignore_index
+        )
+        loss["acc_seg"] = accuracy(seg_logit, seg_label)
         return loss
 
 
 class FeedForward(nn.Module):
-
     def __init__(self, dim, hidden_dim, dropout, out_dim=None):
         super().__init__()
         self.fc1 = nn.Linear(dim, hidden_dim)
@@ -207,7 +206,6 @@ class FeedForward(nn.Module):
 
 
 class Attention(nn.Module):
-
     def __init__(self, dim, heads, dropout):
         super().__init__()
         self.heads = heads
@@ -227,8 +225,10 @@ class Attention(nn.Module):
     def forward(self, x, mask=None):
         B, N, C = x.shape
         qkv = (
-            self.qkv(x).reshape(B, N, 3, self.heads,
-                                C // self.heads).permute(2, 0, 3, 1, 4))
+            self.qkv(x)
+            .reshape(B, N, 3, self.heads, C // self.heads)
+            .permute(2, 0, 3, 1, 4)
+        )
         q, k, v = (
             qkv[0],
             qkv[1],
@@ -247,15 +247,13 @@ class Attention(nn.Module):
 
 
 class Block(nn.Module):
-
     def __init__(self, dim, heads, mlp_dim, dropout, drop_path):
         super().__init__()
         self.norm1 = nn.LayerNorm(dim)
         self.norm2 = nn.LayerNorm(dim)
         self.attn = Attention(dim, heads, dropout)
         self.mlp = FeedForward(dim, mlp_dim, dropout)
-        self.drop_path = DropPath(
-            drop_path) if drop_path > 0.0 else nn.Identity()
+        self.drop_path = DropPath(drop_path) if drop_path > 0.0 else nn.Identity()
 
     def forward(self, x, mask=None, return_attention=False):
         y, attn = self.attn(self.norm1(x), mask)
@@ -267,7 +265,6 @@ class Block(nn.Module):
 
 
 class DecoderLinear(nn.Module):
-
     def __init__(self, n_cls, patch_size, d_encoder):
         super().__init__()
 

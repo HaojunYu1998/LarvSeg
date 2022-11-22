@@ -18,12 +18,12 @@ def test_vit_backbone():
 
     with pytest.raises(TypeError):
         # out_indices must be int ,list or tuple
-        model = VisionTransformer(out_indices=1.)
+        model = VisionTransformer(out_indices=1.0)
 
     with pytest.raises(TypeError):
         # test upsample_pos_embed function
         x = torch.randn(1, 196)
-        VisionTransformer.resize_pos_embed(x, 512, 512, 224, 224, 'bilinear')
+        VisionTransformer.resize_pos_embed(x, 512, 512, 224, 224, "bilinear")
 
     with pytest.raises(IndexError):
         # forward inputs must be [N, C, H, W]
@@ -45,7 +45,7 @@ def test_vit_backbone():
 
     # Test img_size isinstance tuple
     imgs = torch.randn(1, 3, 224, 224)
-    model = VisionTransformer(img_size=(224, ))
+    model = VisionTransformer(img_size=(224,))
     model.init_weights()
     model(imgs)
 

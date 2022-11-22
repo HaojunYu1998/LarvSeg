@@ -10,7 +10,11 @@ from .adapter import ClipAdapter
 
 
 def build_prompt_learner(
-    prompt_type, prompt_dim=None, prompt_shape=None, prompt_templates=["{}"], checkpoint_path=""
+    prompt_type,
+    prompt_dim=None,
+    prompt_shape=None,
+    prompt_templates=["{}"],
+    checkpoint_path="",
 ):
     if prompt_type == "predefined":
         prompt_learner = PredefinedPromptExtractor(prompt_templates)
@@ -36,9 +40,7 @@ def build_prompt_learner(
             for param in prompt_learner.parameters():
                 param.requires_grad = False
             prompt_learner.with_trainable_params = False
-            print(
-                "Load Prompt Learner from {}".format(checkpoint_path)
-            )
+            print("Load Prompt Learner from {}".format(checkpoint_path))
             print("Missing {}".format(missing))
             print("Unexpected {}".format(unexpected))
         else:
@@ -47,9 +49,7 @@ def build_prompt_learner(
                 for k, v in prompt_learner.named_parameters()
                 if v.requires_grad == True
             ]
-            print(
-                "Prompt Learner training params: {}".format(trainable_params)
-            )
+            print("Prompt Learner training params: {}".format(trainable_params))
     else:
         raise NotImplementedError(
             "Prompt learner {} is not supported".format(prompt_type)

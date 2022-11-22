@@ -4,7 +4,7 @@ import torch
 import clip
 import torch.distributed as dist
 from mmcv.runner import get_dist_info
-            
+
 
 class CLIP:
     PIXEL_MEAN = (0.48145466, 0.4578275, 0.40821073)
@@ -190,10 +190,7 @@ def synchronize():
         dist.barrier()
 
 
-def build_clip_model(
-    model: str,
-    frozen: bool = True
-):
+def build_clip_model(model: str, frozen: bool = True):
     rank, _ = get_dist_info()
     if rank == 0:
         # download on rank 0 only
@@ -206,6 +203,3 @@ def build_clip_model(
         for param in model.parameters():
             param.requires_grad = False
     return model
-
-
-

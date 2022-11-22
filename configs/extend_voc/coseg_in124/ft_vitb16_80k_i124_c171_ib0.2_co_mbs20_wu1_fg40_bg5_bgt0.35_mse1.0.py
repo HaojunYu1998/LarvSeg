@@ -6,8 +6,7 @@ _base_ = [
 ]
 
 model = dict(
-    pretrained="pretrain/"
-    "vitb16_320k_i124_c171_ib0.2.pth",
+    pretrained="pretrain/" "vitb16_320k_i124_c171_ib0.2.pth",
     backbone=dict(
         drop_path_rate=0.1,
         final_norm=True,

@@ -3,6 +3,7 @@ import copy
 import platform
 import random
 from functools import partial
+
 # for different batch size
 import operator
 import itertools
@@ -17,27 +18,29 @@ from mmcv.utils import Registry, build_from_cfg, digit_version
 from torch.utils.data import DataLoader, DistributedSampler
 from torch.utils.data.sampler import Sampler
 
-if platform.system() != 'Windows':
+if platform.system() != "Windows":
     # https://github.com/pytorch/pytorch/issues/973
     import resource
+
     rlimit = resource.getrlimit(resource.RLIMIT_NOFILE)
     base_soft_limit = rlimit[0]
     hard_limit = rlimit[1]
     soft_limit = min(max(4096, base_soft_limit), hard_limit)
     resource.setrlimit(resource.RLIMIT_NOFILE, (soft_limit, hard_limit))
 
-DATASETS = Registry('dataset')
-PIPELINES = Registry('pipeline')
+DATASETS = Registry("dataset")
+PIPELINES = Registry("pipeline")
 
 
 def _concat_dataset(cfg, default_args=None):
     """Build :obj:`ConcatDataset by."""
     from .dataset_wrappers import ConcatDataset
-    img_dir = cfg['img_dir']
-    ann_dir = cfg.get('ann_dir', None)
-    split = cfg.get('split', None)
+
+    img_dir = cfg["img_dir"]
+    ann_dir = cfg.get("ann_dir", None)
+    split = cfg.get("split", None)
     # pop 'separate_eval' since it is not a valid key for common datasets.
-    separate_eval = cfg.pop('separate_eval', True)
+    separate_eval = cfg.pop("separate_eval", True)
     num_img_dir = len(img_dir) if isinstance(img_dir, (list, tuple)) else 1
     if ann_dir is not None:
         num_ann_dir = len(ann_dir) if isinstance(ann_dir, (list, tuple)) else 1
@@ -58,11 +61,11 @@ def _concat_dataset(cfg, default_args=None):
     for i in range(num_dset):
         data_cfg = copy.deepcopy(cfg)
         if isinstance(img_dir, (list, tuple)):
-            data_cfg['img_dir'] = img_dir[i]
+            data_cfg["img_dir"] = img_dir[i]
         if isinstance(ann_dir, (list, tuple)):
-            data_cfg['ann_dir'] = ann_dir[i]
+            data_cfg["ann_dir"] = ann_dir[i]
         if isinstance(split, (list, tuple)):
-            data_cfg['split'] = split[i]
+            data_cfg["split"] = split[i]
         datasets.append(build_dataset(data_cfg, default_args))
 
     return ConcatDataset(datasets, separate_eval)
@@ -71,13 +74,16 @@ def _concat_dataset(cfg, default_args=None):
 def build_dataset(cfg, default_args=None):
     """Build datasets."""
     from .dataset_wrappers import ConcatDataset, RepeatDataset
+
     if isinstance(cfg, (list, tuple)):
         dataset = ConcatDataset([build_dataset(c, default_args) for c in cfg])
-    elif cfg['type'] == 'RepeatDataset':
+    elif cfg["type"] == "RepeatDataset":
         dataset = RepeatDataset(
-            build_dataset(cfg['dataset'], default_args), cfg['times'])
-    elif isinstance(cfg.get('img_dir'), (list, tuple)) or isinstance(
-            cfg.get('split', None), (list, tuple)):
+            build_dataset(cfg["dataset"], default_args), cfg["times"]
+        )
+    elif isinstance(cfg.get("img_dir"), (list, tuple)) or isinstance(
+        cfg.get("split", None), (list, tuple)
+    ):
         dataset = _concat_dataset(cfg, default_args)
     else:
         dataset = build_from_cfg(cfg, DATASETS, default_args)
@@ -85,17 +91,19 @@ def build_dataset(cfg, default_args=None):
     return dataset
 
 
-def build_dataloader(dataset,
-                     samples_per_gpu,
-                     workers_per_gpu,
-                     num_gpus=1,
-                     dist=True,
-                     shuffle=True,
-                     seed=None,
-                     drop_last=False,
-                     pin_memory=True,
-                     persistent_workers=True,
-                     **kwargs):
+def build_dataloader(
+    dataset,
+    samples_per_gpu,
+    workers_per_gpu,
+    num_gpus=1,
+    dist=True,
+    shuffle=True,
+    seed=None,
+    drop_last=False,
+    pin_memory=True,
+    persistent_workers=True,
+    **kwargs
+):
     """Build PyTorch DataLoader.
 
     In distributed training, each GPU/process has a dataloader.
@@ -130,25 +138,26 @@ def build_dataloader(dataset,
     # assert False, f"{samples_per_gpu}, {type(samples_per_gpu)}"
     if isinstance(samples_per_gpu, list) or isinstance(samples_per_gpu, tuple):
         from detectron2.data.build import worker_init_reset_seed
+
         # from detectron2.data.samplers import TrainingSampler
         num_workers = workers_per_gpu
-        sampler = DistributedSampler(
-            dataset, world_size, rank, shuffle=shuffle)
+        sampler = DistributedSampler(dataset, world_size, rank, shuffle=shuffle)
         # sampler = TrainingSampler(len(dataset))
         data_loader = torch.utils.data.DataLoader(
             dataset,
             sampler=sampler,
             num_workers=num_workers,
             batch_sampler=None,
-            collate_fn=operator.itemgetter(0),  # don't batch, but yield individual elements
+            collate_fn=operator.itemgetter(
+                0
+            ),  # don't batch, but yield individual elements
             worker_init_fn=worker_init_reset_seed,
         )  # yield individual mapped dict
 
         return DiffBatchSizeDataset(data_loader, samples_per_gpu)
 
     if dist:
-        sampler = DistributedSampler(
-            dataset, world_size, rank, shuffle=shuffle)
+        sampler = DistributedSampler(dataset, world_size, rank, shuffle=shuffle)
         shuffle = False
         batch_size = samples_per_gpu
         num_workers = workers_per_gpu
@@ -157,11 +166,13 @@ def build_dataloader(dataset,
         batch_size = num_gpus * samples_per_gpu
         num_workers = num_gpus * workers_per_gpu
 
-    init_fn = partial(
-        worker_init_fn, num_workers=num_workers, rank=rank,
-        seed=seed) if seed is not None else None
+    init_fn = (
+        partial(worker_init_fn, num_workers=num_workers, rank=rank, seed=seed)
+        if seed is not None
+        else None
+    )
 
-    if digit_version(torch.__version__) >= digit_version('1.8.0'):
+    if digit_version(torch.__version__) >= digit_version("1.8.0"):
         data_loader = DataLoader(
             dataset,
             batch_size=batch_size,
@@ -173,7 +184,8 @@ def build_dataloader(dataset,
             worker_init_fn=init_fn,
             drop_last=drop_last,
             persistent_workers=persistent_workers,
-            **kwargs)
+            **kwargs
+        )
     else:
         data_loader = DataLoader(
             dataset,
@@ -185,7 +197,8 @@ def build_dataloader(dataset,
             shuffle=shuffle,
             worker_init_fn=init_fn,
             drop_last=drop_last,
-            **kwargs)
+            **kwargs
+        )
 
     return data_loader
 
@@ -226,5 +239,5 @@ class DiffBatchSizeDataset(torch.utils.data.IterableDataset):
             bucket.append(d)
             batch_size = self.batch_sizes[rank % len(self.batch_sizes)]
             if len(bucket) == batch_size:
-                yield collate(bucket, batch_size) # bucket[:]
+                yield collate(bucket, batch_size)  # bucket[:]
                 del bucket[:]

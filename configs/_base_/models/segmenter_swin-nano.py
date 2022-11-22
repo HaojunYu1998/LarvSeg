@@ -1,11 +1,11 @@
 # model settings
 norm_cfg = dict(type="SyncBN", requires_grad=True)
-backbone_norm_cfg = dict(type='LN', requires_grad=True)
+backbone_norm_cfg = dict(type="LN", requires_grad=True)
 model = dict(
     type="EncoderDecoder",
     pretrained="pretrain/swin_nano_patch4_window7_224.pth",
     backbone=dict(
-        type='SwinTransformer',
+        type="SwinTransformer",
         pretrain_img_size=224,
         embed_dims=48,
         patch_size=4,
@@ -18,12 +18,13 @@ model = dict(
         qkv_bias=True,
         qk_scale=None,
         patch_norm=True,
-        drop_rate=0.,
-        attn_drop_rate=0.,
+        drop_rate=0.0,
+        attn_drop_rate=0.0,
         drop_path_rate=0.0,
         use_abs_pos_embed=False,
-        act_cfg=dict(type='GELU'),
-        norm_cfg=backbone_norm_cfg),
+        act_cfg=dict(type="GELU"),
+        norm_cfg=backbone_norm_cfg,
+    ),
     decode_head=dict(
         type="MaskTransformerHead",
         n_cls=150,

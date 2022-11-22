@@ -29,7 +29,9 @@ def mse(img1, img2):
 
 
 def normalize(x):
-    return (x - torch.mean(x, dim=-1, keepdim=True)) / torch.sqrt(torch.var(x, dim=-1, keepdim=True, unbiased=False) + 1e-5)
+    return (x - torch.mean(x, dim=-1, keepdim=True)) / torch.sqrt(
+        torch.var(x, dim=-1, keepdim=True, unbiased=False) + 1e-5
+    )
 
 
 def init_weights(m):
@@ -43,7 +45,6 @@ def init_weights(m):
 
 
 class FeedForward(nn.Module):
-
     def __init__(self, dim, hidden_dim, dropout=0.1):
         super().__init__()
         self.fc1 = nn.Linear(dim, hidden_dim)
@@ -62,10 +63,9 @@ class FeedForward(nn.Module):
 
 @HEADS.register_module()
 class MaskTransformerExtendVocPseudoHead(BaseDecodeHead):
-
     def __init__(
         self,
-        n_cls, # for evaluation
+        n_cls,  # for evaluation
         patch_size,
         d_encoder,
         n_layers,
@@ -116,7 +116,9 @@ class MaskTransformerExtendVocPseudoHead(BaseDecodeHead):
         self.proj_classes = nn.Parameter(self.scale * torch.randn(d_model, d_model))
         self.gamma = nn.Parameter(torch.ones([]))
         self.beta = nn.Parameter(torch.zeros([]))
-        self.all_classes = self.num_classes if self.all_cls is None else len(self.all_cls)
+        self.all_classes = (
+            self.num_classes if self.all_cls is None else len(self.all_cls)
+        )
         self.cls_emb = nn.Parameter(torch.randn(self.all_classes, d_model))
         self.rank, self.world_size = get_dist_info()
 
@@ -127,42 +129,59 @@ class MaskTransformerExtendVocPseudoHead(BaseDecodeHead):
     def _update(self, training):
         rank, _ = get_dist_info()
         if training:
-            self.dataset_on_gpu = self.mix_batch_datasets[rank % len(self.mix_batch_datasets)]
+            self.dataset_on_gpu = self.mix_batch_datasets[
+                rank % len(self.mix_batch_datasets)
+            ]
             self.ignore_index = self.ignore_indices[rank % len(self.mix_batch_datasets)]
-            self.basic_loss_weight = self.basic_loss_weights[rank % len(self.mix_batch_datasets)]
-            self.aux_loss_weight = self.aux_loss_weights[rank % len(self.mix_batch_datasets)]
-            self.weakly_supervised = self.dataset_on_gpu in self.weakly_supervised_datasets
+            self.basic_loss_weight = self.basic_loss_weights[
+                rank % len(self.mix_batch_datasets)
+            ]
+            self.aux_loss_weight = self.aux_loss_weights[
+                rank % len(self.mix_batch_datasets)
+            ]
+            self.weakly_supervised = (
+                self.dataset_on_gpu in self.weakly_supervised_datasets
+            )
         else:
             self.dataset_on_gpu = self.test_dataset
             self.ignore_index = self.test_ignore_index
-        
+
         if self.dataset_on_gpu == "coco171":
             from mmseg.datasets.coco_stuff import COCOStuffDataset
+
             cls_name = COCOStuffDataset.CLASSES
             cls_name = [x.split("-")[0] for x in cls_name]
         elif self.dataset_on_gpu == "ade150":
             from mmseg.datasets.ade import ADE20KDataset
+
             cls_name = ADE20KDataset.CLASSES
         elif self.dataset_on_gpu == "ade124":
             from mmseg.datasets.ade import ADE20K124Dataset
+
             cls_name = ADE20K124Dataset.CLASSES124
         elif self.dataset_on_gpu == "ade130":
             from mmseg.datasets.ade import ADE20K130Dataset
+
             cls_name = ADE20K130Dataset.CLASSES130
         elif self.dataset_on_gpu == "ade847":
             from mmseg.datasets.ade import ADE20KFULLDataset
+
             cls_name = ADE20KFULLDataset.CLASSES
         elif self.dataset_on_gpu == "ade585":
             from mmseg.datasets.ade import ADE20K585Dataset
+
             cls_name = ADE20K585Dataset.CLASSES585
         elif self.dataset_on_gpu == "in124":
             from mmseg.datasets.imagenet import ImageNet124
+
             cls_name = ImageNet124.CLASSES
         elif self.dataset_on_gpu == "in130":
             from mmseg.datasets.imagenet import ImageNet130
+
             cls_name = ImageNet130.CLASSES
         elif self.dataset_on_gpu == "in585":
             from mmseg.datasets.imagenet import ImageNet585
+
             cls_name = ImageNet585.CLASSES
         else:
             raise NotImplementedError(f"{self.dataset_on_gpu} is not supported")
@@ -211,27 +230,25 @@ class MaskTransformerExtendVocPseudoHead(BaseDecodeHead):
         masks, _, _ = self.forward(inputs, img_metas)
         return masks
 
-    @force_fp32(apply_to=('seg_mask', ))
+    @force_fp32(apply_to=("seg_mask",))
     def losses(self, seg_mask, seg_embed, seg_score, seg_label):
         """Compute segmentation loss."""
         h = seg_label.shape[-2] // self.downsample_rate
         w = seg_label.shape[-1] // self.downsample_rate
         seg_mask = resize(
-            seg_mask, size=(h, w), mode='bilinear', align_corners=self.align_corners
+            seg_mask, size=(h, w), mode="bilinear", align_corners=self.align_corners
         )
         seg_score = resize(
-            seg_score, size=(h, w), mode='bilinear', align_corners=self.align_corners
+            seg_score, size=(h, w), mode="bilinear", align_corners=self.align_corners
         )
-        seg_label = resize(
-            seg_label.float(), size=(h, w), mode='nearest'
-        ).long()
+        seg_label = resize(seg_label.float(), size=(h, w), mode="nearest").long()
         if self.weakly_supervised:
             loss = self.weakly_loss(seg_mask, seg_embed, seg_score, seg_label)
         else:
             loss = self.supervised_loss(seg_mask, seg_label)
-        loss['acc_seg'] = self._log_accuracy(seg_mask, seg_label)
+        loss["acc_seg"] = self._log_accuracy(seg_mask, seg_label)
         return loss
-    
+
     def _log_accuracy(self, seg_mask, seg_label):
         B, N, H, W = seg_mask.shape
         seg_label = seg_label.flatten()
@@ -240,12 +257,15 @@ class MaskTransformerExtendVocPseudoHead(BaseDecodeHead):
         acc_weight = 1.0
         if weak_in_batch:
             num_datasets = len(self.mix_batch_datasets)
-            all_data = [self.mix_batch_datasets[r % num_datasets] for r in range(self.world_size)]
+            all_data = [
+                self.mix_batch_datasets[r % num_datasets]
+                for r in range(self.world_size)
+            ]
             sup_data = [d for d in all_data if d not in self.weakly_supervised_datasets]
             acc_mult_weight = len(all_data) / len(sup_data)
             acc_weight = 0.0 if self.weakly_supervised else acc_mult_weight
         return accuracy(seg_mask, seg_label) * acc_weight
-    
+
     def supervised_loss(self, seg_mask, seg_label):
         """
         Args:
@@ -256,9 +276,10 @@ class MaskTransformerExtendVocPseudoHead(BaseDecodeHead):
         B, N, H, W = seg_mask.size()
         seg_mask = seg_mask.permute(0, 2, 3, 1).reshape(B * H * W, N)
         seg_label = seg_label.reshape(B * H * W)
-        loss["loss_basic"] = self.loss_decode(
-            seg_mask, seg_label, ignore_index=self.ignore_index
-        ) * self.basic_loss_weight
+        loss["loss_basic"] = (
+            self.loss_decode(seg_mask, seg_label, ignore_index=self.ignore_index)
+            * self.basic_loss_weight
+        )
         loss["loss_aux"] = seg_mask.sum() * 0.0
         return loss
 
@@ -293,15 +314,15 @@ class MaskTransformerExtendVocPseudoHead(BaseDecodeHead):
         return loss
 
     def _cross_entropy_loss(self, pred, label, ignore_indices):
-        """Cross Entropy Loss with multiple ignore indices.
-        """
+        """Cross Entropy Loss with multiple ignore indices."""
         assert pred.numel() > 0, "no elements in prediction"
         if "in" in self.dataset_on_gpu:
             assert len(ignore_indices) == 0, f"more than one classes for imagenet data"
         N = pred.shape[-1]
         kept_indices = [i for i in range(N) if i not in ignore_indices]
         if len(kept_indices) == 0:
-            print("NO Label"); return pred.sum() * 0.0
+            print("NO Label")
+            return pred.sum() * 0.0
         assert label in kept_indices, f"{label} not in {kept_indices}"
         map_dict = {old_ind: new_ind for new_ind, old_ind in enumerate(kept_indices)}
         pred = pred[:, kept_indices].mean(dim=0, keepdim=True)
@@ -309,8 +330,7 @@ class MaskTransformerExtendVocPseudoHead(BaseDecodeHead):
         return F.cross_entropy(pred, label)
 
     def _aux_cross_entropy_loss(self, pred, label, score, ignore_indices):
-        """Cross Entropy Loss with multiple ignore indices.
-        """
+        """Cross Entropy Loss with multiple ignore indices."""
         assert pred.numel() > 0, "no elements in prediction"
         if "in" in self.dataset_on_gpu:
             assert len(ignore_indices) == 0, f"more than one classes for imagenet data"
@@ -318,11 +338,13 @@ class MaskTransformerExtendVocPseudoHead(BaseDecodeHead):
         score = score[:, label]
         inds = (score > (score.mean() + score.std())).nonzero(as_tuple=False).flatten()
         if inds.numel() == 0:
-            print("NO pseudo labels"); return pred.sum() * 0.0
+            print("NO pseudo labels")
+            return pred.sum() * 0.0
         pred = pred[inds]
         kept_indices = [i for i in range(N) if i not in ignore_indices]
         if len(kept_indices) == 0:
-            print("NO Label"); return pred.sum() * 0.0
+            print("NO Label")
+            return pred.sum() * 0.0
         assert label in kept_indices, f"{label} not in {kept_indices}"
         map_dict = {old_ind: new_ind for new_ind, old_ind in enumerate(kept_indices)}
         pred = pred[:, kept_indices].mean(dim=0, keepdim=True)
@@ -336,6 +358,7 @@ class MaskTransformerExtendVocPseudoHead(BaseDecodeHead):
         tvect = target.new_zeros((batch, nclass), dtype=torch.int64)
         for i in range(batch):
             hist = torch.histc(
-                target[i].data.float(), bins=nclass, min=0, max=nclass - 1)
+                target[i].data.float(), bins=nclass, min=0, max=nclass - 1
+            )
             tvect[i] = hist
         return tvect

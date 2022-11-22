@@ -91,7 +91,7 @@ class CustomDataset(Dataset):
         palette=None,
         int16=False,
         gt_seg_map_loader_cfg=None,
-        oracle_inference=False
+        oracle_inference=False,
     ):
         self.pipeline = Compose(pipeline)
         self.img_dir = img_dir
@@ -275,9 +275,9 @@ class CustomDataset(Dataset):
         mmcv.mkdir_or_exist(imgfile_prefix)
         result_files = []
         for result, idx in zip(results, indices):
-            filename = self.img_infos[idx]['filename']
+            filename = self.img_infos[idx]["filename"]
             basename = osp.splitext(osp.basename(filename))[0]
-            png_filename = osp.join(imgfile_prefix, f'{basename}.png')
+            png_filename = osp.join(imgfile_prefix, f"{basename}.png")
             # result = result + 1
             h, w = result.shape
             unique_label = np.unique(result)
@@ -292,11 +292,7 @@ class CustomDataset(Dataset):
 
         return result_files
 
-    def format_results(self,
-                       results,
-                       imgfile_prefix,
-                       to_label_id=True,
-                       indices=None):
+    def format_results(self, results, imgfile_prefix, to_label_id=True, indices=None):
         """Format the results into dir (standard format for ade20k evaluation).
 
         Args:
@@ -319,11 +315,10 @@ class CustomDataset(Dataset):
         if indices is None:
             indices = list(range(len(self)))
 
-        assert isinstance(results, list), 'results must be a list.'
-        assert isinstance(indices, list), 'indices must be a list.'
+        assert isinstance(results, list), "results must be a list."
+        assert isinstance(indices, list), "indices must be a list."
 
-        result_files = self.results2img(results, imgfile_prefix, to_label_id,
-                                        indices)
+        result_files = self.results2img(results, imgfile_prefix, to_label_id, indices)
         return result_files
 
     def get_gt_seg_map_by_idx(self, index):

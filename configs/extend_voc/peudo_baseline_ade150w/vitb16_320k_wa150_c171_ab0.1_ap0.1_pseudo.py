@@ -25,7 +25,7 @@ model = dict(
         ignore_indices=[255, 255],
         test_ignore_index=255,
         basic_loss_weights=[0.1, 1.0],
-        aux_loss_weights=[0.1, 0.0]
+        aux_loss_weights=[0.1, 0.0],
     ),
     test_cfg=dict(mode="slide", crop_size=(512, 512), stride=(512, 512)),
 )

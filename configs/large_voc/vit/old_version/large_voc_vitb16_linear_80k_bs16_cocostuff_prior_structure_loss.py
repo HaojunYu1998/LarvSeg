@@ -23,9 +23,11 @@ model = dict(
         # datasets
         all_cls_path="",
         mix_batch_datasets=["coco171"],
-        test_dataset="coco171", # not used
-        ignore_indices=[255,],
-        test_ignore_index=-1, # used
+        test_dataset="coco171",  # not used
+        ignore_indices=[
+            255,
+        ],
+        test_ignore_index=-1,  # used
         # attention head
         d_encoder=768,
         n_layers=6,

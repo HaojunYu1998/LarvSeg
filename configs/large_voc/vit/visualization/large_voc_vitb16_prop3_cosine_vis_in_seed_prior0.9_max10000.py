@@ -17,7 +17,7 @@ model = dict(
     ),
     decode_head=dict(
         type="MaskTransformerLargeVocPropagationHead",
-        n_cls=130, # train on 256 classes, eval 130 classes
+        n_cls=130,  # train on 256 classes, eval 130 classes
         downsample_rate=2,
         temperature=0.05,
         # datasets

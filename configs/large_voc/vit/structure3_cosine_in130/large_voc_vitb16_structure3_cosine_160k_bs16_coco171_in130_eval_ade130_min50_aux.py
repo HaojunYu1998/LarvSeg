@@ -16,15 +16,15 @@ model = dict(
     ),
     decode_head=dict(
         type="MaskTransformerLargeVocStructureHead",
-        n_cls=130, # train on 256 classes, eval 130 classes
+        n_cls=130,  # train on 256 classes, eval 130 classes
         downsample_rate=2,
         temperature=0.05,
         # datasets
         all_cls_path="notebook/ade130ucoco.json",
         mix_batch_datasets=["coco171", "in130"],
-        test_dataset="ade130", # not used
+        test_dataset="ade130",  # not used
         ignore_indices=[255, 255],
-        test_ignore_index=255, # used
+        test_ignore_index=255,  # used
         # attention head
         d_encoder=768,
         n_layers=3,
@@ -35,7 +35,7 @@ model = dict(
         dropout=0.1,
         use_linear_classifier=False,
         use_auxiliary_loss=True,
-        auxiliary_loss_weight=[0.1,0.1,1.0],
+        auxiliary_loss_weight=[0.1, 0.1, 1.0],
         # weakly supervised
         weakly_supervised_datasets=["in130"],
         weakly_prior_thresh=0.9,

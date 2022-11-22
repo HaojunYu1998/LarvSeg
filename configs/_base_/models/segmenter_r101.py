@@ -2,7 +2,7 @@
 norm_cfg = dict(type="SyncBN", requires_grad=True)
 model = dict(
     type="EncoderDecoder",
-    pretrained='open-mmlab://resnet101_v1c',
+    pretrained="open-mmlab://resnet101_v1c",
     backbone=dict(
         type="ResNetV1c",
         depth=101,
@@ -12,8 +12,9 @@ model = dict(
         strides=(1, 2, 1, 1),
         norm_cfg=norm_cfg,
         norm_eval=False,
-        style='pytorch',
-        contract_dilation=True),
+        style="pytorch",
+        contract_dilation=True,
+    ),
     decode_head=dict(
         type="MaskTransformerHead",
         n_cls=150,

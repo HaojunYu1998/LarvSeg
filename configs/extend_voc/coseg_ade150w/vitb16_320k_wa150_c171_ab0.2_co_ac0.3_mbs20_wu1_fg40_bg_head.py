@@ -62,4 +62,4 @@ lr_config = dict(
 
 # By default, models are trained on 8 GPUs with 2 images per GPU
 data = dict(samples_per_gpu=2)
-evaluation = dict(interval=1000, metric='mIoU', pre_eval=True)
+evaluation = dict(interval=1000, metric="mIoU", pre_eval=True)

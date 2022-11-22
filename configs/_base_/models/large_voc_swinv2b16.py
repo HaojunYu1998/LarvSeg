@@ -3,15 +3,15 @@ norm_cfg = dict(type="SyncBN", requires_grad=True)
 model = dict(
     type="EncoderDecoder",
     backbone=dict(
-        type="SwinTransformerV2", 
+        type="SwinTransformerV2",
         img_size=512,
         num_classes=0,
         embed_dim=128,
-        depths=[ 2, 2, 18, 2 ],
-        num_heads=[ 4, 8, 16, 32 ],
+        depths=[2, 2, 18, 2],
+        num_heads=[4, 8, 16, 32],
         drop_path_rate=0.2,
         window_size=16,
-        pretrained_window_sizes=[ 12, 12, 12, 6 ], 
+        pretrained_window_sizes=[12, 12, 12, 6],
         pretrained="pretrain/swinv2_base_patch4_window12_192_22k.pth",
     ),
     decode_head=dict(

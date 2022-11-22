@@ -16,16 +16,16 @@ model = dict(
     ),
     decode_head=dict(
         type="MaskTransformerLargeVocHead",
-        n_cls=130, # train on 256 classes, eval 130 classes
+        n_cls=130,  # train on 256 classes, eval 130 classes
         downsample_rate=2,
         temperature=0.05,
         # datasets
         all_cls_path="notebook/ade130ucoco.json",
         mix_batch_datasets=["coco171", "in130"],
-        test_dataset="ade130", # not used
+        test_dataset="ade130",  # not used
         # 65535 is -1 for int16, but during training the label will be cast to int32
         ignore_indices=[255, 255],
-        test_ignore_index=255, # used
+        test_ignore_index=255,  # used
         # prior loss
         use_prior_loss=True,
         use_linear_classifier=False,

@@ -16,7 +16,7 @@ model = dict(
     ),
     decode_head=dict(
         type="MaskTransformerLargeVocAttnHead",
-        n_cls=130, # train on 256 classes, eval 130 classes
+        n_cls=130,  # train on 256 classes, eval 130 classes
         downsample_rate=2,
         update_image_patch=True,
         # datasets

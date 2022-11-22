@@ -22,7 +22,6 @@ def init_weights(m):
 
 @HEADS.register_module()
 class MaskTransformerEncHead(BaseDecodeHead):
-
     def __init__(
         self,
         n_cls,
@@ -35,8 +34,7 @@ class MaskTransformerEncHead(BaseDecodeHead):
         drop_path_rate,
         dropout,
         num_codes=32,
-        loss_se_decode=dict(
-            type='CrossEntropyLoss', use_sigmoid=True, loss_weight=0.2),
+        loss_se_decode=dict(type="CrossEntropyLoss", use_sigmoid=True, loss_weight=0.2),
         layer_norm="orig",
         **kwargs,
     ):
@@ -58,18 +56,15 @@ class MaskTransformerEncHead(BaseDecodeHead):
         self.scale = d_model**-0.5
 
         dpr = [x.item() for x in torch.linspace(0, drop_path_rate, n_layers)]
-        self.blocks = nn.ModuleList([
-            Block(d_model, n_heads, d_ff, dropout, dpr[i])
-            for i in range(n_layers)
-        ])
+        self.blocks = nn.ModuleList(
+            [Block(d_model, n_heads, d_ff, dropout, dpr[i]) for i in range(n_layers)]
+        )
 
         self.cls_emb = nn.Parameter(torch.randn(1, n_cls, d_model))
         self.proj_dec = nn.Linear(d_encoder, d_model)
 
-        self.proj_patch = nn.Parameter(self.scale *
-                                       torch.randn(d_model, d_model))
-        self.proj_classes = nn.Parameter(self.scale *
-                                         torch.randn(d_model, d_model))
+        self.proj_patch = nn.Parameter(self.scale * torch.randn(d_model, d_model))
+        self.proj_classes = nn.Parameter(self.scale * torch.randn(d_model, d_model))
 
         self.decoder_norm = nn.LayerNorm(d_model)
         if layer_norm == "orig":
@@ -81,12 +76,14 @@ class MaskTransformerEncHead(BaseDecodeHead):
         self.loss_se_decode = build_loss(loss_se_decode)
         self.se_layer = nn.Linear(self.d_model, self.num_classes)
         from .enc_head import EncModule
+
         self.enc_module = EncModule(
             self.d_model,
             num_codes=num_codes,
             conv_cfg=self.conv_cfg,
             norm_cfg=self.norm_cfg,
-            act_cfg=self.act_cfg)
+            act_cfg=self.act_cfg,
+        )
         self.bottleneck = ConvModule(
             self.d_encoder,
             self.d_model,
@@ -94,7 +91,8 @@ class MaskTransformerEncHead(BaseDecodeHead):
             padding=1,
             conv_cfg=self.conv_cfg,
             norm_cfg=self.norm_cfg,
-            act_cfg=self.act_cfg)
+            act_cfg=self.act_cfg,
+        )
 
     def init_weights(self):
         self.apply(init_weights)
@@ -118,7 +116,7 @@ class MaskTransformerEncHead(BaseDecodeHead):
             x = blk(x)
         x = self.decoder_norm(x)
 
-        patches, cls_seg_feat = x[:, :-self.n_cls], x[:, -self.n_cls:]
+        patches, cls_seg_feat = x[:, : -self.n_cls], x[:, -self.n_cls :]
         patches = patches @ self.proj_patch
         cls_seg_feat = cls_seg_feat @ self.proj_classes
 
@@ -154,8 +152,9 @@ class MaskTransformerEncHead(BaseDecodeHead):
         batch_size = seg_label.size(0)
         onehot_labels = seg_label.new_zeros((batch_size, num_classes))
         for i in range(batch_size):
-            hist = seg_label[i].float().histc(
-                bins=num_classes, min=0, max=num_classes - 1)
+            hist = (
+                seg_label[i].float().histc(bins=num_classes, min=0, max=num_classes - 1)
+            )
             onehot_labels[i] = hist > 0
         return onehot_labels
 
@@ -163,17 +162,15 @@ class MaskTransformerEncHead(BaseDecodeHead):
         """Compute segmentation and semantic encoding loss."""
         seg_logit, se_seg_logit = seg_logit
         loss = dict()
-        loss.update(
-            super(MaskTransformerEncHead, self).losses(seg_logit, seg_label))
+        loss.update(super(MaskTransformerEncHead, self).losses(seg_logit, seg_label))
         se_loss = self.loss_se_decode(
-            se_seg_logit,
-            self._convert_to_onehot_labels(seg_label, self.num_classes))
-        loss['loss_se'] = se_loss
+            se_seg_logit, self._convert_to_onehot_labels(seg_label, self.num_classes)
+        )
+        loss["loss_se"] = se_loss
         return loss
 
 
 class FeedForward(nn.Module):
-
     def __init__(self, dim, hidden_dim, dropout, out_dim=None):
         super().__init__()
         self.fc1 = nn.Linear(dim, hidden_dim)
@@ -197,7 +194,6 @@ class FeedForward(nn.Module):
 
 
 class Attention(nn.Module):
-
     def __init__(self, dim, heads, dropout):
         super().__init__()
         self.heads = heads
@@ -217,8 +213,10 @@ class Attention(nn.Module):
     def forward(self, x, mask=None):
         B, N, C = x.shape
         qkv = (
-            self.qkv(x).reshape(B, N, 3, self.heads,
-                                C // self.heads).permute(2, 0, 3, 1, 4))
+            self.qkv(x)
+            .reshape(B, N, 3, self.heads, C // self.heads)
+            .permute(2, 0, 3, 1, 4)
+        )
         q, k, v = (
             qkv[0],
             qkv[1],
@@ -237,15 +235,13 @@ class Attention(nn.Module):
 
 
 class Block(nn.Module):
-
     def __init__(self, dim, heads, mlp_dim, dropout, drop_path):
         super().__init__()
         self.norm1 = nn.LayerNorm(dim)
         self.norm2 = nn.LayerNorm(dim)
         self.attn = Attention(dim, heads, dropout)
         self.mlp = FeedForward(dim, mlp_dim, dropout)
-        self.drop_path = DropPath(
-            drop_path) if drop_path > 0.0 else nn.Identity()
+        self.drop_path = DropPath(drop_path) if drop_path > 0.0 else nn.Identity()
 
     def forward(self, x, mask=None, return_attention=False):
         y, attn = self.attn(self.norm1(x), mask)
@@ -257,7 +253,6 @@ class Block(nn.Module):
 
 
 class DecoderLinear(nn.Module):
-
     def __init__(self, n_cls, patch_size, d_encoder):
         super().__init__()
 
@@ -284,9 +279,9 @@ class DecoderLinear(nn.Module):
 
 
 class LayerScale(nn.Module):
-    '''Reproduced LayerNorm
+    """Reproduced LayerNorm
     https://github.com/pytorch/pytorch/blob/e2eb97dd7682d2810071ce78b76543acc1584a9c/torch/onnx/symbolic_opset9.py#L1311
-    '''
+    """
 
     def __init__(self, dim, eps=1e-5):
         super().__init__()

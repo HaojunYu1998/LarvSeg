@@ -22,8 +22,7 @@ class ASPPModule(nn.ModuleList):
         act_cfg (dict): Config of activation layers.
     """
 
-    def __init__(self, dilations, in_channels, channels, conv_cfg, norm_cfg,
-                 act_cfg):
+    def __init__(self, dilations, in_channels, channels, conv_cfg, norm_cfg, act_cfg):
         super(ASPPModule, self).__init__()
         self.dilations = dilations
         self.in_channels = in_channels
@@ -41,7 +40,9 @@ class ASPPModule(nn.ModuleList):
                     padding=0 if dilation == 1 else dilation,
                     conv_cfg=self.conv_cfg,
                     norm_cfg=self.norm_cfg,
-                    act_cfg=self.act_cfg))
+                    act_cfg=self.act_cfg,
+                )
+            )
 
     def forward(self, x):
         """Forward function."""
@@ -68,15 +69,18 @@ class ASPPMLSegHead(BaseDecodeHead):
         super(ASPPMLSegHead, self).__init__(**kwargs)
 
         # MLSeg
-        self.img_cls_head = build_head(mlseg['head'])
-        self.img_cls_loss = build_loss(mlseg['loss'])
-        self.topk_cls = mlseg['topk_cls']
-        self.img_loss_weight = mlseg['img_loss_weight']
+        self.img_cls_head = build_head(mlseg["head"])
+        self.img_cls_loss = build_loss(mlseg["loss"])
+        self.topk_cls = mlseg["topk_cls"]
+        self.img_loss_weight = mlseg["img_loss_weight"]
 
-        self.cls_emb = nn.Parameter(torch.randn(1, self.num_classes, mlseg['head']['hidden_dim']))
+        self.cls_emb = nn.Parameter(
+            torch.randn(1, self.num_classes, mlseg["head"]["hidden_dim"])
+        )
         self.cls_bias_emb = nn.Parameter(torch.randn(1, self.num_classes))
 
         from torch.nn.init import trunc_normal_
+
         trunc_normal_(self.cls_emb, std=0.02)
         trunc_normal_(self.cls_bias_emb, std=0.02)
 
@@ -93,14 +97,17 @@ class ASPPMLSegHead(BaseDecodeHead):
                 1,
                 conv_cfg=self.conv_cfg,
                 norm_cfg=self.norm_cfg,
-                act_cfg=self.act_cfg))
+                act_cfg=self.act_cfg,
+            ),
+        )
         self.aspp_modules = ASPPModule(
             dilations,
             self.in_channels,
             self.channels,
             conv_cfg=self.conv_cfg,
             norm_cfg=self.norm_cfg,
-            act_cfg=self.act_cfg)
+            act_cfg=self.act_cfg,
+        )
         self.bottleneck = ConvModule(
             (len(dilations) + 1) * self.channels,
             self.channels,
@@ -108,7 +115,8 @@ class ASPPMLSegHead(BaseDecodeHead):
             padding=1,
             conv_cfg=self.conv_cfg,
             norm_cfg=self.norm_cfg,
-            act_cfg=self.act_cfg)
+            act_cfg=self.act_cfg,
+        )
 
     def forward(self, inputs):
         """Forward function."""
@@ -118,13 +126,14 @@ class ASPPMLSegHead(BaseDecodeHead):
             resize(
                 self.image_pool(x),
                 size=x.size()[2:],
-                mode='bilinear',
-                align_corners=self.align_corners)
+                mode="bilinear",
+                align_corners=self.align_corners,
+            )
         ]
         aspp_outs.extend(self.aspp_modules(x))
         aspp_outs = torch.cat(aspp_outs, dim=1)
         output = self.bottleneck(aspp_outs)
-        
+
         # Multi-Label classification, using lowest-resolution feature
         inputs_ml = x
         if self.img_cls_head.share_embedding:
@@ -133,13 +142,14 @@ class ASPPMLSegHead(BaseDecodeHead):
             img_pred = self.img_cls_head(inputs_ml)
 
         topk_cls = self.topk_cls
-        topk_index = torch.argsort(img_pred, dim=1, descending=True)[
-            :, : topk_cls
-        ].squeeze(-1).squeeze(-1)
-
+        topk_index = (
+            torch.argsort(img_pred, dim=1, descending=True)[:, :topk_cls]
+            .squeeze(-1)
+            .squeeze(-1)
+        )
 
         output = self.cls_seg(img_pred, topk_index, output)
-            
+
         return output
 
     def cls_seg(self, img_pred, topk_index, feat):
@@ -151,11 +161,17 @@ class ASPPMLSegHead(BaseDecodeHead):
 
         # Select topK classes feature for every image
         cls_emb = self.cls_emb
-        cls_emb = cls_emb.reshape(self.num_classes, -1)[topk_index.reshape(-1)].reshape(B, topk_index.shape[1], -1)
+        cls_emb = cls_emb.reshape(self.num_classes, -1)[topk_index.reshape(-1)].reshape(
+            B, topk_index.shape[1], -1
+        )
         cls_bias_emb = self.cls_bias_emb
-        cls_bias_emb = cls_bias_emb.reshape(self.num_classes, -1)[topk_index.reshape(-1)].reshape(B, topk_index.shape[1])
+        cls_bias_emb = cls_bias_emb.reshape(self.num_classes, -1)[
+            topk_index.reshape(-1)
+        ].reshape(B, topk_index.shape[1])
 
-        output = torch.einsum('bchw, bkc -> bkhw', feat, cls_emb) + cls_bias_emb.unsqueeze(-1).unsqueeze(-1)
+        output = torch.einsum(
+            "bchw, bkc -> bkhw", feat, cls_emb
+        ) + cls_bias_emb.unsqueeze(-1).unsqueeze(-1)
         output = self.norm(output.permute(0, 2, 3, 1)).permute(0, 3, 1, 2)
 
         # return pixel prediction in topK classes during training
@@ -164,16 +180,14 @@ class ASPPMLSegHead(BaseDecodeHead):
             return img_pred, topk_index, output
 
         # return pixel prediction in all classes during inference
-        # set the logits of classes not in topK classes to -100    
+        # set the logits of classes not in topK classes to -100
         else:
-            topk_index_tmp = (
-                topk_index.unsqueeze(-1).unsqueeze(-1).repeat(1, 1, H, W)
-            )
+            topk_index_tmp = topk_index.unsqueeze(-1).unsqueeze(-1).repeat(1, 1, H, W)
             full_output = output.new_ones((B, self.num_classes, H, W)) * -100
             full_output.scatter_(1, topk_index_tmp, output)
             return full_output
 
-    @force_fp32(apply_to=('seg_logit', ))
+    @force_fp32(apply_to=("seg_logit",))
     def losses(self, seg_logit, seg_label):
         """Compute segmentation loss."""
         # generate histogram of gt_labels for each image
@@ -182,17 +196,19 @@ class ASPPMLSegHead(BaseDecodeHead):
 
         loss = dict()
         # Image Multi-label Loss
-        loss['loss_img'] = self.img_cls_loss(
-            img_pred.squeeze(-1).squeeze(-1),
-            (hist > 0).float()) * self.img_loss_weight
-        
+        loss["loss_img"] = (
+            self.img_cls_loss(img_pred.squeeze(-1).squeeze(-1), (hist > 0).float())
+            * self.img_loss_weight
+        )
+
         # Seg Loss
         seg_logit = resize(
             input=seg_logit,
             size=seg_label.shape[2:],
-            mode='bilinear',
-            align_corners=self.align_corners)
-        # rearrange gt_labels to topK index, pixel not predicted in topK classes will be set to ignore    
+            mode="bilinear",
+            align_corners=self.align_corners,
+        )
+        # rearrange gt_labels to topK index, pixel not predicted in topK classes will be set to ignore
         topk_vector = (
             topk_index.unsqueeze(-1).unsqueeze(-1)
             == seg_label.repeat(1, self.topk_cls, 1, 1)
@@ -201,20 +217,18 @@ class ASPPMLSegHead(BaseDecodeHead):
         topk_label[topk_max_prob == 0] = self.ignore_index
         topk_label[seg_label.squeeze(1) == self.ignore_index] = self.ignore_index
         seg_label = topk_label.unsqueeze(1)
-        
+
         if self.sampler is not None:
             seg_weight = self.sampler.sample(seg_logit, seg_label)
         else:
             seg_weight = None
         seg_label = seg_label.squeeze(1)
 
-        loss['loss_seg'] = self.loss_decode(
-            seg_logit,
-            seg_label,
-            weight=seg_weight,
-            ignore_index=self.ignore_index)
-        loss['acc_pix'] = pixel_recall(hist, topk_index)
-        loss['acc_img'] = img_recall(hist, topk_index)
-        loss['acc_img_accuracy'] = img_accuracy(hist, topk_index)
-        loss['acc_seg'] = accuracy(seg_logit, seg_label)
+        loss["loss_seg"] = self.loss_decode(
+            seg_logit, seg_label, weight=seg_weight, ignore_index=self.ignore_index
+        )
+        loss["acc_pix"] = pixel_recall(hist, topk_index)
+        loss["acc_img"] = img_recall(hist, topk_index)
+        loss["acc_img_accuracy"] = img_accuracy(hist, topk_index)
+        loss["acc_seg"] = accuracy(seg_logit, seg_label)
         return loss

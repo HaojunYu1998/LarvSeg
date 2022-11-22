@@ -23,22 +23,20 @@ class EvalHook(_EvalHook):
         list: The prediction results.
     """
 
-    greater_keys = ['mIoU', 'mAcc', 'aAcc']
+    greater_keys = ["mIoU", "mAcc", "aAcc"]
 
-    def __init__(self,
-                 *args,
-                 by_epoch=False,
-                 efficient_test=False,
-                 pre_eval=False,
-                 **kwargs):
+    def __init__(
+        self, *args, by_epoch=False, efficient_test=False, pre_eval=False, **kwargs
+    ):
         super().__init__(*args, by_epoch=by_epoch, **kwargs)
         self.pre_eval = pre_eval
         if efficient_test:
             warnings.warn(
-                'DeprecationWarning: ``efficient_test`` for evaluation hook '
-                'is deprecated, the evaluation hook is CPU memory friendly '
-                'with ``pre_eval=True`` as argument for ``single_gpu_test()`` '
-                'function')
+                "DeprecationWarning: ``efficient_test`` for evaluation hook "
+                "is deprecated, the evaluation hook is CPU memory friendly "
+                "with ``pre_eval=True`` as argument for ``single_gpu_test()`` "
+                "function"
+            )
 
     def _do_evaluate(self, runner):
         """perform evaluation and save ckpt."""
@@ -46,10 +44,12 @@ class EvalHook(_EvalHook):
             return
 
         from mmseg.apis import single_gpu_test
+
         results = single_gpu_test(
-            runner.model, self.dataloader, show=False, pre_eval=self.pre_eval)
+            runner.model, self.dataloader, show=False, pre_eval=self.pre_eval
+        )
         runner.log_buffer.clear()
-        runner.log_buffer.output['eval_iter_num'] = len(self.dataloader)
+        runner.log_buffer.output["eval_iter_num"] = len(self.dataloader)
         key_score = self.evaluate(runner, results)
         if self.save_best:
             self._save_ckpt(runner, key_score)
@@ -70,22 +70,20 @@ class DistEvalHook(_DistEvalHook):
         list: The prediction results.
     """
 
-    greater_keys = ['mIoU', 'mAcc', 'aAcc']
+    greater_keys = ["mIoU", "mAcc", "aAcc"]
 
-    def __init__(self,
-                 *args,
-                 by_epoch=False,
-                 efficient_test=False,
-                 pre_eval=False,
-                 **kwargs):
+    def __init__(
+        self, *args, by_epoch=False, efficient_test=False, pre_eval=False, **kwargs
+    ):
         super().__init__(*args, by_epoch=by_epoch, **kwargs)
         self.pre_eval = pre_eval
         if efficient_test:
             warnings.warn(
-                'DeprecationWarning: ``efficient_test`` for evaluation hook '
-                'is deprecated, the evaluation hook is CPU memory friendly '
-                'with ``pre_eval=True`` as argument for ``multi_gpu_test()`` '
-                'function')
+                "DeprecationWarning: ``efficient_test`` for evaluation hook "
+                "is deprecated, the evaluation hook is CPU memory friendly "
+                "with ``pre_eval=True`` as argument for ``multi_gpu_test()`` "
+                "function"
+            )
 
     def _do_evaluate(self, runner):
         """perform evaluation and save ckpt."""
@@ -97,8 +95,7 @@ class DistEvalHook(_DistEvalHook):
         if self.broadcast_bn_buffer:
             model = runner.model
             for name, module in model.named_modules():
-                if isinstance(module,
-                              _BatchNorm) and module.track_running_stats:
+                if isinstance(module, _BatchNorm) and module.track_running_stats:
                     dist.broadcast(module.running_var, 0)
                     dist.broadcast(module.running_mean, 0)
 
@@ -107,21 +104,23 @@ class DistEvalHook(_DistEvalHook):
 
         tmpdir = self.tmpdir
         if tmpdir is None:
-            tmpdir = osp.join(runner.work_dir, '.eval_hook')
+            tmpdir = osp.join(runner.work_dir, ".eval_hook")
 
         from mmseg.apis import multi_gpu_test
+
         results = multi_gpu_test(
             runner.model,
             self.dataloader,
             tmpdir=tmpdir,
             gpu_collect=self.gpu_collect,
-            pre_eval=self.pre_eval)
+            pre_eval=self.pre_eval,
+        )
 
         runner.log_buffer.clear()
 
         if runner.rank == 0:
-            print('\n')
-            runner.log_buffer.output['eval_iter_num'] = len(self.dataloader)
+            print("\n")
+            runner.log_buffer.output["eval_iter_num"] = len(self.dataloader)
             key_score = self.evaluate(runner, results)
 
             if self.save_best:

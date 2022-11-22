@@ -18,18 +18,15 @@ class DemoDataset(CustomDataset):
     The ``img_suffix`` is fixed to '.jpg' and ``seg_map_suffix`` is fixed to
     '.png'.
     """
-    CLASSES = (
-        'sky', 'palace', 'river', 'tree'
-    )
+
+    CLASSES = ("sky", "palace", "river", "tree")
 
     PALETTE = None
 
     def __init__(self, **kwargs):
         super(DemoDataset, self).__init__(
-            img_suffix='.jpg',
-            seg_map_suffix='.png',
-            reduce_zero_label=True,
-            **kwargs)
+            img_suffix=".jpg", seg_map_suffix=".png", reduce_zero_label=True, **kwargs
+        )
 
     def results2img(self, results, imgfile_prefix, to_label_id, indices=None):
         """Write the segmentation results to images.
@@ -57,10 +54,10 @@ class DemoDataset(CustomDataset):
         result_files = []
         for result, idx in zip(results, indices):
 
-            filename = self.img_infos[idx]['filename']
+            filename = self.img_infos[idx]["filename"]
             basename = osp.splitext(osp.basename(filename))[0]
 
-            png_filename = osp.join(imgfile_prefix, f'{basename}.png')
+            png_filename = osp.join(imgfile_prefix, f"{basename}.png")
 
             # The  index range of official requirement is from 0 to 150.
             # But the index range of output is from 0 to 149.
@@ -73,11 +70,7 @@ class DemoDataset(CustomDataset):
 
         return result_files
 
-    def format_results(self,
-                       results,
-                       imgfile_prefix,
-                       to_label_id=True,
-                       indices=None):
+    def format_results(self, results, imgfile_prefix, to_label_id=True, indices=None):
         """Format the results into dir (standard format for ade20k evaluation).
 
         Args:
@@ -100,9 +93,8 @@ class DemoDataset(CustomDataset):
         if indices is None:
             indices = list(range(len(self)))
 
-        assert isinstance(results, list), 'results must be a list.'
-        assert isinstance(indices, list), 'indices must be a list.'
+        assert isinstance(results, list), "results must be a list."
+        assert isinstance(indices, list), "indices must be a list."
 
-        result_files = self.results2img(results, imgfile_prefix, to_label_id,
-                                        indices)
+        result_files = self.results2img(results, imgfile_prefix, to_label_id, indices)
         return result_files

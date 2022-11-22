@@ -31,7 +31,7 @@ def to_tensor(data):
     elif isinstance(data, float):
         return torch.FloatTensor([data])
     else:
-        raise TypeError(f'type {type(data)} cannot be converted to tensor.')
+        raise TypeError(f"type {type(data)} cannot be converted to tensor.")
 
 
 @PIPELINES.register_module()
@@ -61,7 +61,7 @@ class ToTensor(object):
         return results
 
     def __repr__(self):
-        return self.__class__.__name__ + f'(keys={self.keys})'
+        return self.__class__.__name__ + f"(keys={self.keys})"
 
 
 @PIPELINES.register_module()
@@ -99,7 +99,7 @@ class ImageToTensor(object):
         return results
 
     def __repr__(self):
-        return self.__class__.__name__ + f'(keys={self.keys})'
+        return self.__class__.__name__ + f"(keys={self.keys})"
 
 
 @PIPELINES.register_module()
@@ -132,8 +132,7 @@ class Transpose(object):
         return results
 
     def __repr__(self):
-        return self.__class__.__name__ + \
-               f'(keys={self.keys}, order={self.order})'
+        return self.__class__.__name__ + f"(keys={self.keys}, order={self.order})"
 
 
 @PIPELINES.register_module()
@@ -148,9 +147,9 @@ class ToDataContainer(object):
             dict(key='gt_semantic_seg'))``.
     """
 
-    def __init__(self,
-                 fields=(dict(key='img',
-                              stack=True), dict(key='gt_semantic_seg'))):
+    def __init__(
+        self, fields=(dict(key="img", stack=True), dict(key="gt_semantic_seg"))
+    ):
         self.fields = fields
 
     def __call__(self, results):
@@ -167,12 +166,12 @@ class ToDataContainer(object):
 
         for field in self.fields:
             field = field.copy()
-            key = field.pop('key')
+            key = field.pop("key")
             results[key] = DC(results[key], **field)
         return results
 
     def __repr__(self):
-        return self.__class__.__name__ + f'(fields={self.fields})'
+        return self.__class__.__name__ + f"(fields={self.fields})"
 
 
 @PIPELINES.register_module()
@@ -198,18 +197,18 @@ class DefaultFormatBundle(object):
                 default bundle.
         """
 
-        if 'img' in results:
-            img = results['img']
+        if "img" in results:
+            img = results["img"]
             if len(img.shape) < 3:
                 img = np.expand_dims(img, -1)
             img = np.ascontiguousarray(img.transpose(2, 0, 1))
-            results['img'] = DC(to_tensor(img), stack=True)
-        if 'gt_semantic_seg' in results:
+            results["img"] = DC(to_tensor(img), stack=True)
+        if "gt_semantic_seg" in results:
             # convert to long
-            results['gt_semantic_seg'] = DC(
-                to_tensor(results['gt_semantic_seg'][None,
-                                                     ...].astype(np.int64)),
-                stack=True)
+            results["gt_semantic_seg"] = DC(
+                to_tensor(results["gt_semantic_seg"][None, ...].astype(np.int64)),
+                stack=True,
+            )
         return results
 
     def __repr__(self):
@@ -254,13 +253,23 @@ class Collect(object):
             ``flip_direction``, ``img_norm_cfg``)
     """
 
-    def __init__(self,
-                 keys,
-                 meta_keys=('filename', 'ori_filename', 'ori_shape',
-                            'img_shape', 'pad_shape', 'scale_factor', 'flip',
-                            'flip_direction', 'img_norm_cfg'),
-                 with_gt=False,
-                 with_gt_label=False):
+    def __init__(
+        self,
+        keys,
+        meta_keys=(
+            "filename",
+            "ori_filename",
+            "ori_shape",
+            "img_shape",
+            "pad_shape",
+            "scale_factor",
+            "flip",
+            "flip_direction",
+            "img_norm_cfg",
+        ),
+        with_gt=False,
+        with_gt_label=False,
+    ):
         self.keys = keys
         self.with_gt = with_gt
         self.meta_keys = meta_keys
@@ -283,16 +292,17 @@ class Collect(object):
         img_meta = {}
         for key in self.meta_keys:
             img_meta[key] = results[key]
-        data['img_metas'] = DC(img_meta, cpu_only=True)
+        data["img_metas"] = DC(img_meta, cpu_only=True)
         for key in self.keys:
             data[key] = results[key]
         if self.with_gt:
-            data['img'] = (data['img'], data['gt_semantic_seg'])
+            data["img"] = (data["img"], data["gt_semantic_seg"])
         if self.with_gt_label:
-            data['img'] = (data['img'], data['gt_label'])
-            del data['gt_label']
+            data["img"] = (data["img"], data["gt_label"])
+            del data["gt_label"]
         return data
 
     def __repr__(self):
-        return self.__class__.__name__ + \
-               f'(keys={self.keys}, meta_keys={self.meta_keys})'
+        return (
+            self.__class__.__name__ + f"(keys={self.keys}, meta_keys={self.meta_keys})"
+        )
