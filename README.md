@@ -8,35 +8,38 @@
 
 ```sudo nvidia-docker run --ipc=host -it -v <local_path>:/workspace --ipc=host hsfzxjy/mmseg:pytorch1.8.1-cuda10.2-cudnn7-devel /bin/bash```
 
-3. put all datasets in <local_path>/dataset/
+3. put all datasets in /workspace/dataset/
 
 ```
-<local_path>/
+/workspace/
 └── dataset/
+      ├── imagenet22k_azcopy/
+            ├── fall11_whole/
+                  ├── <category_id>/*.JPEG
       ├── ADEChallengeData2016/
             ├── images/
-                  ├── train/
-                  ├── validation/
+                  ├── train/*.jpg
+                  ├── validation/*.jpg
             ├── annotations/
-                  ├── train/
-                  ├── validation/
+                  ├── train/*.png
+                  ├── validation/*.png
       ├── ADE20K_2021_17_01/
             ├── images/
-                  ├── train/
-                  ├── validation/
+                  ├── train/*.jpg
+                  ├── validation/*.jpg
             ├── annotations/
-                  ├── train/
-                  ├── validation/
+                  ├── train/*.tif
+                  ├── validation/*.tif
       └── coco_stuff164k/
             ├── images/
-                  ├── train/
-                  ├── validation/
+                  ├── train/*.jpg
+                  ├── validation/*.jpg
             ├── annotations/
-                  ├── train/
-                  ├── validation/
+                  ├── train/*.png
+                  ├── validation/*.png
 ```
 
-4. 
+4. install mmseg package
 
 ```
 pip install -e .
