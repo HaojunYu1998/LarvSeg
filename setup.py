@@ -149,15 +149,15 @@ def add_mim_extension():
 if __name__ == "__main__":
     add_mim_extension()
     setup(
-        name="mmsegmentation",
+        name="larvseg",
         version=get_version(),
-        description="Open MMLab Semantic Segmentation Toolbox and Benchmark",
+        description="Official implementation of LarvSeg for large vocabulary semantic segmentation",
         long_description=readme(),
         long_description_content_type="text/markdown",
-        author="MMSegmentation Contributors",
-        author_email="openmmlab@gmail.com",
+        author="HaojunYu",
+        author_email="2101111615@pku.edu.cn",
         keywords="computer vision, semantic segmentation",
-        url="http://github.com/open-mmlab/mmsegmentation",
+        url="https://github.com/HaojunYuPKU/large_voc_seg",
         packages=find_packages(exclude=("configs", "tools", "demo")),
         include_package_data=True,
         classifiers=[
