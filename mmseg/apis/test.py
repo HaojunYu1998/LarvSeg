@@ -95,9 +95,6 @@ def single_gpu_test(
     for batch_indices, data in zip(loader_indices, data_loader):
         with torch.no_grad():
             result = model(return_loss=False, **data)
-            # NOTE: remove this
-            if result is None:
-                continue
 
         if efficient_test:
             result = [np2tmp(_, tmpdir=".efficient_test") for _ in result]

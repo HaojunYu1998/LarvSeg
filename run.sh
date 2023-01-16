@@ -3,7 +3,8 @@ export CUDA_VISIBLE_DEVICES=0,1,2,3
 # export CUDA_LAUNCH_BLOCKING=1
 
 bash tools/dist_train.sh \
-configs/baseline_ade150w/vitb16_320k_wa150_c171_ab0.1.py
+configs/coseg_ade150w/vitb16_320k_wa150_c171_ab0.1_sco_ac0.1_fg20_bg.py
+
 
 # bash tools/dist_test.sh \
 # configs/extend_voc/baseline_in11k/vitb16_640k_i11k_c171_s100_ib0.2_eval.py \
@@ -43,6 +44,7 @@ configs/baseline_ade150w/vitb16_320k_wa150_c171_ab0.1.py
 # sudo nvidia-docker run --ipc=host -it -v /mnt/haojun/itpsea4data:/workspace --ipc=host hsfzxjy/mmseg:pytorch1.8.1-cuda10.2-cudnn7-devel /bin/bash
 
 # pip install -U amlt --extra-index-url https://msrpypi.azurewebsites.net/stable/leloojoo
+
 # apt update
 # apt-get install unzip -y
 # apt-get install htop -y

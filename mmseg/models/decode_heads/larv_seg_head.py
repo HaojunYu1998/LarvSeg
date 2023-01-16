@@ -22,6 +22,16 @@ from ..losses.accuracy import accuracy
 from .decode_head import BaseDecodeHead
 
 
+# TODO: Single-image Category-wise Attentive Classifier
+# TODO: Only FG-Enhance Attentive Classifier
+# TODO: Only BG-Suppress Attentive Classifier
+# TODO: C171+I124 => eval A124, OpenVoc Baselines, simple baseline, LarvSeg
+# TODO: C171+I585 => eval A585, OpenVoc Baselines, simple baseline, LarvSeg
+# TODO: Swin or ResNet for backbone
+# TODO: Attentive and Segmentation classifier share the same weights, simple baseline uses seperate weights
+# TODO: Pascal Context 459, COCO-LVIS 1284
+
+
 def mse(img1, img2):
     img1 = (img1 - img1.mean(dim=0, keepdim=True)) / img1.std(dim=0, keepdim=True)
     img2 = (img2 - img2.mean(dim=0, keepdim=True)) / img2.std(dim=0, keepdim=True)
@@ -45,7 +55,7 @@ def init_weights(m):
 
 
 @HEADS.register_module()
-class MaskTransformerExtendVocHead(BaseDecodeHead):
+class LarvSegHead(BaseDecodeHead):
     def __init__(
         self,
         n_cls,  # for evaluation
@@ -73,6 +83,7 @@ class MaskTransformerExtendVocHead(BaseDecodeHead):
         basic_loss_weights=[0.2, 1.0],
         coseg_loss_weights=[0.2, 0.0],  # for weak supervision
         use_coseg=False,
+        use_coseg_single_image=False,
         use_coseg_inference=False,
         use_coseg_score_head=False,
         memory_bank_size=80,
@@ -124,6 +135,7 @@ class MaskTransformerExtendVocHead(BaseDecodeHead):
         self.weakly_supervised_datasets = weakly_supervised_datasets
         self.weakly_supervised = False
         self.use_coseg = use_coseg
+        self.use_coseg_single_image = use_coseg_single_image
         self.use_coseg_inference = use_coseg_inference
         self.use_coseg_score_head = use_coseg_score_head
         self.memory_bank_size = memory_bank_size
@@ -388,9 +400,14 @@ class MaskTransformerExtendVocHead(BaseDecodeHead):
                 num_basic += 1
                 if not self.use_coseg:
                     continue
-                coseg_loss += self._coseg_loss(
-                    mask, score, embed, l, (h, w, H, W), ignore_inds
-                )
+                if self.use_coseg_single_image:
+                    coseg_loss += self._single_coseg_loss(
+                        mask, score, embed, l, (h, w, H, W), ignore_inds
+                    )
+                else:
+                    coseg_loss += self._coseg_loss(
+                        mask, score, embed, l, (h, w, H, W), ignore_inds
+                    )
                 num_coseg += 1
         if num_basic == 0:
             loss["loss_basic"] = seg_mask.sum() * 0.0
@@ -426,6 +443,31 @@ class MaskTransformerExtendVocHead(BaseDecodeHead):
             self._dequeue_and_enqueue(embed, score, fg_label)
         except:
             print("Unsuccessful _dequeue_and_enqueue!")
+        if coseg_score is None:
+            return mask.sum() * 0.0
+        if self.background_suppression and not self.use_coseg_score_head:
+            coseg_score = coseg_score[..., 0] - coseg_score[..., 1]
+        coseg_score = self.coseg_head(coseg_score).reshape(h, w)
+        coseg_score = F.interpolate(
+            coseg_score[None, None],
+            size=(H, W),
+            mode="bilinear",
+            align_corners=self.align_corners,
+        )[0, 0].flatten()
+        mask = mask * coseg_score[:, None].sigmoid()
+        coseg_loss = self._cross_entropy_loss(mask, fg_label, bg_labels)
+        return coseg_loss
+
+    def _single_coseg_loss(self, mask, score, embed, fg_label, shape, bg_labels):
+        assert self.memory_bank_size == 1, \
+            "MBS should be set to 1 for single-image co-segmentation!"
+        h, w, H, W = shape
+        try:
+            self._dequeue_and_enqueue(embed, score, fg_label)
+        except:
+            print("Unsuccessful _dequeue_and_enqueue!")
+        # (h * w, 1) or (h * w, 2)
+        coseg_score = self._coseg_score(score, embed, fg_label, bg_labels)
         if coseg_score is None:
             return mask.sum() * 0.0
         if self.background_suppression and not self.use_coseg_score_head:

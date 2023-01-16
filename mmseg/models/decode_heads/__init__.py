@@ -7,9 +7,11 @@ from .mask_transformer_large_voc_coseg_head import MaskTransformerLargeVocCoSegH
 from .mask_transformer_extend_voc_head import MaskTransformerExtendVocHead
 from .mask_transformer_extend_voc_bce_head import MaskTransformerExtendVocBCEHead
 from .mask_transformer_extend_voc_pseudo_head import MaskTransformerExtendVocPseudoHead
+from .larv_seg_head import LarvSegHead
 
 
 __all__ = [
+    "LarvSegHead",
     "MaskTransformerHead",
     "MaskTransformerLSegHead",
     "MaskTransformerLargeVocHead",

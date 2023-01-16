@@ -1,7 +1,8 @@
 img_norm_cfg = dict(
     mean=[123.675, 116.28, 103.53], std=[58.395, 57.12, 57.375], to_rgb=True
 )
-data_root = "/workspace/dataset/C171"
+# data_root = "/workspace/dataset/C171"
+data_root = "/workspace/dataset/coco_stuff164k"
 train_pipeline = [
     dict(type="LoadImageFromFile"),
     dict(type="LoadAnnotations"),
@@ -34,24 +35,33 @@ data = dict(
     samples_per_gpu=2,
     workers_per_gpu=4,
     train=dict(
-        type="COCOStuffDataset",
+        # type="COCOStuffDataset",
+        type="ProcessedC171Dataset",
         data_root=data_root,
-        img_dir="images/training",
-        ann_dir="annotations/training",
+        # img_dir="images/training",
+        # ann_dir="annotations/training",
+        img_dir="images/train2017",
+        ann_dir="annotations/train2017",
         pipeline=train_pipeline,
     ),
     val=dict(
-        type="COCOStuffDataset",
+        # type="COCOStuffDataset",
+        type="ProcessedC171Dataset",
         data_root=data_root,
-        img_dir="images/validation",
-        ann_dir="annotations/validation",
+        # img_dir="images/validation",
+        # ann_dir="annotations/validation",
+        img_dir="images/val2017",
+        ann_dir="annotations/val2017",
         pipeline=test_pipeline,
     ),
     test=dict(
-        type="COCOStuffDataset",
+        # type="COCOStuffDataset",
+        type="ProcessedC171Dataset",
         data_root=data_root,
-        img_dir="images/validation",
-        ann_dir="annotations/validation",
+        # img_dir="images/validation",
+        # ann_dir="annotations/validation",
+        img_dir="images/val2017",
+        ann_dir="annotations/val2017",
         pipeline=test_pipeline,
     ),
 )

@@ -3,7 +3,8 @@ img_norm_cfg = dict(
     mean=[123.675, 116.28, 103.53], std=[58.395, 57.12, 57.375], to_rgb=True
 )
 # COCO dataset settings
-coco_data_root = "/workspace/dataset/C171"
+# coco_data_root = "/workspace/dataset/C171"
+coco_data_root = "/workspace/dataset/coco_stuff164k"
 coco_train_pipeline = [
     dict(type="LoadImageFromFile"),
     dict(type="LoadAnnotations"),
@@ -17,7 +18,8 @@ coco_train_pipeline = [
     dict(type="Collect", keys=["img", "gt_semantic_seg"]),
 ]
 # ImageNet21K dataset settings
-in21k_data_root = "/workspace/dataset/I21K"
+# in21k_data_root = "/workspace/dataset/I21K"
+in21k_data_root = "/workspace/dataset/imagenet22k_azcopy"
 in21k_train_pipeline = [
     dict(type="LoadImageFromFile"),
     dict(type="LoadAnnotations"),
@@ -31,7 +33,8 @@ in21k_train_pipeline = [
     dict(type="Collect", keys=["img", "gt_semantic_seg"]),
 ]
 # ADE20K dataset settings
-ade_data_root = "/workspace/dataset/A150"
+# ade_data_root = "/workspace/dataset/A150"
+ade_data_root = "/workspace/dataset/ADEChallengeData2016"
 ade_test_pipeline = [
     dict(type="LoadImageFromFile"),
     dict(
@@ -66,8 +69,10 @@ data = dict(
             dict(
                 type="ProcessedC171Dataset",
                 data_root=coco_data_root,
-                img_dir="images/training",
-                ann_dir="annotations/training",
+                # img_dir="images/training",
+                # ann_dir="annotations/training",
+                img_dir="images/train2017",
+                ann_dir="annotations/train2017",
                 pipeline=coco_train_pipeline,
             ),
         ],
