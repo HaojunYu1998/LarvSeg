@@ -34,5 +34,6 @@ __all__ = [
     "ADE20K124Dataset",
     "ADE20K585Dataset",
     "PascalContextDataset59",
+    "PascalContextDataset459",
     "CityscapesDataset",
 ]

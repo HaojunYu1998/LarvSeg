@@ -209,13 +209,18 @@ class LarvSegHead(BaseDecodeHead):
             from mmseg.datasets.coco_stuff import COCOStuffDataset, ProcessedC171Dataset
 
             cls_name = COCOStuffDataset.CLASSES
-            if len(self.mix_batch_datasets) > 1:
+            if len(self.mix_batch_datasets) > 1 and \
+                "coco171" not in self.weakly_supervised_datasets:
                 cls_name = ProcessedC171Dataset.CLASSES
-            cls_name = [x.split("-")[0] for x in cls_name]
+                cls_name = [x.split("-")[0] for x in cls_name]
         elif self.dataset_on_gpu == "pc59":
             from mmseg.datasets.pascal_context import PascalContextDataset59
 
             cls_name = PascalContextDataset59.CLASSES
+        elif self.dataset_on_gpu == "pc459":
+            from mmseg.datasets.pascal_context import PascalContextDataset459
+
+            cls_name = PascalContextDataset459.CLASSES
         elif self.dataset_on_gpu == "city19":
             from mmseg.datasets.cityscapes import CityscapesDataset
 

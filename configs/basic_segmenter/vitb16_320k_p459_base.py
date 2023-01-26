@@ -1,6 +1,6 @@
 _base_ = [
     "../_base_/models/large_voc_vitb16.py",
-    "../_base_/datasets/C171.py",
+    "../_base_/datasets/P459.py",
     "../_base_/default_runtime.py",
     "../_base_/schedules/schedule_320k.py",
 ]
@@ -17,15 +17,15 @@ model = dict(
     ),
     decode_head=dict(
         type="LarvSegHead",
-        n_cls=171,
+        n_cls=459,
         downsample_rate=2,
         all_cls_path="",
         ignore_cls_path="",
-        mix_batch_datasets=["coco171"],
+        mix_batch_datasets=["pc459"],
         weakly_supervised_datasets=[],
-        test_dataset="coco171",
-        ignore_indices=[255],
-        test_ignore_index=255,
+        test_dataset="pc459",
+        ignore_indices=[-1],
+        test_ignore_index=-1,
         basic_loss_weights=[1.0],
         coseg_loss_weights=[0.0],
         oracle_inference=False,

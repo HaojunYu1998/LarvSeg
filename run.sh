@@ -2,8 +2,18 @@ export OMP_NUM_THREADS=1
 export CUDA_VISIBLE_DEVICES=0,1,2,3
 # export CUDA_LAUNCH_BLOCKING=1
 
-bash tools/dist_train.sh \
-configs/coseg_city19_ade847w/vitb16_320k_wa847_city19_s100_ab0.2_sco_ac0.1_fg1_bg.py
+
+
+# bash tools/dist_train.sh \
+# configs/coseg_ade150_pc459w/vitb16_320k_wp459_a150_pb0.1_sco_pc0.1_fg1_bg.py
+
+
+# bash tools/dist_train.sh \
+# configs/coseg_coco171_pc459w/vitb16_320k_wp459_c171_pb0.1_sco_pc0.1_fg1_bg.py
+
+# bash tools/dist_train.sh \
+# configs/baseline_coco171_pc459w/vitb16_320k_wp459_c171_pb0.1.py
+
 
 
 # bash tools/dist_test.sh \

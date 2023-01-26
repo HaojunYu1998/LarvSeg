@@ -95,11 +95,11 @@ class PascalContextDataset59(CustomDataset):
 
     # def __init__(self, split, **kwargs):
     def __init__(self, **kwargs):
-        super(PascalContextDataset59, self).__init__(
+        super().__init__(
             img_suffix='.jpg',
             seg_map_suffix='.png',
             # split=split,
-            reduce_zero_label=True,
+            reduce_zero_label=False,
             **kwargs)
         # assert self.file_client.exists(self.img_dir) and self.split is not None
 

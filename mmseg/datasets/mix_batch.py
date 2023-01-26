@@ -25,7 +25,7 @@ from .pipelines import Compose, LoadAnnotations
 from .coco_stuff import COCOStuffDataset, ProcessedC171Dataset
 from .ade import ADE20KDataset, ADE20KFULLDataset
 from .imagenet import ImageNet21K, ImageNet124, ImageNet585, ImageNet11K
-from .pascal_context import PascalContextDataset59
+from .pascal_context import PascalContextDataset59, PascalContextDataset459
 from .cityscapes import CityscapesDataset
 
 
@@ -45,6 +45,8 @@ class MixBatchDataset(Dataset):
                 return ADE20KFULLDataset(**args)
             elif type == "PascalContextDataset59":
                 return PascalContextDataset59(**args)
+            elif type == "PascalContextDataset459":
+                return PascalContextDataset459(**args)
             elif type == "CityscapesDataset":
                 return CityscapesDataset(**args)
             elif type == "ImageNet21K":
