@@ -212,6 +212,14 @@ class LarvSegHead(BaseDecodeHead):
             if len(self.mix_batch_datasets) > 1:
                 cls_name = ProcessedC171Dataset.CLASSES
             cls_name = [x.split("-")[0] for x in cls_name]
+        elif self.dataset_on_gpu == "pc59":
+            from mmseg.datasets.pascal_context import PascalContextDataset59
+
+            cls_name = PascalContextDataset59.CLASSES
+        elif self.dataset_on_gpu == "city19":
+            from mmseg.datasets.cityscapes import CityscapesDataset
+
+            cls_name = CityscapesDataset.CLASSES
         elif self.dataset_on_gpu == "ade150":
             from mmseg.datasets.ade import ADE20KDataset
 
@@ -272,15 +280,18 @@ class LarvSegHead(BaseDecodeHead):
             assert label is not None
             unique_label = torch.unique(label.flatten())
             unique_label = unique_label[unique_label != self.ignore_index].tolist()
-            rand_inds = np.random.choice(
-                len(self.cls_index), size=self.num_smaple_class, replace=False
-            ).tolist()
-            rand_inds = list(set(rand_inds) | set(unique_label))
-            self.cls_index = [self.cls_index[i] for i in rand_inds]
-            remap_label = torch.zeros_like(label) + self.ignore_index
-            for new_ind, old_ind in enumerate(rand_inds):
-                if old_ind in unique_label:
-                    remap_label[label == old_ind] = new_ind
+            if len(self.cls_index) >self.num_smaple_class:
+                rand_inds = np.random.choice(
+                    len(self.cls_index), size=self.num_smaple_class, replace=False
+                ).tolist()
+                rand_inds = list(set(rand_inds) | set(unique_label))
+                self.cls_index = [self.cls_index[i] for i in rand_inds]
+                remap_label = torch.zeros_like(label) + self.ignore_index
+                for new_ind, old_ind in enumerate(rand_inds):
+                    if old_ind in unique_label:
+                        remap_label[label == old_ind] = new_ind
+            else:
+                remap_label =label
             return remap_label
         else:
             return label

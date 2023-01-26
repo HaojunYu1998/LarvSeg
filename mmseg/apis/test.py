@@ -169,7 +169,6 @@ def multi_gpu_test(
     pre_eval=False,
     format_only=False,
     format_args={},
-    rescale=True,
 ):
     """Test model with multiple gpus by progressive mode.
 
@@ -233,8 +232,8 @@ def multi_gpu_test(
 
     for batch_indices, data in zip(loader_indices, data_loader):
         with torch.no_grad():
-            result = model(return_loss=False, rescale=True, **data)
-            # result = model(return_loss=False, rescale=False, **data)
+            # result = model(return_loss=False, rescale=True, **data)
+            result = model(return_loss=False, rescale=False, **data)
 
         if efficient_test:
             result = [np2tmp(_, tmpdir=".efficient_test") for _ in result]

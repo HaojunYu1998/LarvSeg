@@ -3,7 +3,6 @@ img_norm_cfg = dict(
     mean=[123.675, 116.28, 103.53], std=[58.395, 57.12, 57.375], to_rgb=True
 )
 # COCO dataset settings
-# coco_data_root = "/workspace/dataset/C171"
 coco_data_root = "/workspace/dataset/coco_stuff164k"
 coco_train_pipeline = [
     dict(type="LoadImageFromFile"),
@@ -18,7 +17,6 @@ coco_train_pipeline = [
     dict(type="Collect", keys=["img", "gt_semantic_seg"]),
 ]
 # ADE20K dataset settings
-# ade_data_root = "/workspace/dataset/A847"
 ade_data_root = "/workspace/dataset/ade20k_full"
 ade_train_pipeline = [
     dict(type="LoadImageFromFile"),
@@ -57,8 +55,6 @@ data = dict(
             dict(
                 type="ADE20KFULLDataset",
                 data_root=ade_data_root,
-                # img_dir="images/training",
-                # ann_dir="annotations/training",
                 img_dir="train/image",
                 ann_dir="train/label",
                 pipeline=ade_train_pipeline,
@@ -66,8 +62,6 @@ data = dict(
             dict(
                 type="ProcessedC171Dataset",
                 data_root=coco_data_root,
-                # img_dir="images/training",
-                # ann_dir="annotations/training",
                 img_dir="images/train2017",
                 ann_dir="annotations/train2017",
                 pipeline=coco_train_pipeline,
@@ -77,8 +71,6 @@ data = dict(
     val=dict(
         type="ADE20KFULLDataset",
         data_root=ade_data_root,
-        # img_dir="images/validation",
-        # ann_dir="annotations/validation",
         img_dir="val/image",
         ann_dir="val/label",
         pipeline=ade_test_pipeline,
@@ -86,8 +78,6 @@ data = dict(
     test=dict(
         type="ADE20KFULLDataset",
         data_root=ade_data_root,
-        # img_dir="images/validation",
-        # ann_dir="annotations/validation",
         img_dir="val/image",
         ann_dir="val/label",
         pipeline=ade_test_pipeline,

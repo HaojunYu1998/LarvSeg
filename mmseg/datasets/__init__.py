@@ -11,6 +11,8 @@ from .dataset_wrappers import ConcatDataset, RepeatDataset
 from .coco_stuff import COCOStuffDataset, ProcessedC171Dataset
 from .imagenet import ImageNet21K, ImageNet124, ImageNet585, ImageNet11K
 from .mix_batch import MixBatchDataset
+from .pascal_context import PascalContextDataset59, PascalContextDataset459
+from .cityscapes import CityscapesDataset
 
 __all__ = [
     "CustomDataset",
@@ -31,4 +33,6 @@ __all__ = [
     "ImageNet585",
     "ADE20K124Dataset",
     "ADE20K585Dataset",
+    "PascalContextDataset59",
+    "CityscapesDataset",
 ]

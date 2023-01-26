@@ -289,11 +289,16 @@ class EncoderDecoder(BaseSegmentor):
 
     def simple_test(self, img, img_meta, rescale=True):
         """Simple test with single image."""
-        # if img_meta[0]["ori_filename"] != "ADE_val_00000127.jpg":
-        #     return None
         seg_logit = self.inference(img, img_meta, rescale)
         # seg inference
         seg_pred = seg_logit.argmax(dim=1)
+        if not rescale:
+            seg_pred = resize(
+                seg_pred[:, None].float(),
+                size=img_meta[0]["ori_shape"][:2],
+                mode="nearest",
+                warning=False,
+            )[:, 0].long()
 
         if torch.onnx.is_in_onnx_export():
             # our inference backend only support 4D output

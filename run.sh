@@ -3,7 +3,7 @@ export CUDA_VISIBLE_DEVICES=0,1,2,3
 # export CUDA_LAUNCH_BLOCKING=1
 
 bash tools/dist_train.sh \
-configs/coseg_ade150w/vitb16_320k_wa150_c171_ab0.1_sco_ac0.1_fg20_bg.py
+configs/coseg_city19_ade847w/vitb16_320k_wa847_city19_s100_ab0.2_sco_ac0.1_fg1_bg.py
 
 
 # bash tools/dist_test.sh \
@@ -50,14 +50,6 @@ configs/coseg_ade150w/vitb16_320k_wa150_c171_ab0.1_sco_ac0.1_fg20_bg.py
 # apt-get install htop -y
 # apt-get install tmux -y
 # apt-get install vim -y
-# pip install install git+https://github.com/lucasb-eyer/pydensecrf.git
-# cd third_party/CLIP
-# pip install -e .
-# cd ../detectron2
-# pip install -e .
-# cd ../..
-# mkdir -p /mnt/haojun2
-# ln -s /itpsea4data/dataset /mnt/haojun2/dataset
 # pip install timm
 
 
