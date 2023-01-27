@@ -22,14 +22,34 @@ from ..losses.accuracy import accuracy
 from .decode_head import BaseDecodeHead
 
 
-# TODO: Single-image Category-wise Attentive Classifier
-# TODO: Only FG-Enhance Attentive Classifier
-# TODO: Only BG-Suppress Attentive Classifier
-# TODO: C171+I124 => eval A124, OpenVoc Baselines, simple baseline, LarvSeg
-# TODO: C171+I585 => eval A585, OpenVoc Baselines, simple baseline, LarvSeg
-# TODO: Swin or ResNet for backbone
-# TODO: Attentive and Segmentation classifier share the same weights, simple baseline uses seperate weights
-# TODO: Pascal Context 459, COCO-LVIS 1284
+coco_splits = [
+    [3, 6, 10, 11, 18, 19, 26, 27, 31, 34, 37, 38, 40, 41, 50, 53, 55, 59, 61, 68, 76, 82, 85, 90, 92,
+    94, 103, 106, 108, 112, 113, 117, 120, 127, 129, 131, 141, 146, 155, 156, 159, 166, 169],
+
+    [1, 3, 6, 7, 9, 10, 13, 27, 31, 35, 38, 40, 43, 44, 53, 62, 68, 74, 77, 80, 82, 84, 86, 99, 101,
+    108, 110, 111, 116, 118, 121, 122, 125, 131, 137, 141, 148, 153, 155, 156, 160, 161, 166],
+
+    [0, 5, 10, 13, 15, 16, 20, 23, 25, 27, 28, 31, 33, 34, 35, 36, 40, 43, 47, 50, 51, 58, 62, 69, 80,
+    81, 83, 84, 87, 90, 101, 105, 119, 121, 124, 126, 137, 138, 150, 154, 157, 158, 164],
+
+    [170, 112, 3, 26, 121, 69, 50, 87, 14, 13, 58, 106, 17, 134, 164, 161, 100, 151, 24, 114, 25, 92, 
+    12, 61, 102, 113, 89, 110, 76, 128, 149, 57, 144, 137, 46, 27, 83, 133, 162, 37, 109, 33, 40]
+]
+
+ade_splits = [
+    [1, 3, 6, 8, 10, 13, 17, 22, 23, 29, 33, 38, 41, 50, 51, 56, 67, 70, 71, 74, 77, 81, 92, 93, 98,
+    101, 102, 103, 110, 113, 119, 121, 126, 127, 130, 136, 147, 149],
+
+    [0, 10, 21, 27, 28, 29, 34, 40, 42, 43, 51, 57, 58, 65, 66, 68, 69, 73, 76, 78, 85, 88, 90, 100,
+    105, 110, 111, 112, 113, 114, 117, 123, 124, 132, 134, 139, 142, 146],
+
+    [0, 5, 9, 15, 16, 21, 24, 25, 27, 32, 34, 35, 38, 39, 55, 70, 76, 85, 95, 96, 98, 100, 106, 109,
+    111, 118, 119, 124, 128, 132, 134, 135, 136, 138, 140, 141, 143, 144],
+    
+    [5, 11, 13, 16, 21, 24, 26, 32, 35, 42, 53, 56, 60, 61, 63, 64, 68, 70, 75, 82, 91, 93, 94, 99, 100,
+    105, 111, 115, 118, 121, 122, 130, 132, 135, 137, 138, 141, 143]
+]
+
 
 
 def mse(img1, img2):
@@ -55,7 +75,7 @@ def init_weights(m):
 
 
 @HEADS.register_module()
-class LarvSegHead(BaseDecodeHead):
+class LarvSegHeadSplits(BaseDecodeHead):
     def __init__(
         self,
         n_cls,  # for evaluation
@@ -72,6 +92,7 @@ class LarvSegHead(BaseDecodeHead):
         ignore_cls_path="",
         mix_batch_datasets=["in124", "coco171"],
         weakly_supervised_datasets=["in124"],
+        split_index=0,
         test_dataset="ade124",
         ignore_indices=[255, 255],
         test_ignore_index=255,
@@ -175,6 +196,12 @@ class LarvSegHead(BaseDecodeHead):
         self.dim = 2 if self.background_suppression else 1
         self.coseg_head = normalize
         self.rank, self.world_size = get_dist_info()
+        
+        assert len(mix_batch_datasets) == 1
+        if "coco171" in mix_batch_datasets:
+            self.novel_cls = coco_splits[split_index]
+        elif "ade150" in mix_batch_datasets:
+            self.novel_cls = ade_splits[split_index]
 
     def init_weights(self):
         self.apply(init_weights)
@@ -354,10 +381,9 @@ class LarvSegHead(BaseDecodeHead):
             seg_mask, size=(h, w), mode="bilinear", align_corners=self.align_corners
         )
         seg_label = resize(seg_label.float(), size=(h, w), mode="nearest").long()
-        if self.weakly_supervised:
-            loss = self.weakly_loss(seg_mask, seg_embed, seg_score, seg_label)
-        else:
-            loss = self.supervised_loss(seg_mask, seg_label)
+        loss = self.supervised_loss(seg_mask, seg_label)
+        loss_weak = self.weakly_loss(seg_mask, seg_embed, seg_score, seg_label)
+        loss.update(loss_weak)
         loss["acc_seg"] = self._log_accuracy(seg_mask, seg_label)
         return loss
 
@@ -388,11 +414,16 @@ class LarvSegHead(BaseDecodeHead):
         B, N, H, W = seg_mask.size()
         seg_mask = seg_mask.permute(0, 2, 3, 1).reshape(B * H * W, N)
         seg_label = seg_label.reshape(B * H * W)
+        unique_label = torch.unique(seg_label.flatten())
+        unique_label = unique_label[unique_label != self.ignore_index].tolist()
+        novel_label = list(set(unique_label) & set(self.novel_cls))
+        seg_label_ = copy.deepcopy(seg_label)
+        for novel_l in novel_label:
+            seg_label_[seg_label == novel_l] = self.ignore_index
         loss["loss_basic"] = (
-            self.loss_decode(seg_mask, seg_label, ignore_index=self.ignore_index)
+            self.loss_decode(seg_mask, seg_label_, ignore_index=self.ignore_index)
             * self.basic_loss_weight
         )
-        loss["loss_coseg"] = seg_mask.sum() * 0.0
         return loss
 
     def weakly_loss(self, seg_mask, seg_embed, seg_score, seg_label):
@@ -405,27 +436,34 @@ class LarvSegHead(BaseDecodeHead):
         seg_label = seg_label.reshape(B, H * W)
         basic_loss, num_basic = 0.0, 0
         coseg_loss, num_coseg = 0.0, 0
-        
+
         for idx, (mask, embed, score, label) in enumerate(
             zip(seg_mask, seg_embed, seg_score, seg_label)
         ):
             unique_label = torch.unique(label)
             unique_label = unique_label[unique_label != self.ignore_index].tolist()
-            for l in unique_label:
-                ignore_inds = [x for x in unique_label if x != l]
-                basic_loss += self._cross_entropy_loss(mask, l, ignore_inds)
+            base_label = list(set(unique_label) - set(self.novel_cls))
+            novel_label = list(set(unique_label) & set(self.novel_cls))
+            label_ = copy.deepcopy(label)
+            for base_l in base_label:
+                label_[label == base_l] = self.ignore_index
+            
+            for l in novel_label:
+                ignore_inds = [x for x in novel_label if x != l]
+                basic_loss += self._cross_entropy_loss(mask, l, ignore_inds, label_)
                 num_basic += 1
                 if not self.use_coseg:
                     continue
                 if self.use_coseg_single_image:
                     coseg_loss += self._single_coseg_loss(
-                        mask, score, embed, l, (h, w, H, W), ignore_inds
+                        mask, score, embed, l, (h, w, H, W), ignore_inds, label_
                     )
                 else:
                     coseg_loss += self._coseg_loss(
-                        mask, score, embed, l, (h, w, H, W), ignore_inds
+                        mask, score, embed, l, (h, w, H, W), ignore_inds, label_
                     )
                 num_coseg += 1
+
         if num_basic == 0:
             loss["loss_basic"] = seg_mask.sum() * 0.0
         else:
@@ -434,9 +472,11 @@ class LarvSegHead(BaseDecodeHead):
             loss["loss_coseg"] = seg_mask.sum() * 0.0
         else:
             loss["loss_coseg"] = coseg_loss / num_coseg * self.coseg_loss_weight
+        loss["loss_coseg"] += loss["loss_basic"]
+        loss.pop("loss_basic")
         return loss
 
-    def _cross_entropy_loss(self, pred, label, ignore_indices):
+    def _cross_entropy_loss(self, pred, label, ignore_indices, seg_label):
         """Cross Entropy Loss with multiple ignore indices."""
         assert pred.numel() > 0, "no elements in prediction"
         if "in" in self.dataset_on_gpu:
@@ -448,11 +488,13 @@ class LarvSegHead(BaseDecodeHead):
             return pred.sum() * 0.0
         assert label in kept_indices, f"{label} not in {kept_indices}"
         map_dict = {old_ind: new_ind for new_ind, old_ind in enumerate(kept_indices)}
-        pred = pred[:, kept_indices].mean(dim=0, keepdim=True)
+        valid_mask = seg_label.flatten() != self.ignore_index
+        pred = pred[:, kept_indices]
+        pred = pred[valid_mask].mean(dim=0, keepdim=True)
         label = torch.zeros_like(pred[:, 0]).long() + map_dict[label]
         return F.cross_entropy(pred, label)
 
-    def _coseg_loss(self, mask, score, embed, fg_label, shape, bg_labels):
+    def _coseg_loss(self, mask, score, embed, fg_label, shape, bg_labels, seg_label):
         h, w, H, W = shape
         # (h * w, 1) or (h * w, 2)
         coseg_score = self._coseg_score(score, embed, fg_label, bg_labels)
@@ -472,10 +514,10 @@ class LarvSegHead(BaseDecodeHead):
             align_corners=self.align_corners,
         )[0, 0].flatten()
         mask = mask * coseg_score[:, None].sigmoid()
-        coseg_loss = self._cross_entropy_loss(mask, fg_label, bg_labels)
+        coseg_loss = self._cross_entropy_loss(mask, fg_label, bg_labels, seg_label)
         return coseg_loss
 
-    def _single_coseg_loss(self, mask, score, embed, fg_label, shape, bg_labels):
+    def _single_coseg_loss(self, mask, score, embed, fg_label, shape, bg_labels, seg_label):
         assert self.memory_bank_size == 1, \
             "MBS should be set to 1 for single-image co-segmentation!"
         h, w, H, W = shape
@@ -497,7 +539,7 @@ class LarvSegHead(BaseDecodeHead):
             align_corners=self.align_corners,
         )[0, 0].flatten()
         mask = mask * coseg_score[:, None].sigmoid()
-        coseg_loss = self._cross_entropy_loss(mask, fg_label, bg_labels)
+        coseg_loss = self._cross_entropy_loss(mask, fg_label, bg_labels, seg_label)
         return coseg_loss
 
     def _coseg_inference(self, mask, score, embed):

@@ -4,8 +4,8 @@ export CUDA_VISIBLE_DEVICES=0,1,2,3
 
 
 
-# bash tools/dist_train.sh \
-# configs/coseg_ade150_pc459w/vitb16_320k_wp459_a150_pb0.1_sco_pc0.1_fg1_bg.py
+bash tools/dist_train.sh \
+configs/coseg_splits_coco171/vitb16_320k_c171_split0_sco_cc0.1_fg1_bg.py
 
 
 # bash tools/dist_train.sh \
@@ -50,6 +50,8 @@ export CUDA_VISIBLE_DEVICES=0,1,2,3
 # --eval mIoU
 # --show \
 # --show-dir "./work_dirs/20221104_vitb16_320k_wa150_c171_ab4.0_co_ac2.0_wbce/vis_pred"
+
+# sudo blobfuse /mnt/haojun/itpsea4data/ --tmp-path=/mnt/resource/blobfusetmp  --config-file=/mnt/fuse_connection.cfg -o attr_timeout=240 -o entry_timeout=240 -o negative_timeout=120 -o allow_other
 
 # sudo nvidia-docker run --ipc=host -it -v /mnt/haojun/itpsea4data:/workspace --ipc=host hsfzxjy/mmseg:pytorch1.8.1-cuda10.2-cudnn7-devel /bin/bash
 

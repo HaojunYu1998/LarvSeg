@@ -8,6 +8,7 @@ from .mask_transformer_extend_voc_head import MaskTransformerExtendVocHead
 from .mask_transformer_extend_voc_bce_head import MaskTransformerExtendVocBCEHead
 from .mask_transformer_extend_voc_pseudo_head import MaskTransformerExtendVocPseudoHead
 from .larv_seg_head import LarvSegHead
+from .larv_seg_head_splits import LarvSegHeadSplits
 
 
 __all__ = [
