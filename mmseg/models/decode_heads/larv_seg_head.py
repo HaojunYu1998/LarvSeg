@@ -310,6 +310,7 @@ class LarvSegHead(BaseDecodeHead):
     def forward(self, x):
         x = self._transform_inputs(x)
         B, D, H, W = x.size()
+        print(B, D, H, W)
         x = x.view(B, D, -1).permute(0, 2, 1)
         cls_emb = self.cls_emb[self.cls_index]
         cls_emb = cls_emb.expand(x.size(0), -1, -1)

@@ -3,17 +3,9 @@ export CUDA_VISIBLE_DEVICES=0,1,2,3
 # export CUDA_LAUNCH_BLOCKING=1
 
 
-
 bash tools/dist_train.sh \
-configs/coseg_ade150_coco171w/vitb16_320k_wc171_a150_cb0.1_sco_cc0.1_fg1_bg.py
+configs/coseg_splits_coco171_10k/res50_320k_c171_split0_sco_cc0.1_fg1_bg_v2.py
 
-bash tools/dist_train.sh \
-configs/coseg_city19_ade847w/vitb16_320k_wa847_city19_s100_ab0.2_sco_ac0.1_fg1_bg.py
-
-
-
-# bash tools/dist_train.sh \
-# configs/coseg_coco171_pc59w/vitb16_320k_wp59_c171_pb0.1_sco_pc0.1_fg1_bg.py
 
 
 # bash tools/dist_test.sh \

@@ -169,6 +169,7 @@ def multi_gpu_test(
     pre_eval=False,
     format_only=False,
     format_args={},
+    rescale=True,
 ):
     """Test model with multiple gpus by progressive mode.
 
