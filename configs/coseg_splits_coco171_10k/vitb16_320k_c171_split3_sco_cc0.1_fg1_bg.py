@@ -1,11 +1,12 @@
 _base_ = [
     "../_base_/models/large_voc_vitb16.py",
-    "../_base_/datasets/mix_batch_WP459_A150_eval_P459.py",
+    "../_base_/datasets/C171_10k.py",
     "../_base_/default_runtime.py",
     "../_base_/schedules/schedule_320k.py",
 ]
 
 model = dict(
+    type="EncoderDecoder",
     backbone=dict(
         drop_path_rate=0.1,
         final_norm=True,
@@ -15,17 +16,19 @@ model = dict(
         index=-1,
     ),
     decode_head=dict(
-        type="LarvSegHead",
-        n_cls=459,
+        type="LarvSegHeadSplits",
+        n_cls=171,
         downsample_rate=2,
-        all_cls_path="file/pc459uade150.json",
-        mix_batch_datasets=["pc459", "ade150"],
-        weakly_supervised_datasets=["pc459"],
-        test_dataset="pc459",
-        ignore_indices=[-1, 255],
-        test_ignore_index=-1,
-        basic_loss_weights=[0.1, 1.0],
-        coseg_loss_weights=[0.1, 0.0],
+        all_cls_path="",
+        ignore_cls_path="",
+        mix_batch_datasets=["coco171"],
+        weakly_supervised_datasets=[],
+        split_index=3,
+        test_dataset="coco171",
+        ignore_indices=[255],
+        test_ignore_index=255,
+        basic_loss_weights=[1.0],
+        coseg_loss_weights=[0.1],
         use_coseg=True,
         use_coseg_single_image=True,
         use_coseg_score_head=False,

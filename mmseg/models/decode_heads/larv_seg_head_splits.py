@@ -472,7 +472,7 @@ class LarvSegHeadSplits(BaseDecodeHead):
             loss["loss_coseg"] = seg_mask.sum() * 0.0
         else:
             loss["loss_coseg"] = coseg_loss / num_coseg * self.coseg_loss_weight
-        loss["loss_coseg"] += loss["loss_basic"]
+        loss["loss_coseg"] += loss["loss_basic"] * self.coseg_loss_weight
         loss.pop("loss_basic")
         return loss
 

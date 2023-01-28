@@ -368,9 +368,9 @@ class COCOStuffDataset(CustomDataset):
         [64, 64, 0],
     )
 
-    def __init__(self, **kwargs):
+    def __init__(self, seg_map_suffix="_labelTrainIds.png", **kwargs):
         super(COCOStuffDataset, self).__init__(
-            img_suffix=".jpg", seg_map_suffix="_labelTrainIds.png", **kwargs
+            img_suffix=".jpg", seg_map_suffix=seg_map_suffix, **kwargs
         )
 
     def results2img(self, results, imgfile_prefix, to_label_id, indices=None):
