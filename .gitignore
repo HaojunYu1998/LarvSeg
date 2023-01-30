@@ -133,6 +133,7 @@ pretrain/B_16-i21k-300ep-lr_0.001-aug_medium1-wd_0.1-do_0.0-sd_0.0--imagenet2012
 pretrain/swinv2_base_patch4_window12_192_22k.pth
 notebook/embeddings
 pretrain/vitb16_320k_i124_c171_ib0.2.pth
+pretrain/lseg_c171.pth
 vis_dirs
 notebook/final_vis
 notebook/in11k_visualization

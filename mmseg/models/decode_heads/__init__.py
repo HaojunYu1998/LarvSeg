@@ -9,10 +9,14 @@ from .mask_transformer_extend_voc_bce_head import MaskTransformerExtendVocBCEHea
 from .mask_transformer_extend_voc_pseudo_head import MaskTransformerExtendVocPseudoHead
 from .larv_seg_head import LarvSegHead
 from .larv_seg_head_splits import LarvSegHeadSplits
+from .point_seg_head import PointSegHead
+
 
 
 __all__ = [
+    "PointSegHead",
     "LarvSegHead",
+    "LarvSegHeadSplits",
     "MaskTransformerHead",
     "MaskTransformerLSegHead",
     "MaskTransformerLargeVocHead",

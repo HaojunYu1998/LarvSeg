@@ -206,13 +206,14 @@ class LarvSegHead(BaseDecodeHead):
             self.ignore_index = self.test_ignore_index
 
         if self.dataset_on_gpu == "coco171":
-            from mmseg.datasets.coco_stuff import COCOStuffDataset, ProcessedC171Dataset
+            from mmseg.datasets.coco_stuff import COCOStuffDataset
 
             cls_name = COCOStuffDataset.CLASSES
-            if len(self.mix_batch_datasets) > 1 and \
-                "coco171" not in self.weakly_supervised_datasets:
-                cls_name = ProcessedC171Dataset.CLASSES
-                cls_name = [x.split("-")[0] for x in cls_name]
+        elif self.dataset_on_gpu == "coco171_v2":
+            from mmseg.datasets.coco_stuff import ProcessedC171Dataset
+
+            cls_name = ProcessedC171Dataset.CLASSES
+            cls_name = [x.split("-")[0] for x in cls_name]
         elif self.dataset_on_gpu == "pc59":
             from mmseg.datasets.pascal_context import PascalContextDataset59
 
@@ -310,7 +311,6 @@ class LarvSegHead(BaseDecodeHead):
     def forward(self, x):
         x = self._transform_inputs(x)
         B, D, H, W = x.size()
-        print(B, D, H, W)
         x = x.view(B, D, -1).permute(0, 2, 1)
         cls_emb = self.cls_emb[self.cls_index]
         cls_emb = cls_emb.expand(x.size(0), -1, -1)

@@ -22,34 +22,14 @@ from ..losses.accuracy import accuracy
 from .decode_head import BaseDecodeHead
 
 
-coco_splits = [
-    [3, 6, 10, 11, 18, 19, 26, 27, 31, 34, 37, 38, 40, 41, 50, 53, 55, 59, 61, 68, 76, 82, 85, 90, 92,
-    94, 103, 106, 108, 112, 113, 117, 120, 127, 129, 131, 141, 146, 155, 156, 159, 166, 169],
-
-    [1, 3, 6, 7, 9, 10, 13, 27, 31, 35, 38, 40, 43, 44, 53, 62, 68, 74, 77, 80, 82, 84, 86, 99, 101,
-    108, 110, 111, 116, 118, 121, 122, 125, 131, 137, 141, 148, 153, 155, 156, 160, 161, 166],
-
-    [0, 5, 10, 13, 15, 16, 20, 23, 25, 27, 28, 31, 33, 34, 35, 36, 40, 43, 47, 50, 51, 58, 62, 69, 80,
-    81, 83, 84, 87, 90, 101, 105, 119, 121, 124, 126, 137, 138, 150, 154, 157, 158, 164],
-
-    [170, 112, 3, 26, 121, 69, 50, 87, 14, 13, 58, 106, 17, 134, 164, 161, 100, 151, 24, 114, 25, 92, 
-    12, 61, 102, 113, 89, 110, 76, 128, 149, 57, 144, 137, 46, 27, 83, 133, 162, 37, 109, 33, 40]
-]
-
-ade_splits = [
-    [1, 3, 6, 8, 10, 13, 17, 22, 23, 29, 33, 38, 41, 50, 51, 56, 67, 70, 71, 74, 77, 81, 92, 93, 98,
-    101, 102, 103, 110, 113, 119, 121, 126, 127, 130, 136, 147, 149],
-
-    [0, 10, 21, 27, 28, 29, 34, 40, 42, 43, 51, 57, 58, 65, 66, 68, 69, 73, 76, 78, 85, 88, 90, 100,
-    105, 110, 111, 112, 113, 114, 117, 123, 124, 132, 134, 139, 142, 146],
-
-    [0, 5, 9, 15, 16, 21, 24, 25, 27, 32, 34, 35, 38, 39, 55, 70, 76, 85, 95, 96, 98, 100, 106, 109,
-    111, 118, 119, 124, 128, 132, 134, 135, 136, 138, 140, 141, 143, 144],
-    
-    [5, 11, 13, 16, 21, 24, 26, 32, 35, 42, 53, 56, 60, 61, 63, 64, 68, 70, 75, 82, 91, 93, 94, 99, 100,
-    105, 111, 115, 118, 121, 122, 130, 132, 135, 137, 138, 141, 143]
-]
-
+# TODO: Single-image Category-wise Attentive Classifier
+# TODO: Only FG-Enhance Attentive Classifier
+# TODO: Only BG-Suppress Attentive Classifier
+# TODO: C171+I124 => eval A124, OpenVoc Baselines, simple baseline, LarvSeg
+# TODO: C171+I585 => eval A585, OpenVoc Baselines, simple baseline, LarvSeg
+# TODO: Swin or ResNet for backbone
+# TODO: Attentive and Segmentation classifier share the same weights, simple baseline uses seperate weights
+# TODO: Pascal Context 459, COCO-LVIS 1284
 
 
 def mse(img1, img2):
@@ -75,7 +55,7 @@ def init_weights(m):
 
 
 @HEADS.register_module()
-class LarvSegHeadSplits(BaseDecodeHead):
+class PointSegHead(BaseDecodeHead):
     def __init__(
         self,
         n_cls,  # for evaluation
@@ -92,7 +72,6 @@ class LarvSegHeadSplits(BaseDecodeHead):
         ignore_cls_path="",
         mix_batch_datasets=["in124", "coco171"],
         weakly_supervised_datasets=["in124"],
-        split_index=0,
         test_dataset="ade124",
         ignore_indices=[255, 255],
         test_ignore_index=255,
@@ -107,6 +86,9 @@ class LarvSegHeadSplits(BaseDecodeHead):
         use_coseg_single_image=False,
         use_coseg_inference=False,
         use_coseg_score_head=False,
+        use_weak_basic_loss=True,
+        use_weak_bce_loss=False,
+        use_pseudo_label=False,
         memory_bank_size=80,
         memory_bank_warm_up=100,
         foreground_topk=40,
@@ -159,6 +141,9 @@ class LarvSegHeadSplits(BaseDecodeHead):
         self.use_coseg_single_image = use_coseg_single_image
         self.use_coseg_inference = use_coseg_inference
         self.use_coseg_score_head = use_coseg_score_head
+        self.use_weak_basic_loss = use_weak_basic_loss
+        self.use_weak_bce_loss = use_weak_bce_loss
+        self.use_pseudo_label = use_pseudo_label
         self.memory_bank_size = memory_bank_size
         self.memory_bank_warm_up = memory_bank_warm_up
         self.foreground_topk = foreground_topk
@@ -179,29 +164,9 @@ class LarvSegHeadSplits(BaseDecodeHead):
         )
         if not self.use_lang_seg:
             self.cls_emb = nn.Parameter(torch.randn(self.all_classes, d_model))
-        if self.use_coseg:
-            self.register_buffer(
-                f"queue",
-                torch.randn(
-                    self.all_classes, memory_bank_size, foreground_topk, d_model
-                ),
-            )
-            self.register_buffer(
-                f"ptr", torch.zeros(self.all_classes, dtype=torch.long)
-            )
-            self.register_buffer(
-                f"full", torch.zeros(self.all_classes, dtype=torch.long)
-            )
-            self.queue = self.queue / self.queue.norm(dim=-1, keepdim=True)
         self.dim = 2 if self.background_suppression else 1
         self.coseg_head = normalize
         self.rank, self.world_size = get_dist_info()
-        
-        assert len(mix_batch_datasets) == 1
-        if "coco171" in mix_batch_datasets:
-            self.novel_cls = coco_splits[split_index]
-        elif "ade150" in mix_batch_datasets:
-            self.novel_cls = ade_splits[split_index]
 
     def init_weights(self):
         self.apply(init_weights)
@@ -210,10 +175,7 @@ class LarvSegHeadSplits(BaseDecodeHead):
 
     def _update(self, training, label=None):
         rank, _ = get_dist_info()
-        if self.use_lang_seg:
-            cls_emb_path = self.cls_emb_train if training else self.cls_emb_test
-            self.cls_emb = torch.load(cls_emb_path, map_location="cpu")
-            self.cls_emb.requires_grad = False
+
         if training:
             self.dataset_on_gpu = self.mix_batch_datasets[
                 rank % len(self.mix_batch_datasets)
@@ -231,6 +193,13 @@ class LarvSegHeadSplits(BaseDecodeHead):
         else:
             self.dataset_on_gpu = self.test_dataset
             self.ignore_index = self.test_ignore_index
+
+        if self.use_lang_seg:
+            cls_emb_path = self.cls_emb_train if training else self.cls_emb_test
+            if isinstance(cls_emb_path, list):
+                cls_emb_path = cls_emb_path[rank % len(self.mix_batch_datasets)]
+            self.cls_emb = torch.load(cls_emb_path, map_location="cpu")
+            self.cls_emb.requires_grad = False
 
         if self.dataset_on_gpu == "coco171":
             from mmseg.datasets.coco_stuff import COCOStuffDataset, ProcessedC171Dataset
@@ -365,11 +334,6 @@ class LarvSegHeadSplits(BaseDecodeHead):
     def forward_test(self, inputs, img_metas, test_cfg, gt_semantic_seg=None, img=None):
         self._update(training=False)
         masks, embeds, scores = self.forward(inputs)
-        if self.use_coseg_inference:
-            masks = self._coseg_inference(masks, scores, embeds)
-        elif self.oracle_inference:
-            assert gt_semantic_seg is not None
-            masks = self.oracle_propagation(embeds, img_metas, gt_semantic_seg)
         return masks
 
     @force_fp32(apply_to=("seg_mask",))
@@ -381,9 +345,10 @@ class LarvSegHeadSplits(BaseDecodeHead):
             seg_mask, size=(h, w), mode="bilinear", align_corners=self.align_corners
         )
         seg_label = resize(seg_label.float(), size=(h, w), mode="nearest").long()
-        loss = self.supervised_loss(seg_mask, seg_label)
-        loss_weak = self.weakly_loss(seg_mask, seg_embed, seg_score, seg_label)
-        loss.update(loss_weak)
+        if self.weakly_supervised:
+            loss = self.weakly_loss(seg_mask, seg_embed, seg_score, seg_label)
+        else:
+            loss = self.supervised_loss(seg_mask, seg_label)
         loss["acc_seg"] = self._log_accuracy(seg_mask, seg_label)
         return loss
 
@@ -414,16 +379,11 @@ class LarvSegHeadSplits(BaseDecodeHead):
         B, N, H, W = seg_mask.size()
         seg_mask = seg_mask.permute(0, 2, 3, 1).reshape(B * H * W, N)
         seg_label = seg_label.reshape(B * H * W)
-        unique_label = torch.unique(seg_label.flatten())
-        unique_label = unique_label[unique_label != self.ignore_index].tolist()
-        novel_label = list(set(unique_label) & set(self.novel_cls))
-        seg_label_ = copy.deepcopy(seg_label)
-        for novel_l in novel_label:
-            seg_label_[seg_label == novel_l] = self.ignore_index
         loss["loss_basic"] = (
-            self.loss_decode(seg_mask, seg_label_, ignore_index=self.ignore_index)
+            self.loss_decode(seg_mask, seg_label, ignore_index=self.ignore_index)
             * self.basic_loss_weight
         )
+        loss["loss_coseg"] = seg_mask.sum() * 0.0
         return loss
 
     def weakly_loss(self, seg_mask, seg_embed, seg_score, seg_label):
@@ -436,45 +396,76 @@ class LarvSegHeadSplits(BaseDecodeHead):
         seg_label = seg_label.reshape(B, H * W)
         basic_loss, num_basic = 0.0, 0
         coseg_loss, num_coseg = 0.0, 0
-
+        
         for idx, (mask, embed, score, label) in enumerate(
             zip(seg_mask, seg_embed, seg_score, seg_label)
         ):
             unique_label = torch.unique(label)
             unique_label = unique_label[unique_label != self.ignore_index].tolist()
-            base_label = list(set(unique_label) - set(self.novel_cls))
-            novel_label = list(set(unique_label) & set(self.novel_cls))
-            label_ = copy.deepcopy(label)
-            for base_l in base_label:
-                label_[label == base_l] = self.ignore_index
-            
-            for l in novel_label:
-                ignore_inds = [x for x in novel_label if x != l]
-                basic_loss += self._cross_entropy_loss(mask, l, ignore_inds, label_)
-                num_basic += 1
-                if not self.use_coseg:
-                    continue
-                if self.use_coseg_single_image:
-                    coseg_loss += self._single_coseg_loss(
-                        mask, score, embed, l, (h, w, H, W), ignore_inds, label_
-                    )
-                else:
-                    coseg_loss += self._coseg_loss(
-                        mask, score, embed, l, (h, w, H, W), ignore_inds, label_
-                    )
-                num_coseg += 1
 
+            # construct cos_mat_dict
+            cos_mat_dict = {}
+            with torch.no_grad():
+                embed = embed / embed.norm(dim=-1, keepdim=True)
+                embed = F.interpolate(
+                    embed.reshape(1, h, w, D).permute(0, 3, 1, 2), size=(H, W)
+                ).permute(0, 2, 3, 1).reshape(H * W, D)
+                for l in unique_label:
+                    embed_l = embed[label == l]
+                    idx = np.random.choice(len(embed_l), 1)
+                    embed_l = embed_l[[idx]]
+                    embed_l = embed_l / embed_l.norm(dim=-1, keepdim=True)
+                    cos_mat = embed @ embed_l.T
+                    cos_mat_dict[l] = cos_mat.mean(dim=-1)
+
+            if self.use_pseudo_label:
+                coseg_loss += self._single_pseudo_label_loss(
+                    mask, label, (h, w, H, W, N), cos_mat_dict
+                )
+                num_coseg += 1
+                continue
+
+            # bce_loss
+            if self.use_weak_bce_loss and self.use_weak_basic_loss:
+                valid = label != self.ignore_index
+                label_one_hot = F.one_hot(label[valid], num_classes=N).float().sum(dim=0)
+                label_one_hot = (label_one_hot > 0).int().float()
+                pred = mask[valid].mean(dim=0)
+                if float(label_one_hot.sum()) > 0:
+                    basic_loss += (
+                        F.binary_cross_entropy_with_logits(pred, label_one_hot)
+                    )
+                    num_basic += 1
+            if self.use_weak_bce_loss:
+                # mask, label, shape, cos_mat_dict
+                coseg_loss += self._single_coseg_bce_loss(
+                    mask, label, (h, w, H, W, N), cos_mat_dict
+                )
+                num_coseg += 1
+                continue
+            
+            # ce_loss
+            for l in unique_label:
+                ignore_inds = [x for x in unique_label if x != l]
+                if self.use_weak_basic_loss:
+                    basic_loss += self._cross_entropy_loss(mask, l, ignore_inds)
+                    num_basic += 1
+                coseg_loss += self._single_coseg_loss(
+                    mask, l, (h, w, H, W), ignore_inds, cos_mat_dict
+                )
+                num_coseg += 1
         if num_basic == 0:
-            loss["loss_avg"] = seg_mask.sum() * 0.0
+            loss["loss_basic"] = seg_mask.sum() * 0.0
         else:
-            loss["loss_avg"] = basic_loss / num_basic * self.coseg_loss_weight
+            assert self.use_weak_basic_loss
+            loss["loss_basic"] = basic_loss / num_basic * self.basic_loss_weight
         if num_coseg == 0:
             loss["loss_coseg"] = seg_mask.sum() * 0.0
         else:
             loss["loss_coseg"] = coseg_loss / num_coseg * self.coseg_loss_weight
         return loss
 
-    def _cross_entropy_loss(self, pred, label, ignore_indices, seg_label):
+    def _cross_entropy_loss(self, pred, label, ignore_indices):
         """Cross Entropy Loss with multiple ignore indices."""
         assert pred.numel() > 0, "no elements in prediction"
         if "in" in self.dataset_on_gpu:
@@ -486,155 +477,76 @@ class LarvSegHeadSplits(BaseDecodeHead):
             return pred.sum() * 0.0
         assert label in kept_indices, f"{label} not in {kept_indices}"
         map_dict = {old_ind: new_ind for new_ind, old_ind in enumerate(kept_indices)}
-        valid_mask = seg_label.flatten() != self.ignore_index
-        pred = pred[:, kept_indices]
-        pred = pred[valid_mask].mean(dim=0, keepdim=True)
+        pred = pred[:, kept_indices].mean(dim=0, keepdim=True)
         label = torch.zeros_like(pred[:, 0]).long() + map_dict[label]
         return F.cross_entropy(pred, label)
 
-    def _coseg_loss(self, mask, score, embed, fg_label, shape, bg_labels, seg_label):
-        h, w, H, W = shape
-        # (h * w, 1) or (h * w, 2)
-        coseg_score = self._coseg_score(score, embed, fg_label, bg_labels)
-        try:
-            self._dequeue_and_enqueue(embed, score, fg_label)
-        except:
-            print("Unsuccessful _dequeue_and_enqueue!")
-        if coseg_score is None:
-            return mask.sum() * 0.0
-        if self.background_suppression and not self.use_coseg_score_head:
-            coseg_score = coseg_score[..., 0] - coseg_score[..., 1]
-        coseg_score = self.coseg_head(coseg_score).reshape(h, w)
-        coseg_score = F.interpolate(
-            coseg_score[None, None],
-            size=(H, W),
-            mode="bilinear",
-            align_corners=self.align_corners,
-        )[0, 0].flatten()
-        mask = mask * coseg_score[:, None].sigmoid()
-        coseg_loss = self._cross_entropy_loss(mask, fg_label, bg_labels, seg_label)
-        return coseg_loss
-
-    def _single_coseg_loss(self, mask, score, embed, fg_label, shape, bg_labels, seg_label):
+    def _single_coseg_loss(self, mask, fg_label, shape, bg_labels, cos_mat_dict):
         assert self.memory_bank_size == 1, \
             "MBS should be set to 1 for single-image co-segmentation!"
         h, w, H, W = shape
-        try:
-            self._dequeue_and_enqueue(embed, score, fg_label)
-        except:
-            print("Unsuccessful _dequeue_and_enqueue!")
-        # if no bg_labels, the only novel class in the image is fg_label
-        # in this case, all valid pixels are fg_label
-        if len(bg_labels) > 0:
-            with torch.no_grad():
-                coseg_score = self._coseg_score(score, embed, fg_label, bg_labels)
-                if coseg_score is None:
-                    return mask.sum() * 0.0
-                if self.background_suppression and not self.use_coseg_score_head:
-                    coseg_score = coseg_score[..., 0] - coseg_score[..., 1]
-                coseg_score = self.coseg_head(coseg_score).reshape(h, w)
-                coseg_score = F.interpolate(
-                    coseg_score[None, None],
-                    size=(H, W),
-                    mode="bilinear",
-                    align_corners=self.align_corners,
-                )[0, 0].flatten()
-            mask = mask * coseg_score[:, None].sigmoid()
-        coseg_loss = self._cross_entropy_loss(mask, fg_label, bg_labels, seg_label)
+        # (h * w, 1) or (h * w, 2)
+        coseg_score = self._coseg_score(fg_label, bg_labels, cos_mat_dict)
+        coseg_score = self.coseg_head(coseg_score).reshape(H * W)
+        mask = mask * coseg_score[:, None].sigmoid()
+        coseg_loss = self._cross_entropy_loss(mask, fg_label, bg_labels)
         return coseg_loss
 
-    def _coseg_inference(self, mask, score, embed):
-        B, N, h, w = mask.shape
-        B, D, h, w = embed.shape
-        assert B == 1
-        mask = mask.permute(0, 2, 3, 1).reshape(h * w, N)
-        score = score.permute(0, 2, 3, 1).reshape(h * w, N)
-        embed = embed.permute(0, 2, 3, 1).reshape(h * w, D)
-        for l in range(N):
-            coseg_score_l = self._coseg_score(score, embed, l, [])
-            coseg_score_l = coseg_score_l[..., 0] - coseg_score_l[..., 1]
-            coseg_score_l = self.coseg_head(coseg_score_l).flatten()
-            mask[:, l] *= coseg_score_l.sigmoid()
-        return mask.reshape(B, h, w, N).permute(0, 3, 1, 2)
+    def _single_coseg_bce_loss(self, mask, label, shape, cos_mat_dict):
+        h, w, H, W, N = shape
+        # (h * w, 1) or (h * w, 2)
+        unique_label = torch.unique(label).flatten()
+        unique_label = unique_label[unique_label != self.ignore_index].tolist()
+        coseg_score_mat = torch.ones_like(mask)
+        for fg_label in unique_label:
+            bg_labels = [x for x in unique_label if x != fg_label]
+            coseg_score = self._coseg_score(fg_label, bg_labels, cos_mat_dict)
+            coseg_score = self.coseg_head(coseg_score).reshape(H * W)
+            coseg_score_mat[:, fg_label] = coseg_score.sigmoid()
+        mask = mask * coseg_score_mat
+        # calculate bce loss
+        valid = label != self.ignore_index
+        label_one_hot = F.one_hot(label[valid], num_classes=N).float().sum(dim=0)
+        label_one_hot = (label_one_hot > 0).int().float()
+        if float(label_one_hot.sum()) > 0:
+            pred = mask[valid].mean(dim=0)
+            coseg_loss = F.binary_cross_entropy_with_logits(pred, label_one_hot)
+        else:
+            coseg_loss = mask.sum() * 0.0
+        return coseg_loss
+
+    def _single_pseudo_label_loss(self, seg_mask, seg_label, shape, cos_mat_dict):
+        h, w, H, W, N = shape
+        # (h * w, 1) or (h * w, 2)
+        unique_label = torch.unique(seg_label).flatten()
+        unique_label = unique_label[unique_label != self.ignore_index].tolist()
+        if len(unique_label) == 0:
+            return seg_mask.sum() * 0.0
+        coseg_score_mat = torch.zeros_like(seg_mask) - 2.0
+        for fg_label in unique_label:
+            bg_labels = [x for x in unique_label if x != fg_label]
+            coseg_score = self._coseg_score(fg_label, bg_labels, cos_mat_dict)
+            coseg_score = self.coseg_head(coseg_score).reshape(H * W)
+            coseg_score_mat[:, fg_label] = coseg_score.sigmoid()
+
+        pseudo_label = coseg_score_mat.argmax(dim=1).flatten()
+        pseudo_unique_label = torch.unique(pseudo_label).flatten()
+        pseudo_unique_label = pseudo_unique_label[pseudo_unique_label != self.ignore_index].tolist()
+        # print(f"{unique_label} != {pseudo_unique_label}", f"{coseg_score_mat.max(dim=0)}")
+        assert len(set(unique_label) | set(pseudo_unique_label)) == len(set(unique_label)), \
+            f"{unique_label} != {pseudo_unique_label}"
+        coseg_loss = self.loss_decode(seg_mask, pseudo_label, ignore_index=self.ignore_index)
+        return coseg_loss
 
     @torch.no_grad()
-    def _coseg_score(self, score, embed, fg_label, bg_labels):
-        fg_ind = self.cls_index[fg_label]
-        if int(self.full[fg_ind]) < self.memory_bank_warm_up:
-            return None
-        fg_embed = self.queue[fg_ind].reshape(-1, self.d_model)
-        fg_embed = fg_embed / fg_embed.norm(dim=-1, keepdim=True)
-        embed = embed / embed.norm(dim=-1, keepdim=True)
-        cos_mat = embed @ fg_embed.T
-        coseg_score = cos_mat.mean(dim=-1)
-        if not self.background_suppression:
-            return coseg_score[:, None]
-        if len(bg_labels) > 0:
-            bg_classes = bg_labels
-            bg_inds = [self.cls_index[bg_cls] for bg_cls in bg_classes]
-            bg_embed = self.queue[bg_inds]
-            bg_embed = bg_embed.reshape(-1, self.d_model)
-            bg_embed = bg_embed / bg_embed.norm(dim=-1, keepdim=True)
-            cos_mat = embed @ bg_embed.T
-            bg_coseg_score = cos_mat.reshape(len(embed), len(bg_inds), -1).mean(dim=-1)
-            bg_coseg_score = bg_coseg_score.mean(dim=-1)
-            coseg_score = torch.stack([coseg_score, bg_coseg_score], dim=-1)
+    def _coseg_score(self, fg_label, bg_labels, cos_mat_dict):
+        fg_mat = cos_mat_dict[fg_label]
+        if len(bg_labels):
+            bg_mat = torch.stack([cos_mat_dict[i] for i in bg_labels], dim=0).mean(dim=0)
+            coseg_score = fg_mat - bg_mat
         else:
-            coseg_score = torch.stack([coseg_score, 1.0 - coseg_score], dim=-1)
-        return coseg_score
-
-    def _dequeue_and_enqueue(self, embed, score, cls):
-        """
-        Args:
-            embed: torch.Tensor(h * w, D)
-            score: torch.Tensor(h * w, N)
-            cls: int, class index of current dataset
-        """
-        inds = score[:, cls].topk(self.foreground_topk).indices.flatten()
-        embed = embed[inds]
-        cls_ind = self.cls_index[cls]
-        ptr = int(self.ptr[cls_ind])
-        self.queue[cls_ind, ptr] = embed
-        if (ptr + 1) >= self.memory_bank_size:
-            self.full[cls_ind] += 1
-        ptr = (ptr + 1) % self.memory_bank_size
-        self.ptr[cls_ind] = ptr
-
-    def oracle_propagation(self, seg_embed, img_metas, seg_label):
-        name = img_metas[0]["ori_filename"].replace("jpg", "pth")
-        device = seg_embed.device
-        B, D, H, W = seg_embed.shape
-        h = seg_label.shape[-2] // self.oracle_downsample_rate
-        w = seg_label.shape[-1] // self.oracle_downsample_rate
-        seg_embed = resize(
-            input=seg_embed,
-            size=(h, w),
-            mode="bilinear",
-            align_corners=self.align_corners,
-        )
-        seg_label = resize(input=seg_label.float(), size=(h, w), mode="nearest").long()[
-            0, 0
-        ]
-        if self.dataset_on_gpu == "ade150":
-            seg_label = seg_label - 1
-            seg_label[seg_label == -1] = self.ignore_index
-        seg_embed = seg_embed.permute(0, 2, 3, 1)
-        seg_label_per_image = seg_label.reshape(h * w)
-        seg_embed_per_image = seg_embed.reshape(h * w, D)
-        seg_embed_per_image = seg_embed_per_image / seg_embed_per_image.norm(
-            dim=-1, keepdim=True
-        )
-        unique_label = torch.unique(seg_label_per_image)
-        unique_label = unique_label[unique_label != self.ignore_index]
-        masks = torch.zeros((B, self.num_classes, h, w), device=device)
-        for l in unique_label:
-            pos_inds = (seg_label_per_image == l).nonzero(as_tuple=False).flatten()
-            inds = torch.randperm(len(pos_inds))[: self.num_oracle_points]
-            seed_inds = pos_inds[inds]
-            cos_mat = seg_embed_per_image[seed_inds] @ seg_embed_per_image.T
-            score_mat = cos_mat.max(dim=0).values.reshape(h, w)
-            masks[0, l] = score_mat
-        return masks
+            coseg_score = fg_mat
+        return coseg_score.detach()
 
     @staticmethod
     def _get_batch_hist_vector(target, nclass):

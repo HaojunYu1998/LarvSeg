@@ -4,9 +4,11 @@ export CUDA_VISIBLE_DEVICES=0,1,2,3
 
 
 bash tools/dist_train.sh \
-configs/coseg_splits_coco171_10k/res50_320k_c171_split0_sco_cc0.1_fg1_bg_v2.py
+configs/point_coco171_ade150w/vitb16_320k_wa150_c171_ft_psedo_ac0.4_fg1_bg.py
 
 
+# bash tools/dist_train.sh \
+# configs/point_coco171_ade150w/vitb16_320k_wa150_c171_bce_ab0.0_psco_ac4.0_fg1_bg.py
 
 # bash tools/dist_test.sh \
 # configs/extend_voc/baseline_in11k/vitb16_640k_i11k_c171_s100_ib0.2_eval.py \

@@ -1,34 +1,25 @@
 _base_ = [
-    "../_base_/models/large_voc_vitb16.py",
-    "../_base_/datasets/A150_eval_C171.py",
+    "../_base_/models/large_voc_res50.py",
+    "../_base_/datasets/C171.py",
     "../_base_/default_runtime.py",
     "../_base_/schedules/schedule_320k.py",
 ]
 
 model = dict(
-    backbone=dict(
-        drop_path_rate=0.1,
-        final_norm=True,
-    ),
-    neck=dict(
-        type="UseIndexSingleOutNeck",
-        index=-1,
-    ),
+    type="EncoderDecoder",
     decode_head=dict(
-        type="MaskTransformerExtendVocHead",
+        type="LarvSegHead",
         n_cls=171,
-        downsample_rate=2,
+        downsample_rate=1,
         all_cls_path="",
-        mix_batch_datasets=["ade150"],
+        ignore_cls_path="",
+        mix_batch_datasets=["coco171"],
         weakly_supervised_datasets=[],
         test_dataset="coco171",
         ignore_indices=[255],
         test_ignore_index=255,
         basic_loss_weights=[1.0],
         coseg_loss_weights=[0.0],
-        use_lang_seg=True,
-        cls_emb_train="file/cls_emb_a150.pth",
-        cls_emb_test="file/cls_emb_c171.pth",
     ),
     test_cfg=dict(mode="slide", crop_size=(512, 512), stride=(512, 512)),
 )
