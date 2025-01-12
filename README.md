@@ -10,6 +10,14 @@ The vocabulary of current semantic segmentation models is limited because pixel-
 
 If you find LarvSeg useful in your research, please consider citing:
 ```
+@inproceedings{yu2024larvseg,
+  title={LarvSeg: Exploring Image Classification Data for Large Vocabulary Semantic Segmentation via Category-Wise Attentive Classifier},
+  author={Yu, Haojun and Dai, Di and Zhao, Ziwei and He, Di and Hu, Han and Wang, Liwei},
+  booktitle={Chinese Conference on Pattern Recognition and Computer Vision (PRCV)},
+  pages={50--64},
+  year={2024},
+  organization={Springer}
+}
 ```
 
 ## Usage
